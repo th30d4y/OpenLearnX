@@ -1,4 +1,4 @@
-# OpenLearn
+# OpenLearnX
 
 **OpenLearnX** is a decentralized learning and assessment platform that blends adaptive testing, instant feedback, and blockchain-based certification.
 
