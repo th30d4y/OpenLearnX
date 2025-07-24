@@ -1,0 +1,27 @@
+# Ignore virtual environment
+venv/
+env/
+
+# Python cache and compiled files
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Editor/IDE settings
+.vscode/
+.idea/
+
+# Environment variables
+.env
+*.env
+
+# MacOS/Linux/Windows system files
+.DS_Store
+Thumbs.db
+
+# Logs and database files
+*.log
+*.sqlite3
+
+# Jupyter Notebooks checkpoints (if using)
+.ipynb_checkpoints/
