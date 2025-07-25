@@ -52,4 +52,53 @@ Or to fork Ethereum mainnet (for testing with real contract data):
 anvil --fork-url https://eth.merkle.io
 
 ```
-## Completed:)
+## Step 1 Completed:)
+
+# Step 2 Backend
+
+OpenLearnX Quick Start Commands
+
+## Terminal 1: Start Anvil Blockchain
+```
+anvil --fork-url https://eth.merkle.io
+```
+Keep this terminal running
+
+## Terminal 2: Deploy Smart Contract
+
+```
+cd backend
+source venv/bin/activate
+python3 scripts/deploy.py
+```
+
+Copy the contract address to your .env file, then you can close this terminal
+
+## Terminal 3: Start Flask Application
+
+```
+cd backend
+source venv/bin/activate
+python3 main.py
+```
+Keep this terminal running
+
+## Test Your Platform
+```
+# Test API health
+curl http://127.0.0.1:5000/
+
+# Test authentication endpoint
+curl -X POST http://127.0.0.1:5000/api/auth/nonce \
+  -H "Content-Type: application/json" \
+  -d '{"wallet_address": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"}'
+```
+Your OpenLearnX Platform URLs
+```
+
+
+    API: http://127.0.0.1:5000
+
+    Network Access: http://192.168.35.250:5000
+```
+## Step 2 Completed:)
