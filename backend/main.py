@@ -7,7 +7,7 @@ from mongo_service import MongoService
 from web3_service import Web3Service
 
 # Import all route blueprints
-from routes import auth, test_flow, certificate, dashboard
+from routes import auth, test_flow, certificate, dashboard , courses, quizzes
 
 load_dotenv()
 
@@ -34,6 +34,8 @@ app.register_blueprint(auth.bp, url_prefix='/api/auth')
 app.register_blueprint(test_flow.bp, url_prefix='/api/test')
 app.register_blueprint(certificate.bp, url_prefix='/api/certificate')
 app.register_blueprint(dashboard.bp, url_prefix='/api/dashboard')
+app.register_blueprint(courses.bp, url_prefix='/api/courses')
+app.register_blueprint(quizzes.bp, url_prefix='/api/quizzes')
 
 @app.route('/')
 def health_check():
