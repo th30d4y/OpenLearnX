@@ -1,12 +1,11 @@
 from flask import Blueprint, request, jsonify, current_app
 import jwt
 from datetime import datetime, timedelta
-import uuid
 
 bp = Blueprint('auth', __name__)
 
 @bp.route('/nonce', methods=['POST'])
-async def get_nonce():
+def get_nonce():
     """Generate nonce for wallet signature"""
     data = request.get_json()
     wallet_address = data.get('wallet_address')
@@ -17,7 +16,6 @@ async def get_nonce():
     web3_service = current_app.config['WEB3_SERVICE']
     nonce = web3_service.generate_nonce()
     
-    # Store nonce temporarily (in production, use Redis)
     message = f"Sign this message to authenticate with OpenLearnX: {nonce}"
     
     return jsonify({
@@ -71,29 +69,3 @@ async def verify_signature():
             "certificates": len(user.get('certificates', []))
         }
     })
-
-@bp.route('/profile', methods=['GET'])
-async def get_profile():
-    """Get user profile"""
-    token = request.headers.get('Authorization', '').replace('Bearer ', '')
-    
-    if not token:
-        return jsonify({"error": "Token required"}), 401
-    
-    try:
-        payload = jwt.decode(
-            token, 
-            current_app.config['SECRET_KEY'], 
-            algorithms=['HS256']
-        )
-        user_id = payload['user_id']
-        
-        mongo_service = current_app.config['MONGO_SERVICE']
-        analytics = await mongo_service.get_user_analytics(user_id)
-        
-        return jsonify(analytics)
-        
-    except jwt.ExpiredSignatureError:
-        return jsonify({"error": "Token expired"}), 401
-    except jwt.InvalidTokenError:
-        return jsonify({"error": "Invalid token"}), 401
