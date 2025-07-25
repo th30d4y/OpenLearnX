@@ -1,6 +1,6 @@
 {
-  "contract_address": "0x68b6014a12702891757fE994d70dE411FF74B94e",
-  "transaction_hash": "0x26fd0a4dda1212096c20a842d8aed7f5ee2c22258cc606ae97dcdbd55e01a675",
+  "contract_address": "0xC2FE2F49B3a1384aEdFAae127F054FAf216eF684",
+  "transaction_hash": "0xfe5a433dae316bd2d60b7190c21866a1fde30777f08d9d37e403ed642433fa28",
   "deployer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
   "network": "local",
   "abi": [
@@ -685,6 +685,6 @@
     }
   ],
   "gas_used": 3387337,
-  "block_number": 22993928,
+  "block_number": 22994809,
   "status": 1
 }

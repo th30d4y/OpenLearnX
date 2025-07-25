@@ -102,3 +102,85 @@ Your OpenLearnX Platform URLs
     Network Access: http://192.168.35.250:5000
 ```
 ## Step 2 Completed:)
+
+# Step 3 Frontend
+
+based on your backend setup and requirements for a comprehensive adaptive learning platform, here's how to build the frontend in your existing frontend directory.
+
+## 
+
+```
+cd frontend
+
+# Create React + TypeScript + Vite project
+npm create vite@latest . -- --template react-ts
+
+# Install dependencies
+npm install
+
+# Install additional packages for OpenLearnX features
+npm install web3 ethers @metamask/detect-provider
+npm install react-router-dom react-query
+npm install @headlessui/react @heroicons/react
+npm install chart.js react-chartjs-2 recharts
+npm install axios react-hook-form
+npm install framer-motion react-hot-toast
+npm install tailwindcss @tailwindcss/forms
+```
+## Project Structure
+
+```
+frontend/
+├── src/
+│   ├── components/
+│   │   ├── auth/
+│   │   │   ├── MetaMaskConnect.tsx
+│   │   │   └── WalletAuth.tsx
+│   │   ├── testing/
+│   │   │   ├── AdaptiveTest.tsx
+│   │   │   ├── QuestionCard.tsx
+│   │   │   ├── InstantFeedback.tsx
+│   │   │   └── ProgressTracker.tsx
+│   │   ├── assessment/
+│   │   │   ├── PeerReview.tsx
+│   │   │   ├── BiasDetection.tsx
+│   │   │   └── Portfolio.tsx
+│   │   ├── dashboard/
+│   │   │   ├── StudentDashboard.tsx
+│   │   │   ├── InstructorDashboard.tsx
+│   │   │   ├── CompetencyRadar.tsx
+│   │   │   └── ProgressChart.tsx
+│   │   ├── certificates/
+│   │   │   ├── CertificateGallery.tsx
+│   │   │   ├── NFTViewer.tsx
+│   │   │   └── BlockchainVerify.tsx
+│   │   └── common/
+│   │       ├── Layout.tsx
+│   │       ├── Navigation.tsx
+│   │       └── LoadingSpinner.tsx
+│   ├── hooks/
+│   │   ├── useMetaMask.ts
+│   │   ├── useAdaptiveTesting.ts
+│   │   ├── useInstantFeedback.ts
+│   │   └── useBlockchain.ts
+│   ├── services/
+│   │   ├── api.ts
+│   │   ├── web3.ts
+│   │   └── auth.ts
+│   ├── types/
+│   │   ├── auth.ts
+│   │   ├── testing.ts
+│   │   └── dashboard.ts
+│   ├── utils/
+│   │   ├── adaptiveAlgorithm.ts
+│   │   ├── biasDetection.ts
+│   │   └── competencyMapping.ts
+│   └── pages/
+│       ├── HomePage.tsx
+│       ├── TestingPage.tsx
+│       ├── DashboardPage.tsx
+│       └── CertificatesPage.tsx
+
+```
+
+
