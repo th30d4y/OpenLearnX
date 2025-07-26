@@ -34,3 +34,7 @@ Thumbs.db
 
 
 node_modules/
+.pnpm/
+*.log
+*.env
+*.sqlite3
