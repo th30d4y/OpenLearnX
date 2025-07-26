@@ -6,51 +6,50 @@ export default function JoinExam() {
   const [examCode, setExamCode] = useState('')
   const [studentName, setStudentName] = useState('')
   const [loading, setLoading] = useState(false)
-  const [result, setResult] = useState('')
+  const [error, setError] = useState('')
   const router = useRouter()
 
-  const join = async () => {
-    if (!examCode || !studentName) {
-      setResult('❌ Please fill both fields')
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault() // ✅ Prevent form from reloading page
+    
+    setError('')
+    
+    if (!examCode.trim()) {
+      setError('Please enter the exam code')
+      return
+    }
+    
+    if (!studentName.trim()) {
+      setError('Please enter your name')
       return
     }
 
     setLoading(true)
-    setResult('⏳ Joining exam...')
 
     try {
+      // ✅ CORRECT FIELD NAMES - Must match backend expectations
       const payload = {
-        exam_code: examCode.trim().toUpperCase(),
-        student_name: studentName.trim()
+        exam_code: examCode.trim().toUpperCase(),    // Backend expects exam_code
+        student_name: studentName.trim()             // Backend expects student_name
       }
       
-      console.log('🚀 Sending:', payload)
+      console.log('🚀 Sending payload:', payload)
 
       const response = await fetch('http://127.0.0.1:5000/api/exam/join-exam', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify(payload) // ✅ MUST stringify the payload
       })
 
+      console.log('📡 Response status:', response.status)
+      
       const data = await response.json()
-      console.log('📦 Response:', data)
-
+      console.log('📦 Response data:', data)
+      
       if (data.success) {
-        // ✅ ENHANCED SUCCESS DISPLAY
-        const successMessage = `✅ Successfully joined: ${data.exam_info.title}
-
-📋 Exam Details:
-• Status: ${data.exam_info.status}
-• Duration: ${data.exam_info.duration_minutes} minutes
-• Participants: ${data.exam_info.participants_count}/${data.exam_info.max_participants}
-• Languages: ${data.exam_info.languages.join(', ')}
-• Problem: ${data.exam_info.problem_title}
-
-🎯 You're now registered for the exam!
-⏳ Wait for the host to start the exam.`
-
-        setResult(successMessage)
-        
         // Store session data
         localStorage.setItem('exam_session', JSON.stringify({
           exam_code: examCode.toUpperCase(),
@@ -59,124 +58,96 @@ export default function JoinExam() {
           joined_at: new Date().toISOString()
         }))
 
-        // Show success alert
-        alert(`🎉 Welcome to the exam!
+        alert(`✅ Successfully joined: ${data.exam_info.title}
 
-📝 Exam: ${data.exam_info.title}
 👤 Joined as: ${studentName}
 📊 You are participant #${data.exam_info.participants_count}
 
-✅ Successfully registered!`)
+Wait for the host to start the exam!`)
 
-        // Redirect to exam waiting page after 2 seconds
-        setTimeout(() => {
-          router.push('/coding/exam')
-        }, 2000)
+        // Redirect to exam interface
+        router.push('/coding/exam')
         
       } else {
-        setResult(`❌ Error: ${data.error}`)
+        setError(data.error || 'Failed to join exam')
       }
     } catch (error) {
       console.error('❌ Error:', error)
-      setResult('❌ Network error: Could not connect to server')
+      setError('Network error: Could not connect to backend server')
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div style={{ padding: '50px', background: '#1a1a1a', color: 'white', minHeight: '100vh', fontFamily: 'monospace' }}>
-      <h1>🚀 Join Coding Exam</h1>
-      
-      <div style={{ maxWidth: '500px', marginTop: '30px' }}>
-        <div style={{ marginBottom: '20px' }}>
-          <label style={{ display: 'block', marginBottom: '5px', color: '#4CAF50' }}>
-            Exam Code:
-          </label>
-          <input
-            value={examCode}
-            onChange={e => setExamCode(e.target.value)}
-            placeholder="0C3LQ8"
-            style={{ 
-              width: '100%', 
-              padding: '12px', 
-              background: '#333', 
-              color: 'white', 
-              border: '2px solid #4CAF50',
-              borderRadius: '4px',
-              fontFamily: 'monospace',
-              fontSize: '16px',
-              textTransform: 'uppercase'
-            }}
-          />
+    <div className="min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-pink-900 flex items-center justify-center p-4">
+      <div className="bg-white rounded-xl shadow-2xl p-8 w-full max-w-md">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Join Coding Exam</h1>
+          <p className="text-gray-600">Enter the exam code provided by your instructor</p>
         </div>
-        
-        <div style={{ marginBottom: '20px' }}>
-          <label style={{ display: 'block', marginBottom: '5px', color: '#4CAF50' }}>
-            Your Name:
-          </label>
-          <input
-            value={studentName}
-            onChange={e => setStudentName(e.target.value)}
-            placeholder="Your name"
-            style={{ 
-              width: '100%', 
-              padding: '12px', 
-              background: '#333', 
-              color: 'white', 
-              border: '2px solid #4CAF50',
-              borderRadius: '4px',
-              fontSize: '16px'
-            }}
-          />
+
+        {/* Form with proper onSubmit handler */}
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Exam Code
+            </label>
+            <input
+              type="text"
+              value={examCode}
+              onChange={(e) => setExamCode(e.target.value.toUpperCase())}
+              placeholder="Enter 6-character code"
+              maxLength={6}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center text-lg font-mono tracking-widest uppercase"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Your Name
+            </label>
+            <input
+              type="text"
+              value={studentName}
+              onChange={(e) => setStudentName(e.target.value)}
+              placeholder="Enter your full name"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              required
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading || !examCode.trim() || !studentName.trim()}
+            className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-3 px-4 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+          >
+            {loading ? (
+              <div className="flex items-center justify-center">
+                <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent mr-2"></div>
+                Joining Exam...
+              </div>
+            ) : (
+              'Join Exam'
+            )}
+          </button>
+        </form>
+
+        {/* Error Display */}
+        {error && (
+          <div className="mt-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+            ❌ {error}
+          </div>
+        )}
+
+        {/* Debug Info */}
+        <div className="mt-6 p-4 bg-gray-50 rounded-lg text-xs">
+          <p className="text-gray-500 mb-1">Debug Info:</p>
+          <p className="text-gray-400">Code: "{examCode}"</p>
+          <p className="text-gray-400">Name: "{studentName}"</p>
+          <p className="text-green-600 font-medium">✅ Sends: exam_code + student_name</p>
         </div>
-        
-        <button
-          onClick={join}
-          disabled={loading}
-          style={{ 
-            width: '100%',
-            padding: '15px', 
-            background: loading ? '#666' : '#4CAF50', 
-            color: 'white', 
-            border: 'none',
-            borderRadius: '4px',
-            fontSize: '18px',
-            cursor: loading ? 'not-allowed' : 'pointer',
-            fontWeight: 'bold'
-          }}
-        >
-          {loading ? '⏳ Joining Exam...' : '🚀 Join Exam'}
-        </button>
-      </div>
-      
-      {/* ENHANCED RESULT DISPLAY */}
-      {result && (
-        <div style={{ 
-          marginTop: '30px', 
-          padding: '20px', 
-          background: result.includes('✅') ? '#1a4a1a' : '#4a1a1a',
-          border: result.includes('✅') ? '2px solid #4CAF50' : '2px solid #f44336',
-          borderRadius: '8px',
-          whiteSpace: 'pre-line',
-          fontSize: '14px',
-          lineHeight: '1.6'
-        }}>
-          {result}
-        </div>
-      )}
-      
-      <div style={{ 
-        marginTop: '30px', 
-        padding: '15px', 
-        background: '#333', 
-        borderRadius: '4px',
-        border: '2px solid #4CAF50'
-      }}>
-        <h3 style={{ color: '#4CAF50' }}>🔧 Debug Info:</h3>
-        <p>Exam Code: "{examCode}"</p>
-        <p>Student Name: "{studentName}"</p>
-        <p style={{ color: '#4CAF50' }}>✅ Backend working correctly</p>
       </div>
     </div>
   )

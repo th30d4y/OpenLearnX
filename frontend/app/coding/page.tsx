@@ -118,36 +118,74 @@ export default function CodingExamPlatform() {
       })
       
       const data = await response.json()
+      console.log('📦 Create exam response:', data)
+      
       if (data.success) {
-        setExamId(data.exam_code)
+        // ✅ CORRECTED: Use exam_code, NOT exam_id
+        const participantCode = data.exam_code  // This is the 6-character code
+        const databaseId = data.exam_id         // This is the MongoDB ObjectId
+        
+        setExamId(participantCode)
         setExamInfo({ title: 'String Capitalizer Challenge', status: 'waiting' })
-        alert(`Exam created! Share this code with participants: ${data.exam_code}`)
+        
+        // ✅ FIXED: Show exam_code instead of exam_id
+        alert(`Exam created! Share this code with participants: ${participantCode}`)
+      } else {
+        alert(`Failed to create exam: ${data.error}`)
       }
     } catch (error) {
-      alert('Failed to create exam')
+      console.error('Create exam error:', error)
+      alert('Failed to create exam - network error')
     }
   }
 
+  // ✅ CORRECTED JOIN FUNCTION WITH PROPER REDIRECT
   const joinExam = async () => {
     try {
+      console.log('🚀 Joining with:', { exam_code: examId, student_name: participantName })
+      
       const response = await fetch('http://127.0.0.1:5000/api/exam/join-exam', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          exam_id: examId,
-          name: participantName
+          exam_code: examId,           // ✅ Correct field name
+          student_name: participantName // ✅ Changed from 'name' to 'student_name'
         })
       })
       
       const data = await response.json()
+      console.log('📦 Join response:', data)
+      
       if (data.success) {
         setExamInfo(data.exam_info)
-        alert('Successfully joined the exam!')
+        
+        // Store exam session data for the exam interface
+        localStorage.setItem('exam_session', JSON.stringify({
+          exam_code: examId,
+          student_name: participantName,
+          exam_info: data.exam_info,
+          joined_at: new Date().toISOString()
+        }))
+        
+        alert(`✅ Successfully joined: ${data.exam_info.title}!
+
+👤 Joined as: ${participantName}
+📊 Participants: ${data.exam_info.participants_count}/${data.exam_info.max_participants}
+⏱️ Duration: ${data.exam_info.duration_minutes} minutes
+
+Redirecting to exam interface...`)
+
+        // ✅ REDIRECT TO EXAM INTERFACE
+        setTimeout(() => {
+          router.push('/coding/exam')
+        }, 1500)
+        
       } else {
-        alert(data.error)
+        alert(`❌ Error: ${data.error}`)
       }
     } catch (error) {
-      alert('Failed to join exam')
+      console.error('Join error:', error)
+      alert('❌ Failed to join exam - network error')
     }
   }
 
@@ -156,7 +194,7 @@ export default function CodingExamPlatform() {
       const response = await fetch('http://127.0.0.1:5000/api/exam/start-exam', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ exam_id: examId })
+        body: JSON.stringify({ exam_code: examId })
       })
       
       const data = await response.json()
@@ -273,6 +311,12 @@ export default function CodingExamPlatform() {
               Create Exam
             </button>
           </div>
+          
+          {/* Debug Info */}
+          <div className="mt-4 p-3 bg-gray-50 rounded text-xs text-gray-600">
+            <p>Will create with host_name: "{participantName}"</p>
+            <p>✅ Will display exam_code (6 chars), not exam_id</p>
+          </div>
         </div>
       </div>
     )
@@ -288,10 +332,11 @@ export default function CodingExamPlatform() {
           <div className="space-y-4">
             <input
               type="text"
-              placeholder="Enter exam code"
+              placeholder="Enter exam code (e.g., 3BPIBZ)"
               value={examId}
               onChange={(e) => setExamId(e.target.value.toUpperCase())}
-              className="w-full p-3 border border-gray-300 rounded-lg"
+              className="w-full p-3 border border-gray-300 rounded-lg text-center font-mono text-lg tracking-widest uppercase"
+              maxLength={6}
             />
             
             <input
@@ -309,6 +354,12 @@ export default function CodingExamPlatform() {
             >
               Join Exam
             </button>
+            
+            {/* Debug Info */}
+            <div className="text-xs text-gray-500 p-3 bg-gray-50 rounded">
+              <p>Will send: exam_code="{examId}" student_name="{participantName}"</p>
+              <p>✅ After join → redirect to /coding/exam</p>
+            </div>
           </div>
         </div>
       </div>
