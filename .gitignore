@@ -1,27 +1,33 @@
-# Ignore virtual environment
+# ▶️ Python virtual environments
 venv/
 env/
 
-# Python cache and compiled files
+# ▶️ Python bytecode and cache
 __pycache__/
 *.py[cod]
 *.pyo
 
-# Editor/IDE settings
+# ▶️ Node.js dependencies and build output
+node_modules/
+dist/
+build/
+.next/
+*.log
+
+# ▶️ Editor settings
 .vscode/
 .idea/
 
-# Environment variables
+# ▶️ Environment files
 .env
 *.env
 
-# MacOS/Linux/Windows system files
+# ▶️ Jupyter Notebooks
+.ipynb_checkpoints/
+
+# ▶️ OS-specific system files
 .DS_Store
 Thumbs.db
 
-# Logs and database files
-*.log
+# ▶️ SQLite or other local databases
 *.sqlite3
-
-# Jupyter Notebook checkpoints
-.ipynb_checkpoints/
