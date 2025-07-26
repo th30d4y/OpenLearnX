@@ -1,7 +1,7 @@
 'use client'
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Trophy, Clock, Users, Send, RefreshCw, Play, Code, Wallet, Shield } from 'lucide-react'
+import { Trophy, Clock, Users, Send, RefreshCw, Play, Code, Wallet, Shield, TestTube } from 'lucide-react'
 
 interface Participant {
   name: string
@@ -53,9 +53,7 @@ export default function EnhancedExamInterface() {
   const languageIcons: {[key: string]: string} = {
     python: '🐍',
     java: '☕',
-    javascript: '🌐',
-    cpp: '⚡',
-    c: '🔧',
+    c: '⚡',
     bash: '💻'
   }
 
@@ -72,15 +70,15 @@ export default function EnhancedExamInterface() {
     // Fetch problem details
     fetchProblem(session.exam_code)
     
-    // Start polling for updates
+    // More frequent polling for real-time updates
     const interval = setInterval(() => {
       fetchLeaderboard(session.exam_code)
-    }, 3000)
+    }, 2000)
 
     return () => clearInterval(interval)
   }, [router])
 
-  // ✅ FIXED TIMER COUNTDOWN
+  // Timer countdown
   useEffect(() => {
     if (!timerInitialized || timeRemaining <= 0) return
 
@@ -113,58 +111,74 @@ export default function EnhancedExamInterface() {
     }
   }
 
-  // ✅ FIXED TIMER CALCULATION IN FETCHLEADERBOARD
+  // ✅ ENHANCED: More aggressive leaderboard fetching with better debugging
   const fetchLeaderboard = async (examCode: string) => {
     try {
-      const response = await fetch(`http://127.0.0.1:5000/api/exam/leaderboard/${examCode}`)
+      console.log('🏆 Fetching leaderboard for:', examCode)
+      
+      // Add cache busting to prevent stale data
+      const response = await fetch(`http://127.0.0.1:5000/api/exam/leaderboard/${examCode}?t=${Date.now()}`)
       const data = await response.json()
+      
+      console.log('📦 Leaderboard data received:', {
+        success: data.success,
+        completed_count: data.leaderboard?.length || 0,
+        waiting_count: data.waiting_participants?.length || 0,
+        ultimate_fix_applied: data.ultimate_fix_applied
+      })
       
       if (data.success) {
         setLeaderboard(data.leaderboard || [])
         setWaitingParticipants(data.waiting_participants || [])
         setExamStats(data.stats || {})
         
-        // ✅ FIXED TIMER CALCULATION
+        // Timer calculation
         if (data.exam_info && data.exam_info.status === 'active') {
           if (data.exam_info.end_time) {
             const now = Date.now()
             const endTime = new Date(data.exam_info.end_time).getTime()
             const remaining = Math.max(0, Math.floor((endTime - now) / 1000))
             
-            console.log(`⏰ Timer calculation:`)
-            console.log(`  Current: ${new Date(now).toISOString()}`)
-            console.log(`  End: ${new Date(endTime).toISOString()}`)
-            console.log(`  Remaining: ${remaining} seconds`)
-            
             setTimeRemaining(remaining)
             if (!timerInitialized) {
               setTimerInitialized(true)
             }
-          } else if (data.exam_info.start_time && data.exam_info.duration_minutes) {
-            // Calculate from start_time + duration
-            const startTime = new Date(data.exam_info.start_time).getTime()
-            const durationMs = data.exam_info.duration_minutes * 60 * 1000
-            const endTime = startTime + durationMs
-            const now = Date.now()
-            const remaining = Math.max(0, Math.floor((endTime - now) / 1000))
-            
-            console.log(`⏰ Using start_time + duration - Remaining: ${remaining}s`)
-            setTimeRemaining(remaining)
-            if (!timerInitialized) {
-              setTimerInitialized(true)
-            }
-          }
-        } else if (data.exam_info && data.exam_info.status === 'waiting') {
-          // Show full duration for waiting exams
-          const fullSeconds = (data.exam_info.duration_minutes || 30) * 60
-          setTimeRemaining(fullSeconds)
-          if (!timerInitialized) {
-            setTimerInitialized(true)
           }
         }
+        
+        // ✅ ENHANCED: Better user status checking
+        const currentUser = examSession?.student_name
+        if (currentUser) {
+          const userInCompleted = data.leaderboard.find((p: Participant) => p.name === currentUser)
+          const userInWaiting = data.waiting_participants.find((p: Participant) => p.name === currentUser)
+          
+          console.log(`👤 User status check:`, {
+            username: currentUser,
+            in_completed: !!userInCompleted,
+            in_waiting: !!userInWaiting,
+            current_hasSubmitted: hasSubmitted,
+            user_score: userInCompleted?.score
+          })
+          
+          if (userInCompleted && !hasSubmitted) {
+            console.log('✅ User found in completed leaderboard, updating hasSubmitted state')
+            setHasSubmitted(true)
+          }
+        }
+        
+        // Debug logging for leaderboard content
+        if (data.leaderboard.length > 0) {
+          console.log('🏆 Completed participants:', data.leaderboard.map((p: any) => `${p.name}: ${p.score}%`))
+        }
+        if (data.waiting_participants.length > 0) {
+          console.log('⏳ Waiting participants:', data.waiting_participants.map((p: any) => p.name))
+        }
+        
+      } else {
+        console.error('❌ Leaderboard fetch failed:', data.error)
       }
     } catch (error) {
-      console.error('Failed to fetch leaderboard:', error)
+      console.error('❌ Failed to fetch leaderboard:', error)
     }
   }
 
@@ -177,7 +191,6 @@ export default function EnhancedExamInterface() {
     setTestResults([])
   }
 
-  // ✅ FIXED RUNCODE FUNCTION - Updated to use correct endpoint
   const runCode = async () => {
     if (!code.trim()) {
       alert('Please write some code first!')
@@ -189,90 +202,283 @@ export default function EnhancedExamInterface() {
     setTestResults([])
 
     try {
-      console.log('🔧 Sending code to compiler...')
-      
-      // ✅ FIXED: Use correct endpoint /api/compiler/execute instead of /api/exam/execute-code
       const response = await fetch('http://127.0.0.1:5000/api/compiler/execute', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          language: selectedLanguage,
-          code: code,
-          input: ''
+          code,
+          language: selectedLanguage
         })
       })
 
       const result = await response.json()
-      console.log('📦 Compiler result:', result)
       
       if (result.success) {
-        setOutput(`✅ Code executed successfully!\n${result.output}`)
+        setOutput(`✅ Output:\n${result.output}`)
         if (result.execution_time) {
           setOutput(prev => prev + `\n⏱️ Execution time: ${result.execution_time}s`)
-        }
-        if (result.error) {
-          setOutput(prev => prev + `\n⚠️ Warnings:\n${result.error}`)
-        }
-        
-        // If there are test results from backend, show them
-        if (result.test_results) {
-          setTestResults(result.test_results)
         }
       } else {
         setOutput(`❌ Error:\n${result.error}`)
       }
     } catch (error) {
-      console.error('❌ Compiler network error:', error)
-      setOutput(`❌ Network error: Could not connect to compiler service.\nPlease check if the backend is running on port 5000.`)
+      setOutput(`Execution failed: ${(error as Error).message}`)
     } finally {
       setIsRunning(false)
     }
   }
 
+  // ✅ COMPLETELY FIXED SUBMIT SOLUTION with aggressive leaderboard refresh
   const submitSolution = async () => {
     if (!code.trim()) {
       alert('Please write some code before submitting!')
       return
     }
 
+    if (!confirm('Submit your solution? This cannot be undone.')) return
+
     setIsSubmitting(true)
 
     try {
+      console.log('📤 Submitting solution...')
+      console.log('👤 Participant:', examSession?.student_name)
+      console.log('🔢 Exam Code:', examSession?.exam_code)
+      
       const response = await fetch('http://127.0.0.1:5000/api/exam/submit-solution', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           exam_code: examSession?.exam_code,
           language: selectedLanguage,
-          code: code
+          code: code,
+          participant_name: examSession?.student_name || 'Anonymous'
         })
       })
 
       const data = await response.json()
+      console.log('📦 Submit result:', data)
       
       if (data.success) {
         setHasSubmitted(true)
         setTestResults(data.test_results || [])
         
-        let alertMessage = `Solution submitted successfully!\nScore: ${data.score}%\nPassed: ${data.passed_tests}/${data.total_tests} tests`
+        // ✅ ENHANCED: Detailed alert with proper test results formatting
+        let alertMessage = `🎉 Solution submitted successfully!\n\n`
+        alertMessage += `📊 Overall Score: ${data.score}%\n`
+        alertMessage += `✅ Tests Passed: ${data.passed_tests}/${data.total_tests}\n`
         
-        if (data.blockchain_verified) {
-          alertMessage += `\n🔗 Blockchain Verified: ${data.wallet_address?.slice(0, 6)}...${data.wallet_address?.slice(-4)}`
+        if (data.execution_time) {
+          alertMessage += `⏱️ Execution Time: ${data.execution_time}s\n`
         }
         
+        // Enhanced test results display in alert
+        if (data.test_results && data.test_results.length > 0) {
+          alertMessage += `\n📋 Detailed Test Results:\n`
+          alertMessage += `${'='.repeat(30)}\n`
+          
+          data.test_results.forEach((test: any, i: number) => {
+            const status = test.passed ? '✅ PASSED' : '❌ FAILED'
+            const points = test.points_earned || 0
+            
+            alertMessage += `Test ${i+1}: ${status} (+${points} points)\n`
+            
+            if (test.description && test.description !== `Test case ${i+1}`) {
+              alertMessage += `  Description: ${test.description}\n`
+            }
+            
+            if (test.input) {
+              alertMessage += `  Input: "${test.input}"\n`
+            }
+            
+            if (test.expected_output) {
+              alertMessage += `  Expected: "${test.expected_output}"\n`
+            }
+            
+            if (test.actual_output) {
+              alertMessage += `  Your Output: "${test.actual_output}"\n`
+            }
+            
+            if (!test.passed && test.error) {
+              alertMessage += `  Error: ${test.error}\n`
+            }
+            
+            alertMessage += `\n`
+          })
+          
+          // Add summary
+          const totalPoints = data.test_results.reduce((sum: number, test: any) => sum + (test.points_earned || 0), 0)
+          const maxPoints = data.scoring_details?.total_points || 100
+          alertMessage += `📈 Points Earned: ${totalPoints}/${maxPoints}\n`
+        }
+        
+        alertMessage += `\n🏆 Your score will appear in the leaderboard shortly!`
+        
         alert(alertMessage)
-        fetchLeaderboard(examSession!.exam_code)
+        
+        // ✅ CRITICAL FIX: Aggressive leaderboard refresh sequence
+        console.log('🔄 Starting aggressive leaderboard refresh sequence...')
+        
+        // Immediate refresh
+        setTimeout(() => {
+          console.log('🔄 Refresh 1/6 - Immediate')
+          fetchLeaderboard(examSession!.exam_code)
+        }, 200)
+        
+        // Quick follow-up
+        setTimeout(() => {
+          console.log('🔄 Refresh 2/6 - Quick follow-up')
+          fetchLeaderboard(examSession!.exam_code)
+        }, 800)
+        
+        // Medium delay
+        setTimeout(() => {
+          console.log('🔄 Refresh 3/6 - Medium delay')
+          fetchLeaderboard(examSession!.exam_code)
+        }, 2000)
+        
+        // Longer delay
+        setTimeout(() => {
+          console.log('🔄 Refresh 4/6 - Longer delay')
+          fetchLeaderboard(examSession!.exam_code)
+        }, 4000)
+        
+        // Extended delay
+        setTimeout(() => {
+          console.log('🔄 Refresh 5/6 - Extended delay')
+          fetchLeaderboard(examSession!.exam_code)
+        }, 7000)
+        
+        // Final refresh
+        setTimeout(() => {
+          console.log('🔄 Refresh 6/6 - Final check')
+          fetchLeaderboard(examSession!.exam_code)
+        }, 10000)
+        
       } else {
-        alert(data.error || 'Failed to submit solution')
+        alert(`❌ Submission failed: ${data.error}`)
       }
+      
     } catch (error) {
-      alert('Failed to submit solution. Please try again.')
+      console.error('❌ Submit network error:', error)
+      alert('❌ Network error: Could not submit solution. Please try again.')
     } finally {
       setIsSubmitting(false)
     }
   }
 
-  // ✅ FIXED TIME FORMATTING
+  // ✅ Enhanced Test Results Display Component
+  const TestResultsDisplay = ({ results }: { results: any[] }) => {
+    if (!results || results.length === 0) return null
+
+    return (
+      <div className="mt-6 bg-gray-900 p-4 rounded border border-gray-600">
+        <h4 className="text-lg font-semibold text-white mb-4 flex items-center space-x-2">
+          <TestTube className="h-5 w-5 text-blue-400" />
+          <span>Test Results</span>
+        </h4>
+        
+        <div className="space-y-3">
+          {results.map((result, index) => (
+            <div
+              key={index}
+              className={`p-4 rounded-lg border-l-4 ${
+                result.passed 
+                  ? 'bg-green-900 border-green-500 text-green-100' 
+                  : 'bg-red-900 border-red-500 text-red-100'
+              }`}
+            >
+              <div className="flex justify-between items-start mb-2">
+                <div className="flex items-center space-x-2">
+                  <span className="font-semibold">
+                    Test {index + 1}: {result.passed ? '✅ PASSED' : '❌ FAILED'}
+                  </span>
+                  <span className="text-sm bg-black bg-opacity-30 px-2 py-1 rounded font-bold">
+                    +{result.points_earned || 0} points
+                  </span>
+                </div>
+              </div>
+              
+              {result.description && result.description !== `Test case ${index+1}` && (
+                <p className="text-sm mb-2 opacity-80">{result.description}</p>
+              )}
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                {result.input && (
+                  <div>
+                    <span className="font-medium">Input:</span>
+                    <code className="ml-2 bg-black bg-opacity-30 px-2 py-1 rounded">
+                      "{result.input}"
+                    </code>
+                  </div>
+                )}
+                
+                {result.expected_output && (
+                  <div>
+                    <span className="font-medium">Expected:</span>
+                    <code className="ml-2 bg-black bg-opacity-30 px-2 py-1 rounded">
+                      "{result.expected_output}"
+                    </code>
+                  </div>
+                )}
+                
+                {result.actual_output && (
+                  <div>
+                    <span className="font-medium">Your Output:</span>
+                    <code className="ml-2 bg-black bg-opacity-30 px-2 py-1 rounded">
+                      "{result.actual_output}"
+                    </code>
+                  </div>
+                )}
+              </div>
+              
+              {!result.passed && result.error && (
+                <div className="mt-2 p-2 bg-red-800 bg-opacity-50 rounded text-sm">
+                  <span className="font-medium">Error:</span> {result.error}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+        
+        {/* Summary */}
+        <div className="mt-4 p-3 bg-blue-900 bg-opacity-50 rounded">
+          <div className="flex justify-between text-sm">
+            <span>
+              Passed: {results.filter(r => r.passed).length}/{results.length} tests
+            </span>
+            <span>
+              Points: {results.reduce((sum, r) => sum + (r.points_earned || 0), 0)} total
+            </span>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Debug function for troubleshooting
+  const debugLeaderboard = async () => {
+    try {
+      const response = await fetch(`http://127.0.0.1:5000/api/exam/leaderboard/${examSession?.exam_code}`)
+      const data = await response.json()
+      
+      console.log('🐛 DEBUG LEADERBOARD:', {
+        success: data.success,
+        completed_count: data.leaderboard?.length || 0,
+        waiting_count: data.waiting_participants?.length || 0,
+        my_name: examSession?.student_name,
+        in_completed: data.leaderboard?.find((p: any) => p.name === examSession?.student_name),
+        in_waiting: data.waiting_participants?.find((p: any) => p.name === examSession?.student_name),
+        ultimate_fix_applied: data.ultimate_fix_applied,
+        full_leaderboard: data.leaderboard,
+        full_waiting: data.waiting_participants
+      })
+      
+      alert(`Debug Info:\nCompleted: ${data.leaderboard?.length || 0}\nWaiting: ${data.waiting_participants?.length || 0}\nCheck console for details`)
+    } catch (error) {
+      console.error('Debug error:', error)
+    }
+  }
+
   const formatTime = (seconds: number) => {
     if (seconds < 0) return "00:00"
     
@@ -308,11 +514,11 @@ export default function EnhancedExamInterface() {
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <div>
             <h1 className="text-xl font-bold">{problem.title}</h1>
-            <p className="text-gray-400">Code: {examSession.exam_code}</p>
+            <p className="text-gray-400">Code: {examSession.exam_code} | Participant: {examSession.student_name}</p>
           </div>
           
           <div className="flex items-center space-x-4">
-            {/* ✅ FIXED TIMER DISPLAY */}
+            {/* Timer */}
             {timeRemaining > 0 && (
               <div className={`flex items-center space-x-2 px-3 py-1 rounded-lg ${
                 timeRemaining <= 300 ? 'bg-red-900' : timeRemaining <= 600 ? 'bg-yellow-900' : 'bg-green-900'
@@ -328,27 +534,19 @@ export default function EnhancedExamInterface() {
               </div>
             )}
             
-            {/* Wallet Info Display */}
-            {examSession.blockchain_verified && examSession.wallet_address && (
-              <div className="flex items-center space-x-2 bg-green-900 px-3 py-1 rounded-lg">
-                <Wallet className="h-4 w-4 text-green-400" />
-                <span className="text-green-200 text-sm font-mono">
-                  {examSession.wallet_address.slice(0, 6)}...{examSession.wallet_address.slice(-4)}
-                </span>
-                <Shield className="h-4 w-4 text-green-400" />
-              </div>
-            )}
-            
             {/* Participant Count */}
             <div className="flex items-center space-x-2">
               <Users className="h-5 w-5 text-blue-400" />
               <span>{examStats.total_participants || 0} participants</span>
-              {examStats.blockchain_participants > 0 && (
-                <span className="text-green-400 text-sm">
-                  ({examStats.blockchain_participants} 🔗)
-                </span>
-              )}
             </div>
+            
+            {/* Submission Status Indicator */}
+            {hasSubmitted && (
+              <div className="flex items-center space-x-2 bg-green-900 px-3 py-1 rounded-lg">
+                <Shield className="h-4 w-4 text-green-400" />
+                <span className="text-green-200 text-sm">✅ Submitted</span>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -360,10 +558,10 @@ export default function EnhancedExamInterface() {
           <div className="bg-gray-800 rounded-lg p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-bold">{problem.title}</h2>
-              {examSession.blockchain_verified && (
+              {hasSubmitted && (
                 <div className="flex items-center space-x-1 text-green-400 text-sm">
                   <Shield className="h-4 w-4" />
-                  <span>Blockchain Verified</span>
+                  <span>Solution Submitted</span>
                 </div>
               )}
             </div>
@@ -428,7 +626,7 @@ export default function EnhancedExamInterface() {
               className="w-full h-64 bg-gray-900 text-green-400 font-mono p-4 rounded border border-gray-600 resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               disabled={hasSubmitted}
               spellCheck={false}
-              placeholder={`Write your ${selectedLanguage} solution here...`}
+              placeholder={hasSubmitted ? 'Solution submitted!' : `Write your ${selectedLanguage} solution here...`}
             />
             
             <div className="flex justify-between items-center mt-4">
@@ -436,10 +634,7 @@ export default function EnhancedExamInterface() {
                 Function: <code className="text-blue-400">{problem.function_name}</code>
                 {hasSubmitted && (
                   <span className="ml-4 text-green-400">
-                    ✅ Solution submitted
-                    {examSession.blockchain_verified && (
-                      <span className="ml-2">🔗 Blockchain verified</span>
-                    )}
+                    ✅ Solution submitted successfully!
                   </span>
                 )}
               </div>
@@ -455,63 +650,32 @@ export default function EnhancedExamInterface() {
                 </button>
                 
                 <button
-                  onClick={submitSolution}
+                  onClick={submitSolution} 
                   disabled={isSubmitting || hasSubmitted || !code.trim()}
                   className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 px-4 py-2 rounded flex items-center space-x-2 transition-colors"
                 >
                   <Send className="h-4 w-4" />
-                  <span>{isSubmitting ? 'Submitting...' : hasSubmitted ? 'Submitted' : 'Submit Solution'}</span>
+                  <span>{isSubmitting ? 'Submitting...' : hasSubmitted ? 'Submitted ✅' : 'Submit Solution'}</span>
                 </button>
               </div>
             </div>
 
-            {/* Output & Test Results */}
-            {(output || testResults.length > 0) && (
+            {/* Output Display */}
+            {output && (
               <div className="mt-6 bg-gray-900 p-4 rounded">
-                {output && (
-                  <div className="mb-4">
-                    <h4 className="text-sm font-medium text-gray-400 mb-2">Output:</h4>
-                    <pre className="text-green-400 text-sm whitespace-pre-wrap">{output}</pre>
-                  </div>
-                )}
-                
-                {testResults.length > 0 && (
-                  <div>
-                    <h4 className="text-sm font-medium text-gray-400 mb-2">Test Results:</h4>
-                    <div className="space-y-2">
-                      {testResults.map((result, index) => (
-                        <div
-                          key={index}
-                          className={`p-3 rounded text-sm ${
-                            result.passed ? 'bg-green-900 text-green-200' : 'bg-red-900 text-red-200'
-                          }`}
-                        >
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <span className="font-medium">
-                                Test {index + 1}: {result.passed ? '✅ Passed' : '❌ Failed'}
-                              </span>
-                              {result.input && (
-                                <div className="text-xs mt-1 opacity-75">
-                                  Input: "{result.input}"
-                                </div>
-                              )}
-                            </div>
-                            {!result.passed && result.error && (
-                              <span className="text-xs text-right">{result.error}</span>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                <h4 className="text-sm font-medium text-gray-400 mb-2">Output:</h4>
+                <pre className="text-green-400 text-sm whitespace-pre-wrap">{output}</pre>
               </div>
             )}
           </div>
+
+          {/* ✅ Enhanced Test Results Display */}
+          {testResults.length > 0 && (
+            <TestResultsDisplay results={testResults} />
+          )}
         </div>
 
-        {/* Leaderboard */}
+        {/* Enhanced Leaderboard */}
         <div className="bg-gray-800 rounded-lg p-6">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center space-x-2">
@@ -519,13 +683,24 @@ export default function EnhancedExamInterface() {
               <h3 className="text-xl font-bold">Live Leaderboard</h3>
             </div>
             
-            <button
-              onClick={() => fetchLeaderboard(examSession.exam_code)}
-              className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded"
-              title="Refresh"
-            >
-              <RefreshCw className="h-4 w-4" />
-            </button>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => fetchLeaderboard(examSession.exam_code)}
+                className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded"
+                title="Refresh"
+              >
+                <RefreshCw className="h-4 w-4" />
+              </button>
+              
+              {/* Debug button - remove in production */}
+              <button
+                onClick={debugLeaderboard}
+                className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded"
+                title="Debug"
+              >
+                🐛
+              </button>
+            </div>
           </div>
 
           {/* Stats */}
@@ -548,20 +723,7 @@ export default function EnhancedExamInterface() {
             </div>
           </div>
 
-          {/* Blockchain Stats */}
-          {examStats.blockchain_participants > 0 && (
-            <div className="bg-green-900 p-3 rounded mb-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-lg font-bold text-green-200">{examStats.blockchain_participants}</div>
-                  <div className="text-xs text-green-300">Blockchain Verified</div>
-                </div>
-                <Shield className="h-6 w-6 text-green-400" />
-              </div>
-            </div>
-          )}
-
-          {/* Leaderboard */}
+          {/* Leaderboard Display */}
           <div className="space-y-2">
             <h4 className="font-semibold text-gray-300 mb-3">🏆 Rankings</h4>
             {leaderboard.length > 0 ? (
@@ -571,12 +733,9 @@ export default function EnhancedExamInterface() {
                     <div className="flex items-center space-x-3">
                       <span className="font-bold text-lg">#{participant.rank}</span>
                       <div>
-                        <div className={`font-medium ${participant.name === examSession.student_name ? 'underline' : ''}`}>
+                        <div className={`font-medium ${participant.name === examSession.student_name ? 'underline font-bold' : ''}`}>
                           {participant.name}
-                          {participant.name === examSession.student_name && ' (You)'}
-                          {participant.blockchain_verified && (
-                            <Shield className="inline h-3 w-3 ml-1 text-green-400" />
-                          )}
+                          {participant.name === examSession.student_name && ' (You) 🎯'}
                         </div>
                         <div className="text-xs opacity-75 flex items-center space-x-2">
                           {participant.language && (
@@ -584,15 +743,15 @@ export default function EnhancedExamInterface() {
                               {languageIcons[participant.language]} {participant.language}
                             </span>
                           )}
-                          {participant.wallet_short && (
-                            <span className="font-mono text-green-300">
-                              {participant.wallet_short}
-                            </span>
-                          )}
                         </div>
                       </div>
                     </div>
-                    <span className="font-bold text-lg">{participant.score}%</span>
+                    <div className="text-right">
+                      <span className="font-bold text-lg">{participant.score}%</span>
+                      <div className="text-xs opacity-75">
+                        Submitted ✅
+                      </div>
+                    </div>
                   </div>
                 </div>
               ))
@@ -614,9 +773,7 @@ export default function EnhancedExamInterface() {
                       {participant.name}
                       {participant.name === examSession.student_name && ' (You)'}
                     </span>
-                    {participant.blockchain_verified && (
-                      <Shield className="h-3 w-3 text-green-400" />
-                    )}
+                    <span className="text-yellow-400 text-xs">Working...</span>
                   </div>
                 ))}
               </div>
