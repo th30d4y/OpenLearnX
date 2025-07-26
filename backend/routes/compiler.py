@@ -1,165 +1,546 @@
-from flask import Blueprint, request, jsonify, session
-from services.real_compiler_service import real_compiler_service
-import uuid
+from flask import Blueprint, request, jsonify
+import subprocess
+import tempfile
+import os
+import time
+import docker
 from datetime import datetime
 
 bp = Blueprint('compiler', __name__)
 
-@bp.route("/languages", methods=["GET"])
+def get_db():
+    """Get MongoDB database connection"""
+    from pymongo import MongoClient
+    from flask import current_app
+    client = MongoClient(current_app.config['MONGODB_URI'])
+    return client.openlearnx
+
+@bp.route('/execute', methods=['POST', 'OPTIONS'])
+def execute_code():
+    """Execute code in specified language with Docker support"""
+    if request.method == "OPTIONS":
+        response = jsonify({'status': 'ok'})
+        response.headers.add("Access-Control-Allow-Origin", "*")
+        response.headers.add("Access-Control-Allow-Headers", "Content-Type,Authorization")
+        response.headers.add("Access-Control-Allow-Methods", "POST,OPTIONS")
+        return response
+    
+    try:
+        data = request.get_json()
+        language = data.get('language', 'python').lower()
+        code = data.get('code', '').strip()
+        input_data = data.get('input', '')
+        
+        print(f"🔧 Executing {language} code")
+        print(f"📝 Code length: {len(code)} characters")
+        
+        if not code:
+            return jsonify({"success": False, "error": "No code provided"}), 400
+        
+        # Execute based on language
+        if language == 'python':
+            return execute_python(code, input_data)
+        elif language == 'java':
+            return execute_java(code, input_data)
+        elif language == 'javascript' or language == 'js':
+            return execute_javascript(code, input_data)
+        elif language == 'cpp' or language == 'c++':
+            return execute_cpp(code, input_data)
+        elif language == 'c':
+            return execute_c(code, input_data)
+        else:
+            return jsonify({
+                "success": False, 
+                "error": f"Language '{language}' not supported. Available: python, java, javascript, cpp, c"
+            }), 400
+            
+    except Exception as e:
+        print(f"❌ Compiler error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "error": f"Server error: {str(e)}"}), 500
+
+def execute_python(code, input_data=""):
+    """Execute Python code"""
+    try:
+        # Create temporary file
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
+            f.write(code)
+            temp_file = f.name
+        
+        try:
+            # Execute with subprocess
+            start_time = time.time()
+            result = subprocess.run(
+                ['python3', temp_file],
+                input=input_data,
+                text=True,
+                capture_output=True,
+                timeout=10,  # 10 second timeout
+                cwd=tempfile.gettempdir()
+            )
+            execution_time = time.time() - start_time
+            
+            if result.returncode == 0:
+                return jsonify({
+                    "success": True,
+                    "output": result.stdout or "Code executed successfully (no output)",
+                    "error": result.stderr if result.stderr else None,
+                    "language": "python",
+                    "execution_time": round(execution_time, 3)
+                })
+            else:
+                return jsonify({
+                    "success": False,
+                    "error": result.stderr or f"Process exited with code {result.returncode}",
+                    "language": "python"
+                })
+                
+        finally:
+            # Clean up temp file
+            try:
+                os.unlink(temp_file)
+            except:
+                pass
+                
+    except subprocess.TimeoutExpired:
+        return jsonify({
+            "success": False, 
+            "error": "Code execution timed out (10s limit)"
+        }), 400
+    except FileNotFoundError:
+        return jsonify({
+            "success": False, 
+            "error": "Python interpreter not found. Please install Python 3."
+        }), 500
+    except Exception as e:
+        return jsonify({
+            "success": False, 
+            "error": f"Python execution error: {str(e)}"
+        }), 500
+
+def execute_java(code, input_data=""):
+    """Execute Java code"""
+    try:
+        # Extract class name from code
+        import re
+        class_match = re.search(r'public\s+class\s+(\w+)', code)
+        if not class_match:
+            return jsonify({
+                "success": False,
+                "error": "No public class found. Java code must contain 'public class ClassName'"
+            }), 400
+        
+        class_name = class_match.group(1)
+        
+        # Create temporary directory
+        temp_dir = tempfile.mkdtemp()
+        java_file = os.path.join(temp_dir, f"{class_name}.java")
+        
+        try:
+            # Write Java code to file
+            with open(java_file, 'w') as f:
+                f.write(code)
+            
+            # Compile Java code
+            compile_result = subprocess.run(
+                ['javac', java_file],
+                capture_output=True,
+                text=True,
+                timeout=30,
+                cwd=temp_dir
+            )
+            
+            if compile_result.returncode != 0:
+                return jsonify({
+                    "success": False,
+                    "error": f"Compilation error:\n{compile_result.stderr}",
+                    "language": "java"
+                })
+            
+            # Execute Java code
+            start_time = time.time()
+            result = subprocess.run(
+                ['java', class_name],
+                input=input_data,
+                text=True,
+                capture_output=True,
+                timeout=10,
+                cwd=temp_dir
+            )
+            execution_time = time.time() - start_time
+            
+            if result.returncode == 0:
+                return jsonify({
+                    "success": True,
+                    "output": result.stdout or "Code executed successfully (no output)",
+                    "error": result.stderr if result.stderr else None,
+                    "language": "java",
+                    "execution_time": round(execution_time, 3)
+                })
+            else:
+                return jsonify({
+                    "success": False,
+                    "error": result.stderr or f"Runtime error (exit code {result.returncode})",
+                    "language": "java"
+                })
+                
+        finally:
+            # Clean up temp files
+            import shutil
+            try:
+                shutil.rmtree(temp_dir)
+            except:
+                pass
+                
+    except subprocess.TimeoutExpired:
+        return jsonify({
+            "success": False, 
+            "error": "Code execution timed out"
+        }), 400
+    except FileNotFoundError:
+        return jsonify({
+            "success": False, 
+            "error": "Java compiler/runtime not found. Please install JDK."
+        }), 500
+    except Exception as e:
+        return jsonify({
+            "success": False, 
+            "error": f"Java execution error: {str(e)}"
+        }), 500
+
+def execute_javascript(code, input_data=""):
+    """Execute JavaScript code"""
+    try:
+        # Create temporary file
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.js', delete=False) as f:
+            # Add input handling if needed
+            if input_data:
+                js_code = f"""
+const input = `{input_data}`;
+const readline = {{ question: () => input }};
+{code}
+"""
+            else:
+                js_code = code
+            
+            f.write(js_code)
+            temp_file = f.name
+        
+        try:
+            # Execute with Node.js
+            start_time = time.time()
+            result = subprocess.run(
+                ['node', temp_file],
+                input=input_data,
+                text=True,
+                capture_output=True,
+                timeout=10,
+                cwd=tempfile.gettempdir()
+            )
+            execution_time = time.time() - start_time
+            
+            if result.returncode == 0:
+                return jsonify({
+                    "success": True,
+                    "output": result.stdout or "Code executed successfully (no output)",
+                    "error": result.stderr if result.stderr else None,
+                    "language": "javascript",
+                    "execution_time": round(execution_time, 3)
+                })
+            else:
+                return jsonify({
+                    "success": False,
+                    "error": result.stderr or f"Runtime error (exit code {result.returncode})",
+                    "language": "javascript"
+                })
+                
+        finally:
+            try:
+                os.unlink(temp_file)
+            except:
+                pass
+                
+    except subprocess.TimeoutExpired:
+        return jsonify({
+            "success": False, 
+            "error": "Code execution timed out"
+        }), 400
+    except FileNotFoundError:
+        return jsonify({
+            "success": False, 
+            "error": "Node.js not found. Please install Node.js."
+        }), 500
+    except Exception as e:
+        return jsonify({
+            "success": False, 
+            "error": f"JavaScript execution error: {str(e)}"
+        }), 500
+
+def execute_cpp(code, input_data=""):
+    """Execute C++ code"""
+    try:
+        # Create temporary files
+        temp_dir = tempfile.mkdtemp()
+        cpp_file = os.path.join(temp_dir, "main.cpp")
+        exe_file = os.path.join(temp_dir, "main.exe") if os.name == 'nt' else os.path.join(temp_dir, "main")
+        
+        try:
+            # Write C++ code to file
+            with open(cpp_file, 'w') as f:
+                f.write(code)
+            
+            # Compile C++ code
+            compile_cmd = ['g++', '-o', exe_file, cpp_file, '-std=c++17']
+            compile_result = subprocess.run(
+                compile_cmd,
+                capture_output=True,
+                text=True,
+                timeout=30,
+                cwd=temp_dir
+            )
+            
+            if compile_result.returncode != 0:
+                return jsonify({
+                    "success": False,
+                    "error": f"Compilation error:\n{compile_result.stderr}",
+                    "language": "cpp"
+                })
+            
+            # Execute compiled program
+            start_time = time.time()
+            result = subprocess.run(
+                [exe_file],
+                input=input_data,
+                text=True,
+                capture_output=True,
+                timeout=10,
+                cwd=temp_dir
+            )
+            execution_time = time.time() - start_time
+            
+            if result.returncode == 0:
+                return jsonify({
+                    "success": True,
+                    "output": result.stdout or "Code executed successfully (no output)",
+                    "error": result.stderr if result.stderr else None,
+                    "language": "cpp",
+                    "execution_time": round(execution_time, 3)
+                })
+            else:
+                return jsonify({
+                    "success": False,
+                    "error": result.stderr or f"Runtime error (exit code {result.returncode})",
+                    "language": "cpp"
+                })
+                
+        finally:
+            # Clean up temp files
+            import shutil
+            try:
+                shutil.rmtree(temp_dir)
+            except:
+                pass
+                
+    except subprocess.TimeoutExpired:
+        return jsonify({
+            "success": False, 
+            "error": "Code execution timed out"
+        }), 400
+    except FileNotFoundError:
+        return jsonify({
+            "success": False, 
+            "error": "G++ compiler not found. Please install GCC/G++."
+        }), 500
+    except Exception as e:
+        return jsonify({
+            "success": False, 
+            "error": f"C++ execution error: {str(e)}"
+        }), 500
+
+def execute_c(code, input_data=""):
+    """Execute C code"""
+    try:
+        # Create temporary files
+        temp_dir = tempfile.mkdtemp()
+        c_file = os.path.join(temp_dir, "main.c")
+        exe_file = os.path.join(temp_dir, "main.exe") if os.name == 'nt' else os.path.join(temp_dir, "main")
+        
+        try:
+            # Write C code to file
+            with open(c_file, 'w') as f:
+                f.write(code)
+            
+            # Compile C code
+            compile_cmd = ['gcc', '-o', exe_file, c_file, '-std=c99']
+            compile_result = subprocess.run(
+                compile_cmd,
+                capture_output=True,
+                text=True,
+                timeout=30,
+                cwd=temp_dir
+            )
+            
+            if compile_result.returncode != 0:
+                return jsonify({
+                    "success": False,
+                    "error": f"Compilation error:\n{compile_result.stderr}",
+                    "language": "c"
+                })
+            
+            # Execute compiled program
+            start_time = time.time()
+            result = subprocess.run(
+                [exe_file],
+                input=input_data,
+                text=True,
+                capture_output=True,
+                timeout=10,
+                cwd=temp_dir
+            )
+            execution_time = time.time() - start_time
+            
+            if result.returncode == 0:
+                return jsonify({
+                    "success": True,
+                    "output": result.stdout or "Code executed successfully (no output)",
+                    "error": result.stderr if result.stderr else None,
+                    "language": "c",
+                    "execution_time": round(execution_time, 3)
+                })
+            else:
+                return jsonify({
+                    "success": False,
+                    "error": result.stderr or f"Runtime error (exit code {result.returncode})",
+                    "language": "c"
+                })
+                
+        finally:
+            # Clean up temp files
+            import shutil
+            try:
+                shutil.rmtree(temp_dir)
+            except:
+                pass
+                
+    except subprocess.TimeoutExpired:
+        return jsonify({
+            "success": False, 
+            "error": "Code execution timed out"
+        }), 400
+    except FileNotFoundError:
+        return jsonify({
+            "success": False, 
+            "error": "GCC compiler not found. Please install GCC."
+        }), 500
+    except Exception as e:
+        return jsonify({
+            "success": False, 
+            "error": f"C execution error: {str(e)}"
+        }), 500
+
+@bp.route('/languages', methods=['GET', 'OPTIONS'])
 def get_supported_languages():
     """Get list of supported programming languages"""
+    if request.method == "OPTIONS":
+        response = jsonify({'status': 'ok'})
+        response.headers.add("Access-Control-Allow-Origin", "*")
+        response.headers.add("Access-Control-Allow-Headers", "Content-Type,Authorization")  
+        response.headers.add("Access-Control-Allow-Methods", "GET,OPTIONS")
+        return response
+    
     try:
-        languages = real_compiler_service.get_supported_languages()
+        languages = {
+            "python": {
+                "name": "Python",
+                "version": "3.x",
+                "extension": ".py",
+                "available": check_language_availability("python3")
+            },
+            "java": {
+                "name": "Java",
+                "version": "JDK 8+",
+                "extension": ".java",
+                "available": check_language_availability("javac")
+            },
+            "javascript": {
+                "name": "JavaScript",
+                "version": "Node.js",
+                "extension": ".js",
+                "available": check_language_availability("node")
+            },
+            "cpp": {
+                "name": "C++",
+                "version": "GCC/G++",
+                "extension": ".cpp",
+                "available": check_language_availability("g++")
+            },
+            "c": {
+                "name": "C",
+                "version": "GCC",
+                "extension": ".c",
+                "available": check_language_availability("gcc")
+            }
+        }
+        
         return jsonify({
             "success": True,
             "languages": languages,
-            "total_languages": len(languages)
-        })
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-@bp.route("/execute", methods=["POST"])
-def execute_code():
-    """Execute code and return real output"""
-    try:
-        data = request.json
-        
-        # Validate input
-        code = data.get('code', '').strip()
-        language = data.get('language', 'python')
-        input_data = data.get('input', '')
-        
-        if not code:
-            return jsonify({"error": "No code provided"}), 400
-        
-        if language not in [lang['id'] for lang in real_compiler_service.get_supported_languages()]:
-            return jsonify({"error": f"Language '{language}' not supported"}), 400
-        
-        # Generate execution ID
-        execution_id = str(uuid.uuid4())
-        
-        # Execute code
-        result = real_compiler_service.execute_code(
-            code=code,
-            language=language,
-            input_data=input_data,
-            execution_id=execution_id
-        )
-        
-        return jsonify(result)
-        
-    except Exception as e:
-        return jsonify({"error": f"Execution failed: {str(e)}"}), 500
-
-@bp.route("/execute-async", methods=["POST"])
-def execute_code_async():
-    """Start asynchronous code execution"""
-    try:
-        data = request.json
-        execution_id = str(uuid.uuid4())
-        
-        # Add to execution queue
-        real_compiler_service.execution_queue.put({
-            'execution_id': execution_id,
-            'code': data.get('code'),
-            'language': data.get('language', 'python'),
-            'input_data': data.get('input', ''),
-            'callback_url': data.get('callback_url')
-        })
-        
-        return jsonify({
-            "success": True,
-            "execution_id": execution_id,
-            "message": "Code execution started",
-            "status_url": f"/api/compiler/status/{execution_id}"
+            "total": len(languages),
+            "available_count": sum(1 for lang in languages.values() if lang["available"])
         })
         
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"success": False, "error": str(e)}), 500
 
-@bp.route("/status/<execution_id>", methods=["GET"])
-def get_execution_status(execution_id):
-    """Get status of code execution"""
+def check_language_availability(command):
+    """Check if a language compiler/interpreter is available"""
     try:
-        status = real_compiler_service.get_execution_status(execution_id)
-        
-        if status:
-            return jsonify({
-                "success": True,
-                "execution_id": execution_id,
-                "status": status['status'],
-                "start_time": status['start_time'].isoformat(),
-                "language": status['language']
-            })
-        else:
-            return jsonify({
-                "success": False,
-                "error": "Execution not found"
-            }), 404
-            
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        result = subprocess.run([command, '--version'], 
+                              capture_output=True, 
+                              timeout=5)
+        return result.returncode == 0
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return False
 
-@bp.route("/cancel/<execution_id>", methods=["POST"])
-def cancel_execution(execution_id):
-    """Cancel a running execution"""
+@bp.route('/health', methods=['GET'])
+def compiler_health():
+    """Health check for compiler service"""
     try:
-        success = real_compiler_service.cancel_execution(execution_id)
-        
-        return jsonify({
-            "success": success,
-            "message": "Execution cancelled" if success else "Execution not found"
-        })
-        
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-@bp.route("/test", methods=["POST"])
-def test_compiler():
-    """Test compiler with sample code"""
-    try:
-        language = request.json.get('language', 'python')
-        
-        test_codes = {
-            'python': 'print("Hello from OpenLearnX Python Compiler!")\nprint("Current time:", __import__("datetime").datetime.now())',
-            'java': 'public class Main {\n    public static void main(String[] args) {\n        System.out.println("Hello from OpenLearnX Java Compiler!");\n    }\n}',
-            'cpp': '#include <iostream>\nint main() {\n    std::cout << "Hello from OpenLearnX C++ Compiler!" << std::endl;\n    return 0;\n}',
-            'javascript': 'console.log("Hello from OpenLearnX JavaScript Compiler!");',
-            'go': 'package main\nimport "fmt"\nfunc main() {\n    fmt.Println("Hello from OpenLearnX Go Compiler!")\n}',
-            'rust': 'fn main() {\n    println!("Hello from OpenLearnX Rust Compiler!");\n}'
+        languages_status = {
+            "python": check_language_availability("python3"),
+            "java": check_language_availability("javac"),
+            "javascript": check_language_availability("node"),
+            "cpp": check_language_availability("g++"),
+            "c": check_language_availability("gcc")
         }
         
-        test_code = test_codes.get(language, test_codes['python'])
+        available_languages = sum(languages_status.values())
+        total_languages = len(languages_status)
         
-        result = real_compiler_service.execute_code(
-            code=test_code,
-            language=language,
-            input_data=""
-        )
-        
-        return jsonify(result)
-        
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-@bp.route("/stats", methods=["GET"])
-def get_compiler_stats():
-    """Get compiler service statistics"""
-    try:
-        active_executions = len(real_compiler_service.active_executions)
-        queue_size = real_compiler_service.execution_queue.qsize()
-        supported_languages = len(real_compiler_service.language_configs)
+        status = "healthy" if available_languages > 0 else "unavailable"
         
         return jsonify({
-            "success": True,
-            "stats": {
-                "active_executions": active_executions,
-                "queue_size": queue_size,
-                "supported_languages": supported_languages,
-                "max_concurrent": real_compiler_service.max_concurrent_executions
-            },
-            "uptime": datetime.now().isoformat()
+            "status": status,
+            "timestamp": datetime.now().isoformat(),
+            "languages": languages_status,
+            "available_languages": available_languages,
+            "total_languages": total_languages,
+            "docker_available": check_docker_availability()
         })
         
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({
+            "status": "error",
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }), 500
+
+def check_docker_availability():
+    """Check if Docker is available for containerized execution"""
+    try:
+        client = docker.from_env()
+        client.ping()
+        return True
+    except:
+        return False

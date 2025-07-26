@@ -47,14 +47,15 @@ export default function EnhancedExamInterface() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [hasSubmitted, setHasSubmitted] = useState(false)
   const [examStats, setExamStats] = useState<any>({})
-  // ✅ ADD TIMER INITIALIZED STATE
   const [timerInitialized, setTimerInitialized] = useState(false)
   const router = useRouter()
 
   const languageIcons: {[key: string]: string} = {
     python: '🐍',
     java: '☕',
-    c: '⚡',
+    javascript: '🌐',
+    cpp: '⚡',
+    c: '🔧',
     bash: '💻'
   }
 
@@ -176,6 +177,7 @@ export default function EnhancedExamInterface() {
     setTestResults([])
   }
 
+  // ✅ FIXED RUNCODE FUNCTION - Updated to use correct endpoint
   const runCode = async () => {
     if (!code.trim()) {
       alert('Please write some code first!')
@@ -187,25 +189,41 @@ export default function EnhancedExamInterface() {
     setTestResults([])
 
     try {
-      const response = await fetch('http://127.0.0.1:5000/api/exam/execute-code', {
+      console.log('🔧 Sending code to compiler...')
+      
+      // ✅ FIXED: Use correct endpoint /api/compiler/execute instead of /api/exam/execute-code
+      const response = await fetch('http://127.0.0.1:5000/api/compiler/execute', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          code,
-          language: selectedLanguage
+          language: selectedLanguage,
+          code: code,
+          input: ''
         })
       })
 
       const result = await response.json()
+      console.log('📦 Compiler result:', result)
       
       if (result.success) {
-        setOutput('Code executed successfully!')
-        setTestResults(result.test_results || [])
+        setOutput(`✅ Code executed successfully!\n${result.output}`)
+        if (result.execution_time) {
+          setOutput(prev => prev + `\n⏱️ Execution time: ${result.execution_time}s`)
+        }
+        if (result.error) {
+          setOutput(prev => prev + `\n⚠️ Warnings:\n${result.error}`)
+        }
+        
+        // If there are test results from backend, show them
+        if (result.test_results) {
+          setTestResults(result.test_results)
+        }
       } else {
-        setOutput(`Error: ${result.error}`)
+        setOutput(`❌ Error:\n${result.error}`)
       }
     } catch (error) {
-      setOutput(`Execution failed: ${(error as Error).message}`)
+      console.error('❌ Compiler network error:', error)
+      setOutput(`❌ Network error: Could not connect to compiler service.\nPlease check if the backend is running on port 5000.`)
     } finally {
       setIsRunning(false)
     }
@@ -224,8 +242,9 @@ export default function EnhancedExamInterface() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          code,
-          language: selectedLanguage
+          exam_code: examSession?.exam_code,
+          language: selectedLanguage,
+          code: code
         })
       })
 
