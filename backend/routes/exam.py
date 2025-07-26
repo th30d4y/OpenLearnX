@@ -458,6 +458,146 @@ def get_host_dashboard(exam_code):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+# ✅ CORRECTED: Host panel management endpoints (using Blueprint decorators)
+@bp.route('/info/<exam_code>', methods=['GET', 'OPTIONS'])
+def get_exam_info(exam_code):
+    """Get detailed information about an exam for the host panel"""
+    if request.method == "OPTIONS":
+        response = jsonify({'status': 'ok'})
+        response.headers.add("Access-Control-Allow-Origin", "*")
+        response.headers.add("Access-Control-Allow-Headers", "Content-Type,Authorization")
+        response.headers.add("Access-Control-Allow-Methods", "GET,OPTIONS")
+        return response
+    
+    try:
+        exam = db.exams.find_one({"exam_code": exam_code.upper()})
+        if not exam:
+            return jsonify({"success": False, "error": "Exam not found"}), 404
+        
+        exam_info = {
+            "title": exam["title"],
+            "status": exam["status"],
+            "duration_minutes": exam["duration_minutes"],
+            "participants_count": len(exam.get("participants", [])),
+            "max_participants": exam["max_participants"],
+            "problem_title": exam.get("problem", {}).get("title", exam["title"]),
+            "languages": exam.get("problem", {}).get("languages", ["python"]),
+            "created_at": exam["created_at"],
+            "host_name": exam["host_name"]
+        }
+        
+        print(f"📊 Host panel requested info for exam {exam_code}")
+        return jsonify({"success": True, "exam_info": exam_info})
+    except Exception as e:
+        print(f"❌ Error getting exam info: {str(e)}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@bp.route('/participants/<exam_code>', methods=['GET', 'OPTIONS'])
+def get_participants(exam_code):
+    """Get list of participants for host panel monitoring"""
+    if request.method == "OPTIONS":
+        response = jsonify({'status': 'ok'})
+        response.headers.add("Access-Control-Allow-Origin", "*")
+        response.headers.add("Access-Control-Allow-Headers", "Content-Type,Authorization")
+        response.headers.add("Access-Control-Allow-Methods", "GET,OPTIONS")
+        return response
+    
+    try:
+        exam = db.exams.find_one({"exam_code": exam_code.upper()})
+        if not exam:
+            return jsonify({"success": False, "error": "Exam not found"}), 404
+        
+        participants = exam.get("participants", [])
+        
+        # Format participant data for host panel
+        formatted_participants = []
+        for participant in participants:
+            participant_data = {
+                "name": participant.get("name", ""),
+                "score": participant.get("score", 0),
+                "completed": participant.get("completed", False),
+                "joined_at": participant.get("joined_at", ""),
+                "submitted_at": participant.get("submitted_at", None)
+            }
+            formatted_participants.append(participant_data)
+        
+        print(f"👥 Retrieved {len(formatted_participants)} participants for exam {exam_code}")
+        return jsonify({"success": True, "participants": formatted_participants})
+    except Exception as e:
+        print(f"❌ Error getting participants: {str(e)}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@bp.route('/remove-participant', methods=['POST', 'OPTIONS'])
+def remove_participant():
+    """Remove a participant from an exam (host only)"""
+    if request.method == "OPTIONS":
+        response = jsonify({'status': 'ok'})
+        response.headers.add("Access-Control-Allow-Origin", "*")
+        response.headers.add("Access-Control-Allow-Headers", "Content-Type,Authorization")
+        response.headers.add("Access-Control-Allow-Methods", "POST,OPTIONS")
+        return response
+    
+    try:
+        data = request.get_json()
+        exam_code = data.get('exam_code', '').upper()
+        participant_name = data.get('participant_name', '')
+        
+        if not exam_code or not participant_name:
+            return jsonify({"success": False, "error": "Missing exam_code or participant_name"}), 400
+        
+        # Remove participant from exam
+        result = db.exams.update_one(
+            {"exam_code": exam_code},
+            {"$pull": {"participants": {"name": participant_name}}}
+        )
+        
+        if result.modified_count > 0:
+            print(f"🗑️ Host removed participant {participant_name} from exam {exam_code}")
+            return jsonify({"success": True, "message": f"Participant {participant_name} removed successfully"})
+        else:
+            return jsonify({"success": False, "error": "Participant not found or already removed"}), 404
+            
+    except Exception as e:
+        print(f"❌ Error removing participant: {str(e)}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@bp.route('/stop-exam', methods=['POST', 'OPTIONS'])
+def stop_exam():
+    """Stop an exam early (host only)"""
+    if request.method == "OPTIONS":
+        response = jsonify({'status': 'ok'})
+        response.headers.add("Access-Control-Allow-Origin", "*")
+        response.headers.add("Access-Control-Allow-Headers", "Content-Type,Authorization")
+        response.headers.add("Access-Control-Allow-Methods", "POST,OPTIONS")
+        return response
+    
+    try:
+        data = request.get_json()
+        exam_code = data.get('exam_code', '').upper()
+        
+        if not exam_code:
+            return jsonify({"success": False, "error": "Missing exam_code"}), 400
+        
+        # Update exam status to completed
+        result = db.exams.update_one(
+            {"exam_code": exam_code},
+            {"$set": {
+                "status": "completed", 
+                "ended_at": datetime.now().isoformat(),
+                "ended_by": "host"
+            }}
+        )
+        
+        if result.modified_count > 0:
+            print(f"🛑 Exam {exam_code} stopped early by host")
+            return jsonify({"success": True, "message": "Exam stopped successfully"})
+        else:
+            return jsonify({"success": False, "error": "Exam not found"}), 404
+            
+    except Exception as e:
+        print(f"❌ Error stopping exam: {str(e)}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
 @bp.route("/debug-join-data", methods=["POST", "OPTIONS"])
 def debug_join_data():
     """Debug what data is actually being received"""
@@ -493,6 +633,10 @@ def test_exam_route():
             "/api/exam/leaderboard/<exam_code>",
             "/api/exam/get-problem/<exam_code>",
             "/api/exam/host-dashboard/<exam_code>",
+            "/api/exam/info/<exam_code>",
+            "/api/exam/participants/<exam_code>",
+            "/api/exam/remove-participant",
+            "/api/exam/stop-exam",
             "/api/exam/debug-join-data"
         ]
     })
@@ -509,7 +653,54 @@ def exam_root():
             "/api/exam/leaderboard/<exam_code>",
             "/api/exam/get-problem/<exam_code>",
             "/api/exam/host-dashboard/<exam_code>",
+            "/api/exam/info/<exam_code>",
+            "/api/exam/participants/<exam_code>",
+            "/api/exam/remove-participant",
+            "/api/exam/stop-exam",
             "/api/exam/test",
             "/api/exam/debug-join-data"
         ]
     })
+@bp.route('/info/<exam_code>', methods=['GET', 'OPTIONS'])
+def get_exam_info(exam_code):
+    """Get detailed information about an exam for the host panel"""
+    if request.method == "OPTIONS":
+        response = jsonify({'status': 'ok'})
+        response.headers.add("Access-Control-Allow-Origin", "*")
+        response.headers.add("Access-Control-Allow-Headers", "Content-Type,Authorization")
+        response.headers.add("Access-Control-Allow-Methods", "GET,OPTIONS")
+        return response
+    
+    try:
+        print(f"📊 Host panel requesting info for exam: {exam_code}")
+        
+        exam = db.exams.find_one({"exam_code": exam_code.upper()})
+        if not exam:
+            print(f"❌ Exam not found: {exam_code}")
+            return jsonify({"success": False, "error": "Exam not found"}), 404
+        
+        # Convert datetime objects to strings for JSON serialization
+        created_at = exam.get("created_at")
+        if hasattr(created_at, 'isoformat'):
+            created_at = created_at.isoformat()
+        
+        exam_info = {
+            "title": exam["title"],
+            "status": exam["status"],
+            "duration_minutes": exam["duration_minutes"],
+            "participants_count": len(exam.get("participants", [])),
+            "max_participants": exam.get("max_participants", 50),
+            "problem_title": exam.get("problem", {}).get("title", exam["title"]),
+            "languages": exam.get("problem", {}).get("languages", ["python"]),
+            "created_at": created_at,
+            "host_name": exam["host_name"]
+        }
+        
+        print(f"✅ Found exam: {exam['title']} (Status: {exam['status']})")
+        return jsonify({"success": True, "exam_info": exam_info})
+        
+    except Exception as e:
+        print(f"❌ Error getting exam info: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "error": str(e)}), 500

@@ -104,6 +104,7 @@ export default function CodingExamPlatform() {
     }
   }
 
+  // ✅ UPDATED CREATE EXAM WITH HOST PANEL REDIRECT
   const createExam = async () => {
     try {
       const response = await fetch('http://127.0.0.1:5000/api/exam/create-exam', {
@@ -113,7 +114,8 @@ export default function CodingExamPlatform() {
           title: 'String Capitalizer Challenge',
           problem_id: 'string-capitalizer',
           duration_minutes: 30,
-          host_name: participantName
+          host_name: participantName,
+          max_participants: 50
         })
       })
       
@@ -128,14 +130,38 @@ export default function CodingExamPlatform() {
         setExamId(participantCode)
         setExamInfo({ title: 'String Capitalizer Challenge', status: 'waiting' })
         
-        // ✅ FIXED: Show exam_code instead of exam_id
-        alert(`Exam created! Share this code with participants: ${participantCode}`)
+        // Store host exam data
+        localStorage.setItem('host_exam', JSON.stringify({
+          exam_code: participantCode,
+          exam_id: databaseId,
+          host_name: participantName,
+          created_at: new Date().toISOString(),
+          exam_details: data.exam_details || {}
+        }))
+        
+        // ✅ ENHANCED SUCCESS MESSAGE WITH REDIRECT INFO
+        alert(`✅ Exam Created Successfully!
+
+📝 Exam Code: ${participantCode}
+📋 Title: String Capitalizer Challenge
+👤 Host: ${participantName}
+⏱️ Duration: 30 minutes
+
+🔗 Share this code with participants: ${participantCode}
+
+Redirecting to Host Management Panel...`)
+
+        // ✅ REDIRECT TO HOST PANEL
+        setTimeout(() => {
+          router.push(`/coding/host/${participantCode}`)
+        }, 2000)
+        
       } else {
-        alert(`Failed to create exam: ${data.error}`)
+        alert(`❌ Failed to create exam: ${data.error}`)
       }
     } catch (error) {
       console.error('Create exam error:', error)
-      alert('Failed to create exam - network error')
+      alert('❌ Failed to create exam - network error')
     }
   }
 
@@ -316,6 +342,7 @@ Redirecting to exam interface...`)
           <div className="mt-4 p-3 bg-gray-50 rounded text-xs text-gray-600">
             <p>Will create with host_name: "{participantName}"</p>
             <p>✅ Will display exam_code (6 chars), not exam_id</p>
+            <p>🔄 After creation → redirect to /coding/host/[examCode]</p>
           </div>
         </div>
       </div>
