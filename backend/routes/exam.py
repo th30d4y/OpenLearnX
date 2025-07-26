@@ -704,3 +704,228 @@ def get_exam_info(exam_code):
         import traceback
         traceback.print_exc()
         return jsonify({"success": False, "error": str(e)}), 500
+
+@bp.route('/upload-question', methods=['POST', 'OPTIONS'])
+def upload_question():
+    """Host uploads a custom question to their exam"""
+    if request.method == "OPTIONS":
+        response = jsonify({'status': 'ok'})
+        response.headers.add("Access-Control-Allow-Origin", "*")
+        response.headers.add("Access-Control-Allow-Headers", "Content-Type,Authorization")
+        response.headers.add("Access-Control-Allow-Methods", "POST,OPTIONS")
+        return response
+    
+    try:
+        data = request.get_json()
+        exam_code = data.get('exam_code', '').upper()
+        question_data = data.get('question', {})
+        
+        print(f"📤 Host uploading question to exam: {exam_code}")
+        
+        if not exam_code or not question_data:
+            return jsonify({"success": False, "error": "Missing exam_code or question data"}), 400
+        
+        # Validate required question fields
+        required_fields = ['title', 'description', 'function_name', 'test_cases']
+        for field in required_fields:
+            if not question_data.get(field):
+                return jsonify({"success": False, "error": f"Missing required field: {field}"}), 400
+        
+        # Find the exam
+        exam = db.exams.find_one({"exam_code": exam_code})
+        if not exam:
+            return jsonify({"success": False, "error": "Exam not found"}), 404
+        
+        # Check if exam has already started
+        if exam['status'] != 'waiting':
+            return jsonify({"success": False, "error": "Cannot modify questions after exam has started"}), 400
+        
+        # Generate question ID
+        question_id = str(uuid.uuid4())
+        
+        # Prepare question document
+        question = {
+            "id": question_id,
+            "title": question_data['title'],
+            "description": question_data['description'],
+            "difficulty": question_data.get('difficulty', 'medium'),
+            "function_name": question_data['function_name'],
+            "starter_code": question_data.get('starter_code', {
+                'python': f'def {question_data["function_name"]}():\n    # Write your solution here\n    pass'
+            }),
+            "test_cases": question_data['test_cases'],
+            "examples": question_data.get('examples', []),
+            "constraints": question_data.get('constraints', []),
+            "time_limit": question_data.get('time_limit', 1000),
+            "memory_limit": question_data.get('memory_limit', '128MB'),
+            "created_at": datetime.now(),
+            "uploaded_by": exam['host_name']
+        }
+        
+        # Update the exam with the new question
+        result = db.exams.update_one(
+            {"exam_code": exam_code},
+            {
+                "$set": {
+                    "problem": question,
+                    "updated_at": datetime.now()
+                }
+            }
+        )
+        
+        if result.modified_count > 0:
+            print(f"✅ Question '{question['title']}' uploaded to exam {exam_code}")
+            return jsonify({
+                "success": True,
+                "message": "Question uploaded successfully",
+                "question_id": question_id,
+                "question_title": question['title']
+            })
+        else:
+            return jsonify({"success": False, "error": "Failed to update exam"}), 500
+            
+    except Exception as e:
+        print(f"❌ Error uploading question: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "error": f"Server error: {str(e)}"}), 500
+
+@bp.route('/upload-question', methods=['POST', 'OPTIONS'])
+def upload_question():
+    """Host uploads a custom question to their exam"""
+    if request.method == "OPTIONS":
+        response = jsonify({'status': 'ok'})
+        response.headers.add("Access-Control-Allow-Origin", "*")
+        response.headers.add("Access-Control-Allow-Headers", "Content-Type,Authorization")
+        response.headers.add("Access-Control-Allow-Methods", "POST,OPTIONS")
+        return response
+    
+    try:
+        data = request.get_json()
+        exam_code = data.get('exam_code', '').upper()
+        question_data = data.get('question', {})
+        
+        print(f"📤 Host uploading question to exam: {exam_code}")
+        
+        if not exam_code or not question_data:
+            return jsonify({"success": False, "error": "Missing exam_code or question data"}), 400
+        
+        # Validate required question fields
+        required_fields = ['title', 'description']
+        for field in required_fields:
+            if not question_data.get(field):
+                return jsonify({"success": False, "error": f"Missing required field: {field}"}), 400
+        
+        # Find the exam
+        exam = db.exams.find_one({"exam_code": exam_code})
+        if not exam:
+            return jsonify({"success": False, "error": "Exam not found"}), 404
+        
+        # Check if exam has already started
+        if exam['status'] != 'waiting':
+            return jsonify({"success": False, "error": "Cannot modify questions after exam has started"}), 400
+        
+        # Generate question ID
+        import uuid
+        question_id = str(uuid.uuid4())
+        
+        # Prepare question document
+        question = {
+            "id": question_id,
+            "title": question_data['title'],
+            "description": question_data['description'],
+            "difficulty": question_data.get('difficulty', 'medium'),
+            "function_name": question_data.get('function_name', 'solve'),
+            "starter_code": question_data.get('starter_code', {
+                'python': f'def {question_data.get("function_name", "solve")}():\n    # Write your solution here\n    pass'
+            }),
+            "test_cases": question_data.get('test_cases', []),
+            "examples": question_data.get('examples', []),
+            "constraints": question_data.get('constraints', []),
+            "time_limit": question_data.get('time_limit', 1000),
+            "memory_limit": question_data.get('memory_limit', '128MB'),
+            "created_at": datetime.now(),
+            "uploaded_by": exam.get('host_name', 'Unknown')
+        }
+        
+        # Update the exam with the new question
+        result = db.exams.update_one(
+            {"exam_code": exam_code},
+            {
+                "$set": {
+                    "problem": question,
+                    "updated_at": datetime.now()
+                }
+            }
+        )
+        
+        if result.modified_count > 0:
+            print(f"✅ Question '{question['title']}' uploaded to exam {exam_code}")
+            return jsonify({
+                "success": True,
+                "message": "Question uploaded successfully",
+                "question_id": question_id,
+                "question_title": question['title']
+            })
+        else:
+            return jsonify({"success": False, "error": "Failed to update exam"}), 500
+            
+    except Exception as e:
+        print(f"❌ Error uploading question: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "error": f"Server error: {str(e)}"}), 500
+
+@bp.route('/update-duration', methods=['POST', 'OPTIONS'])
+def update_duration():
+    """Update exam duration (host only, before exam starts)"""
+    if request.method == "OPTIONS":
+        response = jsonify({'status': 'ok'})
+        response.headers.add("Access-Control-Allow-Origin", "*")
+        response.headers.add("Access-Control-Allow-Headers", "Content-Type,Authorization")
+        response.headers.add("Access-Control-Allow-Methods", "POST,OPTIONS")
+        return response
+    
+    try:
+        data = request.get_json()
+        exam_code = data.get('exam_code', '').upper()
+        duration_minutes = data.get('duration_minutes', 0)
+        
+        print(f"⏰ Updating duration for exam {exam_code} to {duration_minutes} minutes")
+        
+        if not exam_code or duration_minutes <= 0:
+            return jsonify({"success": False, "error": "Invalid exam_code or duration_minutes"}), 400
+        
+        # Find the exam
+        exam = db.exams.find_one({"exam_code": exam_code})
+        if not exam:
+            return jsonify({"success": False, "error": "Exam not found"}), 404
+        
+        # Check if exam can be modified
+        if exam.get('status') != 'waiting':
+            return jsonify({"success": False, "error": "Cannot modify duration after exam has started"}), 400
+        
+        # Update duration
+        result = db.exams.update_one(
+            {"exam_code": exam_code},
+            {
+                "$set": {
+                    "duration_minutes": duration_minutes,
+                    "updated_at": datetime.now()
+                }
+            }
+        )
+        
+        if result.modified_count > 0:
+            print(f"✅ Duration updated to {duration_minutes} minutes for exam {exam_code}")
+            return jsonify({
+                "success": True,
+                "message": f"Duration updated to {duration_minutes} minutes",
+                "new_duration": duration_minutes
+            })
+        else:
+            return jsonify({"success": False, "error": "Failed to update duration"}), 500
+            
+    except Exception as e:
+        print(f"❌ Error updating duration: {str(e)}")
+        return jsonify({"success": False, "error": str(e)}), 500
