@@ -207,3 +207,4 @@ sudo systemctl status mongodb
 # Test connection
 mongosh
 ```
+After this mangodb shell will open
