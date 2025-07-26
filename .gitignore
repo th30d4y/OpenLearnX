@@ -31,3 +31,6 @@ Thumbs.db
 
 # ▶️ SQLite or other local databases
 *.sqlite3
+
+
+node_modules/
