@@ -6,19 +6,19 @@ import { Loader2 } from "lucide-react"
 import { useAuth } from "@/context/auth-context"
 import { useRouter } from "next/navigation"
 import { toast } from "react-hot-toast"
-import { useState, useEffect } from "react"
+import { useState, useEffect, use } from "react" // ✅ Added 'use' import
 import type { Course } from "@/lib/types"
-import api from "@/lib/api" // Corrected import: default import
+import api from "@/lib/api"
 
 interface CourseOverviewPageProps {
-  params: {
+  params: Promise<{ // ✅ Changed to Promise
     courseId: string
-  }
+  }>
 }
 
 export default function CourseOverviewPage({ params }: CourseOverviewPageProps) {
-  const { courseId } = params
-  const { user, firebaseUser, isLoadingAuth } = useAuth() // Allow firebaseUser
+  const { courseId } = use(params) // ✅ Unwrap params using React.use()
+  const { user, firebaseUser, isLoadingAuth } = useAuth()
   const router = useRouter()
   const [course, setCourse] = useState<Course | null>(null)
   const [isLoadingCourse, setIsLoadingCourse] = useState(true)
@@ -26,7 +26,6 @@ export default function CourseOverviewPage({ params }: CourseOverviewPageProps) 
 
   useEffect(() => {
     if (!isLoadingAuth && !user && !firebaseUser) {
-      // Allow either MetaMask or Firebase user
       toast.error("Please login to view courses.")
       router.push("/")
       return
@@ -36,7 +35,6 @@ export default function CourseOverviewPage({ params }: CourseOverviewPageProps) 
       setIsLoadingCourse(true)
       setError(null)
       try {
-        // --- ORIGINAL API CALL (UNCOMMENT WHEN BACKEND IS READY) ---
         const response = await api.get<Course>(`/api/courses/${courseId}`)
         setCourse(response.data)
       } catch (err: any) {
@@ -49,7 +47,6 @@ export default function CourseOverviewPage({ params }: CourseOverviewPageProps) 
     }
 
     if (user || firebaseUser) {
-      // Only fetch if either user type is logged in
       fetchCourse()
     }
   }, [user, firebaseUser, isLoadingAuth, router, courseId])
@@ -88,15 +85,25 @@ export default function CourseOverviewPage({ params }: CourseOverviewPageProps) 
 
   return (
     <div className="flex flex-col md:flex-row min-h-[calc(100vh-64px)]">
-      <CourseSidebar courseId={course.id} modules={course.modules} activeLessonId="" />
+      <CourseSidebar 
+        courseId={course.id} 
+        modules={course.modules} 
+        activeLessonId="" 
+      />
       <div className="flex-1 p-4 md:p-8 overflow-y-auto">
         <Card className="bg-white shadow-md rounded-lg p-6 dark:bg-gray-800 dark:text-gray-100">
           <CardHeader>
-            <CardTitle className="text-2xl font-bold text-primary-purple">{course.title} Overview</CardTitle>
+            <CardTitle className="text-2xl font-bold text-primary-purple">
+              {course.title} Overview
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <p className="text-lg text-gray-700 dark:text-gray-200">{course.description}</p>
-            <p className="text-gray-600 dark:text-gray-300">Select a lesson from the sidebar to begin.</p>
+            <p className="text-lg text-gray-700 dark:text-gray-200">
+              {course.description}
+            </p>
+            <p className="text-gray-600 dark:text-gray-300">
+              Select a lesson from the sidebar to begin.
+            </p>
           </CardContent>
         </Card>
       </div>

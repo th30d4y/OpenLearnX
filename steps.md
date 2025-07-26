@@ -192,3 +192,18 @@ pnpm run dev
 ```
 
  
+## run mangodb in local for running 
+```
+# Install MongoDB on Arch Linux
+yay -S mongodb-bin
+
+# Start the service
+sudo systemctl start mongodb
+sudo systemctl enable mongodb
+
+# Verify it's running
+sudo systemctl status mongodb
+
+# Test connection
+mongosh
+```
