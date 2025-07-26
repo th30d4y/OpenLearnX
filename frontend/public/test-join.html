@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenLearnX - Test Join Exam</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+        
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.9);
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+        
+        .form-group input::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: #4CAF50;
+            background: rgba(255, 255, 255, 0.15);
+        }
+        
+        .exam-code-input {
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+        
+        .join-btn {
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+        }
+        
+        .join-btn:hover:not(:disabled) {
+            background: linear-gradient(45deg, #45a049, #3d8b40);
+            transform: translateY(-2px);
+        }
+        
+        .join-btn:disabled {
+            background: rgba(255, 255, 255, 0.3);
+            cursor: not-allowed;
+        }
+        
+        .error {
+            background: linear-gradient(45deg, #f44336, #d32f2f);
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 10px;
+            display: none;
+        }
+        
+        .success {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 10px;
+            display: none;
+        }
+        
+        .debug {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 10px;
+            font-size: 12px;
+            font-family: 'Courier New', monospace;
+            word-break: break-all;
+        }
+        
+        .example-code {
+            background: rgba(76, 175, 80, 0.2);
+            padding: 8px 12px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            color: #4CAF50;
+            margin-top: 5px;
+            font-size: 12px;
+            word-break: break-all;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 Join Coding Exam</h1>
+            <p>Test page for OpenLearnX exam joining</p>
+        </div>
+        
+        <form id="joinForm">
+            <div class="form-group">
+                <label for="examCode">📝 Exam Code:</label>
+                <input 
+                    type="text" 
+                    id="examCode" 
+                    class="exam-code-input"
+                    placeholder="Enter exam code (6 chars or MongoDB ID)"
+                    autocomplete="off"
+                    required
+                >
+                <div class="example-code">Try: 6884f04c6ca73cc9032deaf9</div>
+            </div>
+            
+            <div class="form-group">
+                <label for="studentName">👤 Your Name:</label>
+                <input 
+                    type="text" 
+                    id="studentName" 
+                    placeholder="Enter your full name"
+                    autocomplete="name"
+                    required
+                >
+            </div>
+            
+            <button type="submit" id="joinBtn" class="join-btn">
+                <span id="btnText">Join Exam</span>
+            </button>
+        </form>
+        
+        <div id="error" class="error"></div>
+        <div id="success" class="success"></div>
+        
+        <div id="debug" class="debug">
+            <h4>🔧 Debug Info:</h4>
+            <p>Exam Code: "<span id="debugCode"></span>"</p>
+            <p>Student Name: "<span id="debugName"></span>"</p>
+            <p>Status: <span id="debugStatus">Ready to join</span></p>
+        </div>
+    </div>
+
+    <script>
+        const examCodeInput = document.getElementById('examCode');
+        const studentNameInput = document.getElementById('studentName');
+        const joinBtn = document.getElementById('joinBtn');
+        const btnText = document.getElementById('btnText');
+        const errorDiv = document.getElementById('error');
+        const successDiv = document.getElementById('success');
+        const debugCode = document.getElementById('debugCode');
+        const debugName = document.getElementById('debugName');
+        const debugStatus = document.getElementById('debugStatus');
+
+        const API_BASE = 'http://127.0.0.1:5000';
+
+        function updateDebug() {
+            debugCode.textContent = examCodeInput.value;
+            debugName.textContent = studentNameInput.value;
+        }
+
+        function showError(message) {
+            errorDiv.textContent = '❌ ' + message;
+            errorDiv.style.display = 'block';
+            successDiv.style.display = 'none';
+            debugStatus.textContent = 'Error: ' + message;
+        }
+
+        function showSuccess(message) {
+            successDiv.textContent = '✅ ' + message;
+            successDiv.style.display = 'block';
+            errorDiv.style.display = 'none';
+            debugStatus.textContent = 'Success: ' + message;
+        }
+
+        function setLoading(loading) {
+            if (loading) {
+                joinBtn.disabled = true;
+                btnText.innerHTML = '<span class="loading"></span>Joining Exam...';
+            } else {
+                joinBtn.disabled = false;
+                btnText.textContent = 'Join Exam';
+            }
+        }
+
+        examCodeInput.addEventListener('input', updateDebug);
+        studentNameInput.addEventListener('input', updateDebug);
+
+        document.getElementById('joinForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const examCode = examCodeInput.value.trim();
+            const studentName = studentNameInput.value.trim();
+            
+            console.log('🚀 Form submitted with:', { examCode, studentName });
+            
+            if (!examCode || !studentName) {
+                showError('Please fill in both fields');
+                return;
+            }
+
+            setLoading(true);
+
+            try {
+                const payload = {
+                    exam_code: examCode,
+                    student_name: studentName
+                };
+                
+                console.log('📤 Sending payload:', payload);
+                
+                const response = await fetch(`${API_BASE}/api/exam/join-exam`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                console.log('📡 Response status:', response.status);
+                
+                const data = await response.json();
+                console.log('📦 Response data:', data);
+                
+                if (data.success) {
+                    showSuccess(`Successfully joined: ${data.exam_info.title}`);
+                    
+                    localStorage.setItem('exam_session', JSON.stringify({
+                        exam_code: examCode,
+                        student_name: studentName,
+                        exam_info: data.exam_info,
+                        joined_at: new Date().toISOString()
+                    }));
+                    
+                    setTimeout(() => {
+                        if (confirm('✅ Successfully joined exam!\n\nRedirect to exam interface?')) {
+                            window.location.href = '/coding/exam';
+                        }
+                    }, 1000);
+                    
+                } else {
+                    showError(data.error || 'Failed to join exam');
+                }
+                
+            } catch (error) {
+                console.error('❌ Network error:', error);
+                showError('Network error: Cannot connect to backend');
+            } finally {
+                setLoading(false);
+            }
+        });
+
+        // Auto-fill for testing
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 't') {
+                e.preventDefault();
+                examCodeInput.value = '6884f04c6ca73cc9032deaf9';
+                studentNameInput.value = 'Test Student';
+                updateDebug();
+                console.log('🧪 Test data filled');
+            }
+        });
+
+        updateDebug();
+    </script>
+</body>
+</html>

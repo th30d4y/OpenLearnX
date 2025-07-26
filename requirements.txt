@@ -31,3 +31,6 @@ cryptography==41.0.7
 
 # HTTP requests
 requests==2.31.0
+
+#docker
+docker
