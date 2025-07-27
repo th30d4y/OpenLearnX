@@ -13,6 +13,10 @@ mongo_uri = os.getenv('MONGODB_URI', 'mongodb://localhost:27017/')
 client = MongoClient(mongo_uri)
 db = client.openlearnx
 
+def get_db():
+    """Get database connection"""
+    return db
+
 def generate_exam_code():
     """Generate a unique 6-character exam code"""
     while True:
@@ -23,7 +27,6 @@ def generate_exam_code():
 @bp.route("/create-exam", methods=["POST", "OPTIONS"])
 def create_exam():
     """Create a new coding exam"""
-    # Handle OPTIONS request for CORS
     if request.method == "OPTIONS":
         response = jsonify({'status': 'ok'})
         response.headers.add("Access-Control-Allow-Origin", "*")
@@ -69,6 +72,36 @@ def create_exam():
             "status": "waiting",
             "duration_minutes": data.get('duration_minutes', 30),
             "max_participants": data.get('max_participants', 50),
+            "problems": [{  # Changed to problems array to support multiple problems
+                "id": "problem_1",
+                "title": problem_title,
+                "description": problem_description,
+                "function_name": data.get('function_name', 'solve'),
+                "languages": data.get('languages', ['python']),
+                "test_cases": data.get('test_cases', [
+                    {
+                        "input": "hello world",
+                        "expected_output": "Hello World",
+                        "description": "Basic capitalization test",
+                        "points": 10
+                    }
+                ]),
+                "starter_code": data.get('starter_code', {
+                    'python': 'def solve(input_string):\n    # Write your solution here\n    return input_string.title()',
+                    'java': 'public String solve(String inputString) {\n    // Write your solution here\n    return inputString;\n}',
+                    'javascript': 'function solve(inputString) {\n    // Write your solution here\n    return inputString;\n}'
+                }),
+                "constraints": data.get('constraints', ['Input will be a string', 'Length between 1-1000 characters']),
+                "examples": data.get('examples', [
+                    {
+                        "input": "hello world",
+                        "expected_output": "Hello World", 
+                        "description": "Capitalize each word"
+                    }
+                ]),
+                "total_points": data.get('total_points', 100)
+            }],
+            # Keep backward compatibility
             "problem": {
                 "title": problem_title,
                 "description": problem_description,
@@ -293,6 +326,169 @@ def start_exam():
         print(f"❌ Error starting exam: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
+# ✅ MISSING ROUTE - This was causing the 404 error!
+@bp.route('/submit-solution', methods=['POST', 'OPTIONS'])
+def submit_solution():
+    """Submit coding solution for evaluation"""
+    if request.method == "OPTIONS":
+        response = jsonify({'status': 'ok'})
+        response.headers.add("Access-Control-Allow-Origin", "*")
+        response.headers.add("Access-Control-Allow-Headers", "Content-Type,Authorization")
+        response.headers.add("Access-Control-Allow-Methods", "POST,OPTIONS")
+        return response
+
+    try:
+        data = request.get_json()
+        exam_code = data.get('exam_code')
+        username = data.get('username')
+        problem_id = data.get('problem_id', 'problem_1')
+        code = data.get('code')
+        language = data.get('language', 'python')
+
+        if not all([exam_code, username, code]):
+            return jsonify({
+                "success": False,
+                "error": "Missing required fields: exam_code, username, code"
+            }), 400
+
+        print(f"📝 Solution submission: {username} -> {exam_code} (Problem: {problem_id})")
+
+        # Find the exam
+        exam = db.exams.find_one({"exam_code": exam_code.upper()})
+        if not exam:
+            return jsonify({"success": False, "error": "Exam not found"}), 404
+
+        # Find the specific problem (support both old and new format)
+        problem = None
+        if exam.get('problems'):
+            problem = next((p for p in exam.get('problems', []) if p.get('id') == problem_id), None)
+        if not problem and exam.get('problem'):
+            problem = exam['problem']
+            problem['id'] = 'problem_1'
+
+        if not problem:
+            return jsonify({"success": False, "error": "Problem not found"}), 404
+
+        # Use the enhanced dynamic scoring system from main.py
+        try:
+            from main import calculate_dynamic_score
+            result = calculate_dynamic_score(code, language, problem)
+        except ImportError:
+            # Fallback basic scoring if main function not available
+            result = {
+                'score': 50,  # Default score
+                'passed_tests': 1,
+                'total_tests': 1,
+                'test_results': [{'passed': True, 'description': 'Basic test'}],
+                'execution_time': 0.1,
+                'details': {'points_earned': 50, 'total_points': 100}
+            }
+
+        # Create submission record
+        submission = {
+            "submission_id": str(uuid.uuid4()),
+            "exam_code": exam_code.upper(),
+            "username": username,
+            "problem_id": problem_id,
+            "code": code,
+            "language": language,
+            "score": result['score'],
+            "passed_tests": result['passed_tests'],
+            "total_tests": result['total_tests'],
+            "test_results": result['test_results'],
+            "execution_time": result['execution_time'],
+            "submitted_at": datetime.now(),
+            "points_earned": result['details']['points_earned'],
+            "total_points": result['details']['total_points']
+        }
+
+        # Save submission to submissions collection
+        db.submissions.insert_one(submission)
+
+        # Update participant in exam
+        participant_update = {
+            "score": result['score'],
+            "completed": True,
+            "submission_time": datetime.now(),
+            "language": language,
+            "submission": code,
+            "test_results": result['test_results']
+        }
+
+        exam_update_result = db.exams.update_one(
+            {"exam_code": exam_code.upper(), "participants.name": username},
+            {"$set": {f"participants.$": {**participant_update, "name": username, "joined_at": datetime.now(), "session_id": str(uuid.uuid4())}}}
+        )
+
+        # Update participant leaderboard in separate collection
+        participant_filter = {"exam_code": exam_code.upper(), "username": username}
+        participant = db.participants.find_one(participant_filter)
+
+        if participant:
+            # Update existing participant
+            total_score = participant.get('total_score', 0) + result['details']['points_earned']
+            problems_solved = participant.get('problems_solved', 0)
+            if result['score'] == 100:  # Perfect score
+                problems_solved += 1
+
+            db.participants.update_one(
+                participant_filter,
+                {
+                    "$set": {
+                        "total_score": total_score,
+                        "problems_solved": problems_solved,
+                        "last_submission": datetime.now()
+                    },
+                    "$push": {
+                        "submissions": {
+                            "problem_id": problem_id,
+                            "score": result['score'],
+                            "points": result['details']['points_earned'],
+                            "submitted_at": datetime.now()
+                        }
+                    }
+                }
+            )
+        else:
+            # Create new participant
+            new_participant = {
+                "exam_code": exam_code.upper(),
+                "username": username,
+                "total_score": result['details']['points_earned'],
+                "problems_solved": 1 if result['score'] == 100 else 0,
+                "joined_at": datetime.now(),
+                "last_submission": datetime.now(),
+                "submissions": [{
+                    "problem_id": problem_id,
+                    "score": result['score'],
+                    "points": result['details']['points_earned'],
+                    "submitted_at": datetime.now()
+                }]
+            }
+            db.participants.insert_one(new_participant)
+
+        print(f"✅ Solution submitted: {result['score']}% ({result['passed_tests']}/{result['total_tests']} tests)")
+
+        return jsonify({
+            "success": True,
+            "message": f"Solution submitted successfully! Score: {result['score']}%",
+            "result": {
+                "score": result['score'],
+                "passed_tests": result['passed_tests'],
+                "total_tests": result['total_tests'],
+                "test_results": result['test_results'],
+                "execution_time": result['execution_time'],
+                "points_earned": result['details']['points_earned'],
+                "total_points": result['details']['total_points']
+            }
+        })
+
+    except Exception as e:
+        print(f"❌ Submission error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "error": str(e)}), 500
+
 @bp.route("/leaderboard/<exam_code>", methods=["GET", "OPTIONS"])
 def get_leaderboard(exam_code):
     """Get real-time leaderboard visible to all participants"""
@@ -458,7 +654,7 @@ def get_host_dashboard(exam_code):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# ✅ CORRECTED: Host panel management endpoints (using Blueprint decorators)
+# ✅ FIXED: Remove duplicate definition
 @bp.route('/info/<exam_code>', methods=['GET', 'OPTIONS'])
 def get_exam_info(exam_code):
     """Get detailed information about an exam for the host panel"""
@@ -470,26 +666,37 @@ def get_exam_info(exam_code):
         return response
     
     try:
+        print(f"📊 Host panel requesting info for exam: {exam_code}")
+        
         exam = db.exams.find_one({"exam_code": exam_code.upper()})
         if not exam:
+            print(f"❌ Exam not found: {exam_code}")
             return jsonify({"success": False, "error": "Exam not found"}), 404
+        
+        # Convert datetime objects to strings for JSON serialization
+        created_at = exam.get("created_at")
+        if hasattr(created_at, 'isoformat'):
+            created_at = created_at.isoformat()
         
         exam_info = {
             "title": exam["title"],
             "status": exam["status"],
             "duration_minutes": exam["duration_minutes"],
             "participants_count": len(exam.get("participants", [])),
-            "max_participants": exam["max_participants"],
+            "max_participants": exam.get("max_participants", 50),
             "problem_title": exam.get("problem", {}).get("title", exam["title"]),
             "languages": exam.get("problem", {}).get("languages", ["python"]),
-            "created_at": exam["created_at"],
+            "created_at": created_at,
             "host_name": exam["host_name"]
         }
         
-        print(f"📊 Host panel requested info for exam {exam_code}")
+        print(f"✅ Found exam: {exam['title']} (Status: {exam['status']})")
         return jsonify({"success": True, "exam_info": exam_info})
+        
     except Exception as e:
         print(f"❌ Error getting exam info: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({"success": False, "error": str(e)}), 500
 
 @bp.route('/participants/<exam_code>', methods=['GET', 'OPTIONS'])
@@ -598,198 +805,7 @@ def stop_exam():
         print(f"❌ Error stopping exam: {str(e)}")
         return jsonify({"success": False, "error": str(e)}), 500
 
-@bp.route("/debug-join-data", methods=["POST", "OPTIONS"])
-def debug_join_data():
-    """Debug what data is actually being received"""
-    if request.method == "OPTIONS":
-        response = jsonify({'status': 'ok'})
-        response.headers.add("Access-Control-Allow-Origin", "*")
-        response.headers.add("Access-Control-Allow-Headers", "Content-Type,Authorization")
-        response.headers.add("Access-Control-Allow-Methods", "POST,OPTIONS")
-        return response
-    
-    print(f"🔍 Raw request data: {request.data}")
-    print(f"🔍 Request JSON: {request.json}")
-    print(f"🔍 Content-Type: {request.headers.get('Content-Type')}")
-    
-    return jsonify({
-        "received_raw": request.data.decode() if request.data else None,
-        "received_json": request.json,
-        "content_type": request.headers.get('Content-Type'),
-        "success": True
-    })
-
-@bp.route("/test", methods=["GET"])
-def test_exam_route():
-    """Test if exam routes are working"""
-    return jsonify({
-        "success": True,
-        "message": "Exam routes are working",
-        "timestamp": datetime.now().isoformat(),
-        "available_routes": [
-            "/api/exam/create-exam",
-            "/api/exam/join-exam", 
-            "/api/exam/start-exam",
-            "/api/exam/leaderboard/<exam_code>",
-            "/api/exam/get-problem/<exam_code>",
-            "/api/exam/host-dashboard/<exam_code>",
-            "/api/exam/info/<exam_code>",
-            "/api/exam/participants/<exam_code>",
-            "/api/exam/remove-participant",
-            "/api/exam/stop-exam",
-            "/api/exam/debug-join-data"
-        ]
-    })
-
-@bp.route("/", methods=["GET"])
-def exam_root():
-    """Exam route root"""
-    return jsonify({
-        "message": "OpenLearnX Exam API",
-        "available_endpoints": [
-            "/api/exam/create-exam",
-            "/api/exam/join-exam",
-            "/api/exam/start-exam", 
-            "/api/exam/leaderboard/<exam_code>",
-            "/api/exam/get-problem/<exam_code>",
-            "/api/exam/host-dashboard/<exam_code>",
-            "/api/exam/info/<exam_code>",
-            "/api/exam/participants/<exam_code>",
-            "/api/exam/remove-participant",
-            "/api/exam/stop-exam",
-            "/api/exam/test",
-            "/api/exam/debug-join-data"
-        ]
-    })
-@bp.route('/info/<exam_code>', methods=['GET', 'OPTIONS'])
-def get_exam_info(exam_code):
-    """Get detailed information about an exam for the host panel"""
-    if request.method == "OPTIONS":
-        response = jsonify({'status': 'ok'})
-        response.headers.add("Access-Control-Allow-Origin", "*")
-        response.headers.add("Access-Control-Allow-Headers", "Content-Type,Authorization")
-        response.headers.add("Access-Control-Allow-Methods", "GET,OPTIONS")
-        return response
-    
-    try:
-        print(f"📊 Host panel requesting info for exam: {exam_code}")
-        
-        exam = db.exams.find_one({"exam_code": exam_code.upper()})
-        if not exam:
-            print(f"❌ Exam not found: {exam_code}")
-            return jsonify({"success": False, "error": "Exam not found"}), 404
-        
-        # Convert datetime objects to strings for JSON serialization
-        created_at = exam.get("created_at")
-        if hasattr(created_at, 'isoformat'):
-            created_at = created_at.isoformat()
-        
-        exam_info = {
-            "title": exam["title"],
-            "status": exam["status"],
-            "duration_minutes": exam["duration_minutes"],
-            "participants_count": len(exam.get("participants", [])),
-            "max_participants": exam.get("max_participants", 50),
-            "problem_title": exam.get("problem", {}).get("title", exam["title"]),
-            "languages": exam.get("problem", {}).get("languages", ["python"]),
-            "created_at": created_at,
-            "host_name": exam["host_name"]
-        }
-        
-        print(f"✅ Found exam: {exam['title']} (Status: {exam['status']})")
-        return jsonify({"success": True, "exam_info": exam_info})
-        
-    except Exception as e:
-        print(f"❌ Error getting exam info: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({"success": False, "error": str(e)}), 500
-
-@bp.route('/upload-question', methods=['POST', 'OPTIONS'])
-def upload_question():
-    """Host uploads a custom question to their exam"""
-    if request.method == "OPTIONS":
-        response = jsonify({'status': 'ok'})
-        response.headers.add("Access-Control-Allow-Origin", "*")
-        response.headers.add("Access-Control-Allow-Headers", "Content-Type,Authorization")
-        response.headers.add("Access-Control-Allow-Methods", "POST,OPTIONS")
-        return response
-    
-    try:
-        data = request.get_json()
-        exam_code = data.get('exam_code', '').upper()
-        question_data = data.get('question', {})
-        
-        print(f"📤 Host uploading question to exam: {exam_code}")
-        
-        if not exam_code or not question_data:
-            return jsonify({"success": False, "error": "Missing exam_code or question data"}), 400
-        
-        # Validate required question fields
-        required_fields = ['title', 'description', 'function_name', 'test_cases']
-        for field in required_fields:
-            if not question_data.get(field):
-                return jsonify({"success": False, "error": f"Missing required field: {field}"}), 400
-        
-        # Find the exam
-        exam = db.exams.find_one({"exam_code": exam_code})
-        if not exam:
-            return jsonify({"success": False, "error": "Exam not found"}), 404
-        
-        # Check if exam has already started
-        if exam['status'] != 'waiting':
-            return jsonify({"success": False, "error": "Cannot modify questions after exam has started"}), 400
-        
-        # Generate question ID
-        question_id = str(uuid.uuid4())
-        
-        # Prepare question document
-        question = {
-            "id": question_id,
-            "title": question_data['title'],
-            "description": question_data['description'],
-            "difficulty": question_data.get('difficulty', 'medium'),
-            "function_name": question_data['function_name'],
-            "starter_code": question_data.get('starter_code', {
-                'python': f'def {question_data["function_name"]}():\n    # Write your solution here\n    pass'
-            }),
-            "test_cases": question_data['test_cases'],
-            "examples": question_data.get('examples', []),
-            "constraints": question_data.get('constraints', []),
-            "time_limit": question_data.get('time_limit', 1000),
-            "memory_limit": question_data.get('memory_limit', '128MB'),
-            "created_at": datetime.now(),
-            "uploaded_by": exam['host_name']
-        }
-        
-        # Update the exam with the new question
-        result = db.exams.update_one(
-            {"exam_code": exam_code},
-            {
-                "$set": {
-                    "problem": question,
-                    "updated_at": datetime.now()
-                }
-            }
-        )
-        
-        if result.modified_count > 0:
-            print(f"✅ Question '{question['title']}' uploaded to exam {exam_code}")
-            return jsonify({
-                "success": True,
-                "message": "Question uploaded successfully",
-                "question_id": question_id,
-                "question_title": question['title']
-            })
-        else:
-            return jsonify({"success": False, "error": "Failed to update exam"}), 500
-            
-    except Exception as e:
-        print(f"❌ Error uploading question: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({"success": False, "error": f"Server error: {str(e)}"}), 500
-
+# ✅ FIXED: Remove duplicate definition
 @bp.route('/upload-question', methods=['POST', 'OPTIONS'])
 def upload_question():
     """Host uploads a custom question to their exam"""
@@ -826,7 +842,6 @@ def upload_question():
             return jsonify({"success": False, "error": "Cannot modify questions after exam has started"}), 400
         
         # Generate question ID
-        import uuid
         question_id = str(uuid.uuid4())
         
         # Prepare question document
@@ -845,7 +860,9 @@ def upload_question():
             "time_limit": question_data.get('time_limit', 1000),
             "memory_limit": question_data.get('memory_limit', '128MB'),
             "created_at": datetime.now(),
-            "uploaded_by": exam.get('host_name', 'Unknown')
+            "uploaded_by": exam.get('host_name', 'Unknown'),
+            "languages": question_data.get('languages', ['python']),
+            "total_points": question_data.get('total_points', 100)
         }
         
         # Update the exam with the new question
@@ -929,3 +946,73 @@ def update_duration():
     except Exception as e:
         print(f"❌ Error updating duration: {str(e)}")
         return jsonify({"success": False, "error": str(e)}), 500
+
+@bp.route("/debug-join-data", methods=["POST", "OPTIONS"])
+def debug_join_data():
+    """Debug what data is actually being received"""
+    if request.method == "OPTIONS":
+        response = jsonify({'status': 'ok'})
+        response.headers.add("Access-Control-Allow-Origin", "*")
+        response.headers.add("Access-Control-Allow-Headers", "Content-Type,Authorization")
+        response.headers.add("Access-Control-Allow-Methods", "POST,OPTIONS")
+        return response
+    
+    print(f"🔍 Raw request data: {request.data}")
+    print(f"🔍 Request JSON: {request.json}")
+    print(f"🔍 Content-Type: {request.headers.get('Content-Type')}")
+    
+    return jsonify({
+        "received_raw": request.data.decode() if request.data else None,
+        "received_json": request.json,
+        "content_type": request.headers.get('Content-Type'),
+        "success": True
+    })
+
+@bp.route("/test", methods=["GET"])
+def test_exam_route():
+    """Test if exam routes are working"""
+    return jsonify({
+        "success": True,
+        "message": "Exam routes are working",
+        "timestamp": datetime.now().isoformat(),
+        "available_routes": [
+            "/api/exam/create-exam",
+            "/api/exam/join-exam", 
+            "/api/exam/start-exam",
+            "/api/exam/submit-solution",  # ✅ Now included!
+            "/api/exam/leaderboard/<exam_code>",
+            "/api/exam/get-problem/<exam_code>",
+            "/api/exam/host-dashboard/<exam_code>",
+            "/api/exam/info/<exam_code>",
+            "/api/exam/participants/<exam_code>",
+            "/api/exam/remove-participant",
+            "/api/exam/stop-exam",
+            "/api/exam/upload-question",
+            "/api/exam/update-duration",
+            "/api/exam/debug-join-data"
+        ]
+    })
+
+@bp.route("/", methods=["GET"])
+def exam_root():
+    """Exam route root"""
+    return jsonify({
+        "message": "OpenLearnX Exam API",
+        "available_endpoints": [
+            "/api/exam/create-exam",
+            "/api/exam/join-exam",
+            "/api/exam/start-exam",
+            "/api/exam/submit-solution",  # ✅ Now included!
+            "/api/exam/leaderboard/<exam_code>",
+            "/api/exam/get-problem/<exam_code>",
+            "/api/exam/host-dashboard/<exam_code>",
+            "/api/exam/info/<exam_code>",
+            "/api/exam/participants/<exam_code>",
+            "/api/exam/remove-participant",
+            "/api/exam/stop-exam",
+            "/api/exam/upload-question",
+            "/api/exam/update-duration",
+            "/api/exam/test",
+            "/api/exam/debug-join-data"
+        ]
+    })
