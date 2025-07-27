@@ -1,5 +1,63 @@
 # Python 3.10 compatible versions
 
+# Core ML and Data Science Libraries
+tensorflow>=2.18.0
+keras>=3.8.0
+numpy>=1.26.0
+pandas>=2.2.2
+scikit-learn>=1.6.1
+
+# Text Processing
+tensorflow-io-gcs-filesystem>=0.23.1
+
+# Visualization
+matplotlib>=3.10.0
+seaborn>=0.12.0
+
+# Data Handling
+pickle5>=0.0.11
+json5>=0.9.0
+
+# Utility Libraries
+tqdm>=4.67.1
+
+# Optional: If you want to download data from Kaggle
+kaggle>=1.7.4
+
+# Optional: For enhanced data processing
+bleach>=6.2.0
+charset-normalizer>=3.4.2
+urllib3>=2.5.0
+
+# Development and Jupyter Support (if needed)
+jupyter>=1.0.0
+ipython>=8.0.0
+
+# Additional TensorFlow dependencies
+h5py>=3.14.0
+protobuf>=5.29.5
+absl-py>=1.4.0
+astunparse>=1.6.3
+flatbuffers>=24.3.25
+gast>=0.6.0
+google-pasta>=0.2.0
+libclang>=18.1.1
+opt-einsum>=3.4.0
+termcolor>=3.1.0
+typing-extensions>=4.14.1
+wrapt>=1.17.2
+grpcio>=1.73.1
+tensorboard>=2.18.0
+ml-dtypes>=0.4.1
+
+# Date and Time
+python-dateutil>=2.9.0
+
+# For regularization and advanced features
+scipy>=1.16.0
+joblib>=1.5.1
+threadpoolctl>=3.6.0
+
 # Web frameworks
 fastapi==0.104.1
 uvicorn[standard]==0.24.0
@@ -32,5 +90,5 @@ cryptography==41.0.7
 # HTTP requests
 requests==2.31.0
 
-#docker
+# Docker
 docker
