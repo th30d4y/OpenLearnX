@@ -152,7 +152,7 @@ def get_db():
     return client.openlearnx
 
 # ===================================================================
-# ✅ ENHANCED DYNAMIC SCORING SYSTEM
+# ✅ ENHANCED DYNAMIC SCORING SYSTEM - CORRECTED VERSION
 # ===================================================================
 
 def calculate_dynamic_score(code, language, problem):
@@ -161,119 +161,116 @@ def calculate_dynamic_score(code, language, problem):
     from contextlib import redirect_stdout, redirect_stderr
     import time
     
+    # Handle both old and new problem formats
     test_cases = problem.get('test_cases', [])
     total_points = problem.get('total_points', 100)
     
+    # ✅ FIXED: Handle empty test cases properly
+    if not test_cases:
+        # Create a basic test case for simple execution
+        test_cases = [{
+            "input": "",
+            "expected_output": "",
+            "description": "Basic execution test",
+            "points": total_points
+        }]
+    
     start_time = time.time()
     passed_tests = 0
-    total_tests = len(test_cases) if test_cases else 1
+    total_tests = len(test_cases)
     test_results = []
     points_earned = 0
     
     print(f"🧮 Enhanced Dynamic scoring - {total_tests} test cases, {total_points} total points")
     
     try:
-        if test_cases:
-            for i, test_case in enumerate(test_cases):
-                test_input = test_case.get('input', '')
-                expected_output = test_case.get('expected_output', '').strip()
-                test_points = test_case.get('points', total_points // total_tests)
+        for i, test_case in enumerate(test_cases):
+            test_input = test_case.get('input', '')
+            expected_output = test_case.get('expected_output', '').strip()
+            test_points = test_case.get('points', total_points // total_tests)
+            
+            print(f"📋 Test {i+1}: Input='{test_input}', Expected='{expected_output}', Points={test_points}")
+            
+            try:
+                stdout_buffer = io.StringIO()
+                stderr_buffer = io.StringIO()
                 
-                print(f"📋 Test {i+1}: Input='{test_input}', Expected='{expected_output}', Points={test_points}")
+                # ✅ ENHANCED: Better execution environment
+                exec_globals = {
+                    "__builtins__": __builtins__,
+                    "__name__": "__main__"
+                }
                 
-                try:
-                    stdout_buffer = io.StringIO()
-                    stderr_buffer = io.StringIO()
-                    
-                    exec_globals = {"__builtins__": __builtins__}
-                    if test_input:
-                        # Handle multiple input lines
-                        input_lines = test_input.split('\n') if '\n' in test_input else [test_input]
-                        input_iter = iter(input_lines)
-                        exec_globals['input'] = lambda prompt='': next(input_iter, '')
-                    
-                    with redirect_stdout(stdout_buffer), redirect_stderr(stderr_buffer):
-                        exec(code, exec_globals)
-                    
-                    actual_output = stdout_buffer.getvalue().strip()
-                    stderr_content = stderr_buffer.getvalue().strip()
-                    
-                    print(f"🔍 Test {i+1} - Actual: '{actual_output}', Expected: '{expected_output}'")
-                    
-                    # Enhanced comparison with tolerance for whitespace
-                    if actual_output == expected_output or actual_output.replace(' ', '') == expected_output.replace(' ', ''):
-                        passed_tests += 1
-                        points_earned += test_points
-                        test_results.append({
-                            "test_number": i + 1,
-                            "passed": True,
-                            "input": test_input,
-                            "expected_output": expected_output,
-                            "actual_output": actual_output,
-                            "points_earned": test_points,
-                            "description": test_case.get('description', f'Test case {i+1}'),
-                            "execution_time": time.time() - start_time
-                        })
-                        print(f"✅ Test {i+1} PASSED - {test_points} points earned")
-                    else:
-                        test_results.append({
-                            "test_number": i + 1,
-                            "passed": False,
-                            "input": test_input,
-                            "expected_output": expected_output,
-                            "actual_output": actual_output,
-                            "points_earned": 0,
-                            "error": f"Output mismatch. Got '{actual_output}', expected '{expected_output}'",
-                            "description": test_case.get('description', f'Test case {i+1}'),
-                            "stderr": stderr_content if stderr_content else None
-                        })
-                        print(f"❌ Test {i+1} FAILED - Expected '{expected_output}', got '{actual_output}'")
+                # Handle input simulation
+                if test_input:
+                    input_lines = test_input.split('\n') if '\n' in test_input else [test_input]
+                    input_iter = iter(input_lines)
+                    exec_globals['input'] = lambda prompt='': next(input_iter, '')
+                else:
+                    exec_globals['input'] = lambda prompt='': ''
                 
-                except Exception as e:
-                    print(f"❌ Test {i+1} EXCEPTION - {str(e)}")
+                with redirect_stdout(stdout_buffer), redirect_stderr(stderr_buffer):
+                    exec(code, exec_globals)
+                
+                actual_output = stdout_buffer.getvalue().strip()
+                stderr_content = stderr_buffer.getvalue().strip()
+                
+                print(f"🔍 Test {i+1} - Actual: '{actual_output}', Expected: '{expected_output}'")
+                
+                # ✅ ENHANCED: Better output comparison
+                is_correct = False
+                if expected_output == "":
+                    # For basic execution tests, just check if code runs without error
+                    is_correct = stderr_content == ""
+                else:
+                    # Compare outputs with tolerance for whitespace
+                    is_correct = (
+                        actual_output == expected_output or 
+                        actual_output.replace(' ', '') == expected_output.replace(' ', '') or
+                        actual_output.lower().strip() == expected_output.lower().strip()
+                    )
+                
+                if is_correct:
+                    passed_tests += 1
+                    points_earned += test_points
+                    test_results.append({
+                        "test_number": i + 1,
+                        "passed": True,
+                        "input": test_input,
+                        "expected_output": expected_output,
+                        "actual_output": actual_output,
+                        "points_earned": test_points,
+                        "description": test_case.get('description', f'Test case {i+1}'),
+                        "execution_time": round(time.time() - start_time, 3)
+                    })
+                    print(f"✅ Test {i+1} PASSED - {test_points} points earned")
+                else:
                     test_results.append({
                         "test_number": i + 1,
                         "passed": False,
                         "input": test_input,
                         "expected_output": expected_output,
-                        "actual_output": f"Error: {str(e)}",
+                        "actual_output": actual_output,
                         "points_earned": 0,
-                        "error": str(e),
+                        "error": f"Output mismatch. Got '{actual_output}', expected '{expected_output}'",
                         "description": test_case.get('description', f'Test case {i+1}'),
-                        "error_type": type(e).__name__
+                        "stderr": stderr_content if stderr_content else None
                     })
-        else:
-            # Fallback: Basic execution test
-            try:
-                stdout_buffer = io.StringIO()
-                stderr_buffer = io.StringIO()
-                
-                with redirect_stdout(stdout_buffer), redirect_stderr(stderr_buffer):
-                    exec(code, {"__builtins__": __builtins__})
-                
-                passed_tests = 1
-                points_earned = total_points
-                test_results = [{
-                    "test_number": 1,
-                    "passed": True,
-                    "input": "",
-                    "expected_output": "Code should execute without errors",
-                    "actual_output": stdout_buffer.getvalue().strip(),
-                    "points_earned": total_points,
-                    "description": "Basic execution test"
-                }]
+                    print(f"❌ Test {i+1} FAILED - Expected '{expected_output}', got '{actual_output}'")
+            
             except Exception as e:
-                test_results = [{
-                    "test_number": 1,
+                print(f"❌ Test {i+1} EXCEPTION - {str(e)}")
+                test_results.append({
+                    "test_number": i + 1,
                     "passed": False,
-                    "input": "",
-                    "expected_output": "Code should execute without errors",
-                    "actual_output": f"Error: {str(e)}",
+                    "input": test_input,
+                    "expected_output": expected_output,
+                    "actual_output": f"Runtime Error: {str(e)}",
                     "points_earned": 0,
                     "error": str(e),
-                    "description": "Basic execution test",
+                    "description": test_case.get('description', f'Test case {i+1}'),
                     "error_type": type(e).__name__
-                }]
+                })
     
     except Exception as e:
         print(f"❌ Scoring system error: {str(e)}")
@@ -288,6 +285,7 @@ def calculate_dynamic_score(code, language, problem):
             "description": "Scoring system error",
             "error_type": type(e).__name__
         }]
+        total_tests = 1
     
     execution_time = time.time() - start_time
     final_score = int((points_earned / total_points) * 100) if total_points > 0 else 0
@@ -303,7 +301,7 @@ def calculate_dynamic_score(code, language, problem):
         'details': {
             'points_earned': points_earned,
             'total_points': total_points,
-            'scoring_method': 'test_cases',
+            'scoring_method': 'enhanced_dynamic',
             'language': language
         }
     }
@@ -374,7 +372,7 @@ def generate_ai_quiz_direct():
 def health_root():
     return jsonify({
         "status": "OpenLearnX API running",
-        "version": "2.5.0 - ENHANCED ULTIMATE EDITION",
+        "version": "2.6.0 - CORRECTED ULTIMATE EDITION",
         "timestamp": datetime.now().isoformat(),
         "features": {
             "mongodb": MONGO_SERVICE_AVAILABLE,
@@ -384,13 +382,15 @@ def health_root():
             "ai_quiz_service": AI_QUIZ_SERVICE_AVAILABLE,
             "docker": check_docker_availability(),
             "dynamic_scoring": True,
-            "ultimate_leaderboard_fix": True,
+            "enhanced_scoring": True,
+            "exam_submission": True,
             "adaptive_quiz": True,
             "enhanced_security": True,
             "ai_integration": AI_QUIZ_SERVICE_AVAILABLE
         },
         "endpoints": {
             "exam": "/api/exam/*",
+            "exam_submit": "/api/exam/submit-solution",
             "quizzes": "/api/quizzes/*",
             "compiler": "/api/compiler/*",
             "ai_quiz": "/api/quizzes/generate-ai" if AI_QUIZ_SERVICE_AVAILABLE else "unavailable",
@@ -410,9 +410,10 @@ def api_health():
         "compiler": COMPILER_SERVICE_AVAILABLE,
         "ai_quiz_service": AI_QUIZ_SERVICE_AVAILABLE,
         "docker": check_docker_availability(),
-        "ultimate_leaderboard_fix": True,
+        "enhanced_scoring": True,
+        "exam_submission_fixed": True,
         "adaptive_quiz": True,
-        "enhanced_version": "2.5.0"
+        "enhanced_version": "2.6.0"
     }
     
     # Enhanced MongoDB connection test
@@ -436,7 +437,6 @@ def api_health():
     # AI service health check
     if AI_QUIZ_SERVICE_AVAILABLE:
         try:
-            # Quick test of AI service
             services["ai_models_loaded"] = hasattr(ai_service, 'model_available') and ai_service.model_available
         except Exception as e:
             services["ai_service_error"] = str(e)
@@ -446,7 +446,7 @@ def api_health():
         "services": services,
         "blueprints_registered": blueprints_registered,
         "blueprints_failed": blueprints_failed,
-        "version": "2.5.0-enhanced"
+        "version": "2.6.0-corrected"
     }), 200 if status == "healthy" else 503
 
 # ===================================================================
@@ -479,7 +479,14 @@ def not_found(e):
     return jsonify({
         "error": "Not Found",
         "path": request.path,
-        "method": request.method
+        "method": request.method,
+        "available_endpoints": [
+            "/api/exam/submit-solution",
+            "/api/exam/create-exam",
+            "/api/exam/join-exam",
+            "/api/quizzes/*",
+            "/api/health"
+        ]
     }), 404
 
 @app.errorhandler(500)
@@ -487,7 +494,8 @@ def internal_error(e):
     logger.error(f"500 Error: {e}")
     return jsonify({
         "error": "Internal Server Error",
-        "timestamp": datetime.now().isoformat()
+        "timestamp": datetime.now().isoformat(),
+        "suggestion": "Check server logs for detailed error information"
     }), 500
 
 # ===================================================================
@@ -495,10 +503,22 @@ def internal_error(e):
 # ===================================================================
 
 if __name__ == "__main__":
-    print("🚀 Starting OpenLearnX Backend v2.5.0 - ENHANCED ULTIMATE EDITION")
-    print("📚 Features: Enhanced Dynamic Scoring, AI Quiz Integration, Better Security")
+    print("🚀 Starting OpenLearnX Backend v2.6.0 - CORRECTED ULTIMATE EDITION")
+    print("📚 Features: Enhanced Dynamic Scoring, AI Quiz Integration, Fixed Exam Submission")
     print(f"🤖 AI Quiz Service: {'✅ Available' if AI_QUIZ_SERVICE_AVAILABLE else '❌ Unavailable'}")
+    print(f"📊 MongoDB: {'✅ Available' if MONGO_SERVICE_AVAILABLE else '❌ Unavailable'}")
+    print(f"🔧 Enhanced Scoring: ✅ Available")
     print("🌐 Server starting on http://0.0.0.0:5000")
+    
+    # ✅ STARTUP VALIDATION
+    print("\n📋 Startup Validation:")
+    print(f"   - Blueprints registered: {len(blueprints_registered)}")
+    if blueprints_failed:
+        print(f"   - Blueprint failures: {len(blueprints_failed)}")
+        for prefix, error in blueprints_failed:
+            print(f"     ❌ {prefix}: {error}")
+    print(f"   - Database: {'✅ Connected' if MONGO_SERVICE_AVAILABLE else '❌ Disconnected'}")
+    print(f"   - AI Service: {'✅ Ready' if AI_QUIZ_SERVICE_AVAILABLE else '❌ Not Available'}")
     
     try:
         app.run(
@@ -511,3 +531,5 @@ if __name__ == "__main__":
         print("\n👋 Server stopped by user")
     except Exception as e:
         print(f"❌ Server startup failed: {e}")
+        import traceback
+        traceback.print_exc()

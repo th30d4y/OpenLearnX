@@ -1,6 +1,6 @@
 'use client'
-import React, { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
+import { useRouter, useParams } from 'next/navigation'
 import { Trophy, Clock, Users, Send, RefreshCw, Play, Code, Wallet, Shield, TestTube } from 'lucide-react'
 
 interface Participant {
@@ -34,6 +34,12 @@ interface ExamSession {
 }
 
 export default function EnhancedExamInterface() {
+  const router = useRouter()
+  const params = useParams()
+  
+  // ✅ FIXED: Get exam code from URL params
+  const examCode = params.examCode as string
+  
   const [examSession, setExamSession] = useState<ExamSession | null>(null)
   const [problem, setProblem] = useState<Problem | null>(null)
   const [selectedLanguage, setSelectedLanguage] = useState('python')
@@ -48,54 +54,23 @@ export default function EnhancedExamInterface() {
   const [hasSubmitted, setHasSubmitted] = useState(false)
   const [examStats, setExamStats] = useState<any>({})
   const [timerInitialized, setTimerInitialized] = useState(false)
-  const router = useRouter()
+
+  // ✅ CRITICAL FIX: Use refs to prevent infinite loops
+  const intervalRef = useRef<NodeJS.Timeout | null>(null)
+  const timerRef = useRef<NodeJS.Timeout | null>(null)
+  const refreshTimeoutRefs = useRef<NodeJS.Timeout[]>([])
+  const isInitializedRef = useRef(false)
 
   const languageIcons: {[key: string]: string} = {
     python: '🐍',
     java: '☕',
+    javascript: '🟨',
     c: '⚡',
     bash: '💻'
   }
 
-  useEffect(() => {
-    const sessionData = localStorage.getItem('exam_session')
-    if (!sessionData) {
-      router.push('/coding/join')
-      return
-    }
-
-    const session = JSON.parse(sessionData)
-    setExamSession(session)
-    
-    // Fetch problem details
-    fetchProblem(session.exam_code)
-    
-    // More frequent polling for real-time updates
-    const interval = setInterval(() => {
-      fetchLeaderboard(session.exam_code)
-    }, 2000)
-
-    return () => clearInterval(interval)
-  }, [router])
-
-  // Timer countdown
-  useEffect(() => {
-    if (!timerInitialized || timeRemaining <= 0) return
-
-    const timer = setInterval(() => {
-      setTimeRemaining(prev => {
-        const newTime = Math.max(0, prev - 1)
-        if (newTime === 0) {
-          alert('⏰ Time is up! Exam has ended.')
-        }
-        return newTime
-      })
-    }, 1000)
-
-    return () => clearInterval(timer)
-  }, [timerInitialized, timeRemaining])
-
-  const fetchProblem = async (examCode: string) => {
+  // ✅ FIXED: Memoized functions to prevent recreation
+  const fetchProblem = useCallback(async (examCode: string) => {
     try {
       const response = await fetch(`http://127.0.0.1:5000/api/exam/get-problem/${examCode}`)
       const data = await response.json()
@@ -109,23 +84,14 @@ export default function EnhancedExamInterface() {
     } catch (error) {
       console.error('Failed to fetch problem:', error)
     }
-  }
+  }, [])
 
-  // ✅ ENHANCED: More aggressive leaderboard fetching with better debugging
-  const fetchLeaderboard = async (examCode: string) => {
+  const fetchLeaderboard = useCallback(async (examCode: string) => {
     try {
       console.log('🏆 Fetching leaderboard for:', examCode)
       
-      // Add cache busting to prevent stale data
       const response = await fetch(`http://127.0.0.1:5000/api/exam/leaderboard/${examCode}?t=${Date.now()}`)
       const data = await response.json()
-      
-      console.log('📦 Leaderboard data received:', {
-        success: data.success,
-        completed_count: data.leaderboard?.length || 0,
-        waiting_count: data.waiting_participants?.length || 0,
-        ultimate_fix_applied: data.ultimate_fix_applied
-      })
       
       if (data.success) {
         setLeaderboard(data.leaderboard || [])
@@ -146,41 +112,116 @@ export default function EnhancedExamInterface() {
           }
         }
         
-        // ✅ ENHANCED: Better user status checking
-        const currentUser = examSession?.student_name
-        if (currentUser) {
-          const userInCompleted = data.leaderboard.find((p: Participant) => p.name === currentUser)
-          const userInWaiting = data.waiting_participants.find((p: Participant) => p.name === currentUser)
-          
-          console.log(`👤 User status check:`, {
-            username: currentUser,
-            in_completed: !!userInCompleted,
-            in_waiting: !!userInWaiting,
-            current_hasSubmitted: hasSubmitted,
-            user_score: userInCompleted?.score
-          })
-          
-          if (userInCompleted && !hasSubmitted) {
-            console.log('✅ User found in completed leaderboard, updating hasSubmitted state')
+        // Check user status - only once to prevent loops
+        if (!hasSubmitted && examSession?.student_name) {
+          const userInCompleted = data.leaderboard.find((p: Participant) => p.name === examSession.student_name)
+          if (userInCompleted) {
+            console.log('✅ User found in completed leaderboard')
             setHasSubmitted(true)
           }
         }
-        
-        // Debug logging for leaderboard content
-        if (data.leaderboard.length > 0) {
-          console.log('🏆 Completed participants:', data.leaderboard.map((p: any) => `${p.name}: ${p.score}%`))
-        }
-        if (data.waiting_participants.length > 0) {
-          console.log('⏳ Waiting participants:', data.waiting_participants.map((p: any) => p.name))
-        }
-        
-      } else {
-        console.error('❌ Leaderboard fetch failed:', data.error)
       }
     } catch (error) {
       console.error('❌ Failed to fetch leaderboard:', error)
     }
-  }
+  }, [hasSubmitted, examSession?.student_name, timerInitialized])
+
+  // ✅ FIXED: Initialization effect - runs only once
+  useEffect(() => {
+    if (!examCode || isInitializedRef.current) return
+
+    console.log('🚀 Initializing exam interface...')
+    isInitializedRef.current = true
+
+    // Initialize session
+    const sessionData = localStorage.getItem('exam_session')
+    if (!sessionData) {
+      const newSession = {
+        exam_code: examCode,
+        student_name: localStorage.getItem('student_name') || 'Anonymous',
+        exam_info: {}
+      }
+      setExamSession(newSession)
+    } else {
+      const session = JSON.parse(sessionData)
+      if (session.exam_code !== examCode) {
+        session.exam_code = examCode
+      }
+      setExamSession(session)
+    }
+
+    // Fetch initial data
+    fetchProblem(examCode)
+    fetchLeaderboard(examCode)
+
+    return () => {
+      console.log('🛑 Cleaning up initialization effect')
+    }
+  }, [examCode, fetchProblem, fetchLeaderboard])
+
+  // ✅ FIXED: Separate effect for polling - controlled interval
+  useEffect(() => {
+    if (!examCode || !examSession) return
+
+    console.log('📡 Starting leaderboard polling...')
+    
+    // Clear any existing interval
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current)
+    }
+
+    // Set up polling interval - less aggressive
+    intervalRef.current = setInterval(() => {
+      fetchLeaderboard(examCode)
+    }, 5000) // ✅ REDUCED: Changed from 2000ms to 5000ms
+
+    return () => {
+      console.log('🛑 Cleaning up polling interval')
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current)
+        intervalRef.current = null
+      }
+    }
+  }, [examCode, examSession, fetchLeaderboard])
+
+  // ✅ FIXED: Timer effect - separate and controlled
+  useEffect(() => {
+    if (!timerInitialized || timeRemaining <= 0) return
+
+    console.log('⏱️ Starting timer...')
+    
+    // Clear any existing timer
+    if (timerRef.current) {
+      clearInterval(timerRef.current)
+    }
+
+    timerRef.current = setInterval(() => {
+      setTimeRemaining(prev => {
+        const newTime = Math.max(0, prev - 1)
+        if (newTime === 0) {
+          alert('⏰ Time is up! Exam has ended.')
+        }
+        return newTime
+      })
+    }, 1000)
+
+    return () => {
+      console.log('🛑 Cleaning up timer')
+      if (timerRef.current) {
+        clearInterval(timerRef.current)
+        timerRef.current = null
+      }
+    }
+  }, [timerInitialized, timeRemaining > 0]) // ✅ FIXED: Better dependency
+
+  // ✅ FIXED: Cleanup all timeouts on unmount
+  useEffect(() => {
+    return () => {
+      console.log('🛑 Component unmounting - cleaning up all timeouts')
+      refreshTimeoutRefs.current.forEach(timeout => clearTimeout(timeout))
+      refreshTimeoutRefs.current = []
+    }
+  }, [])
 
   const handleLanguageChange = (language: string) => {
     setSelectedLanguage(language)
@@ -228,10 +269,15 @@ export default function EnhancedExamInterface() {
     }
   }
 
-  // ✅ COMPLETELY FIXED SUBMIT SOLUTION with aggressive leaderboard refresh
+  // ✅ FIXED: Submit solution with controlled refresh
   const submitSolution = async () => {
     if (!code.trim()) {
       alert('Please write some code before submitting!')
+      return
+    }
+
+    if (!examSession?.student_name) {
+      alert('Student name is missing. Please refresh and try again.')
       return
     }
 
@@ -241,18 +287,23 @@ export default function EnhancedExamInterface() {
 
     try {
       console.log('📤 Submitting solution...')
-      console.log('👤 Participant:', examSession?.student_name)
-      console.log('🔢 Exam Code:', examSession?.exam_code)
+      
+      const submissionData = {
+        exam_code: examCode,
+        username: examSession.student_name,
+        code: code,
+        language: selectedLanguage,
+        problem_id: "problem_1"
+      }
+
+      console.log('🔍 Submitting data:', submissionData)
       
       const response = await fetch('http://127.0.0.1:5000/api/exam/submit-solution', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          exam_code: examSession?.exam_code,
-          language: selectedLanguage,
-          code: code,
-          participant_name: examSession?.student_name || 'Anonymous'
-        })
+        headers: { 
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(submissionData)
       })
 
       const data = await response.json()
@@ -260,99 +311,35 @@ export default function EnhancedExamInterface() {
       
       if (data.success) {
         setHasSubmitted(true)
-        setTestResults(data.test_results || [])
+        setTestResults(data.result?.test_results || [])
         
-        // ✅ ENHANCED: Detailed alert with proper test results formatting
         let alertMessage = `🎉 Solution submitted successfully!\n\n`
-        alertMessage += `📊 Overall Score: ${data.score}%\n`
-        alertMessage += `✅ Tests Passed: ${data.passed_tests}/${data.total_tests}\n`
+        alertMessage += `📊 Overall Score: ${data.result?.score || 0}%\n`
+        alertMessage += `✅ Tests Passed: ${data.result?.passed_tests || 0}/${data.result?.total_tests || 1}\n`
         
-        if (data.execution_time) {
-          alertMessage += `⏱️ Execution Time: ${data.execution_time}s\n`
+        if (data.result?.execution_time) {
+          alertMessage += `⏱️ Execution Time: ${data.result.execution_time}s\n`
         }
         
-        // Enhanced test results display in alert
-        if (data.test_results && data.test_results.length > 0) {
-          alertMessage += `\n📋 Detailed Test Results:\n`
-          alertMessage += `${'='.repeat(30)}\n`
-          
-          data.test_results.forEach((test: any, i: number) => {
-            const status = test.passed ? '✅ PASSED' : '❌ FAILED'
-            const points = test.points_earned || 0
-            
-            alertMessage += `Test ${i+1}: ${status} (+${points} points)\n`
-            
-            if (test.description && test.description !== `Test case ${i+1}`) {
-              alertMessage += `  Description: ${test.description}\n`
-            }
-            
-            if (test.input) {
-              alertMessage += `  Input: "${test.input}"\n`
-            }
-            
-            if (test.expected_output) {
-              alertMessage += `  Expected: "${test.expected_output}"\n`
-            }
-            
-            if (test.actual_output) {
-              alertMessage += `  Your Output: "${test.actual_output}"\n`
-            }
-            
-            if (!test.passed && test.error) {
-              alertMessage += `  Error: ${test.error}\n`
-            }
-            
-            alertMessage += `\n`
-          })
-          
-          // Add summary
-          const totalPoints = data.test_results.reduce((sum: number, test: any) => sum + (test.points_earned || 0), 0)
-          const maxPoints = data.scoring_details?.total_points || 100
-          alertMessage += `📈 Points Earned: ${totalPoints}/${maxPoints}\n`
-        }
-        
-        alertMessage += `\n🏆 Your score will appear in the leaderboard shortly!`
-        
+        alertMessage += `\n🏆 Check the leaderboard for your ranking!`
         alert(alertMessage)
         
-        // ✅ CRITICAL FIX: Aggressive leaderboard refresh sequence
-        console.log('🔄 Starting aggressive leaderboard refresh sequence...')
+        // ✅ FIXED: Controlled refresh sequence - clear previous timeouts
+        console.log('🔄 Starting controlled leaderboard refresh...')
         
-        // Immediate refresh
-        setTimeout(() => {
-          console.log('🔄 Refresh 1/6 - Immediate')
-          fetchLeaderboard(examSession!.exam_code)
-        }, 200)
+        // Clear any existing refresh timeouts
+        refreshTimeoutRefs.current.forEach(timeout => clearTimeout(timeout))
+        refreshTimeoutRefs.current = []
         
-        // Quick follow-up
-        setTimeout(() => {
-          console.log('🔄 Refresh 2/6 - Quick follow-up')
-          fetchLeaderboard(examSession!.exam_code)
-        }, 800)
+        // Single immediate refresh
+        fetchLeaderboard(examCode)
         
-        // Medium delay
-        setTimeout(() => {
-          console.log('🔄 Refresh 3/6 - Medium delay')
-          fetchLeaderboard(examSession!.exam_code)
-        }, 2000)
+        // One follow-up refresh after 3 seconds
+        const refreshTimeout = setTimeout(() => {
+          fetchLeaderboard(examCode)
+        }, 3000)
         
-        // Longer delay
-        setTimeout(() => {
-          console.log('🔄 Refresh 4/6 - Longer delay')
-          fetchLeaderboard(examSession!.exam_code)
-        }, 4000)
-        
-        // Extended delay
-        setTimeout(() => {
-          console.log('🔄 Refresh 5/6 - Extended delay')
-          fetchLeaderboard(examSession!.exam_code)
-        }, 7000)
-        
-        // Final refresh
-        setTimeout(() => {
-          console.log('🔄 Refresh 6/6 - Final check')
-          fetchLeaderboard(examSession!.exam_code)
-        }, 10000)
+        refreshTimeoutRefs.current.push(refreshTimeout)
         
       } else {
         alert(`❌ Submission failed: ${data.error}`)
@@ -366,7 +353,13 @@ export default function EnhancedExamInterface() {
     }
   }
 
-  // ✅ Enhanced Test Results Display Component
+  // ✅ Manual refresh function
+  const manualRefresh = useCallback(() => {
+    console.log('🔄 Manual refresh triggered')
+    fetchLeaderboard(examCode)
+  }, [examCode, fetchLeaderboard])
+
+  // Test Results Display Component
   const TestResultsDisplay = ({ results }: { results: any[] }) => {
     if (!results || results.length === 0) return null
 
@@ -439,44 +432,8 @@ export default function EnhancedExamInterface() {
             </div>
           ))}
         </div>
-        
-        {/* Summary */}
-        <div className="mt-4 p-3 bg-blue-900 bg-opacity-50 rounded">
-          <div className="flex justify-between text-sm">
-            <span>
-              Passed: {results.filter(r => r.passed).length}/{results.length} tests
-            </span>
-            <span>
-              Points: {results.reduce((sum, r) => sum + (r.points_earned || 0), 0)} total
-            </span>
-          </div>
-        </div>
       </div>
     )
-  }
-
-  // Debug function for troubleshooting
-  const debugLeaderboard = async () => {
-    try {
-      const response = await fetch(`http://127.0.0.1:5000/api/exam/leaderboard/${examSession?.exam_code}`)
-      const data = await response.json()
-      
-      console.log('🐛 DEBUG LEADERBOARD:', {
-        success: data.success,
-        completed_count: data.leaderboard?.length || 0,
-        waiting_count: data.waiting_participants?.length || 0,
-        my_name: examSession?.student_name,
-        in_completed: data.leaderboard?.find((p: any) => p.name === examSession?.student_name),
-        in_waiting: data.waiting_participants?.find((p: any) => p.name === examSession?.student_name),
-        ultimate_fix_applied: data.ultimate_fix_applied,
-        full_leaderboard: data.leaderboard,
-        full_waiting: data.waiting_participants
-      })
-      
-      alert(`Debug Info:\nCompleted: ${data.leaderboard?.length || 0}\nWaiting: ${data.waiting_participants?.length || 0}\nCheck console for details`)
-    } catch (error) {
-      console.error('Debug error:', error)
-    }
   }
 
   const formatTime = (seconds: number) => {
@@ -514,7 +471,7 @@ export default function EnhancedExamInterface() {
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <div>
             <h1 className="text-xl font-bold">{problem.title}</h1>
-            <p className="text-gray-400">Code: {examSession.exam_code} | Participant: {examSession.student_name}</p>
+            <p className="text-gray-400">Code: {examCode} | Participant: {examSession.student_name}</p>
           </div>
           
           <div className="flex items-center space-x-4">
@@ -669,7 +626,7 @@ export default function EnhancedExamInterface() {
             )}
           </div>
 
-          {/* ✅ Enhanced Test Results Display */}
+          {/* Test Results Display */}
           {testResults.length > 0 && (
             <TestResultsDisplay results={testResults} />
           )}
@@ -683,24 +640,13 @@ export default function EnhancedExamInterface() {
               <h3 className="text-xl font-bold">Live Leaderboard</h3>
             </div>
             
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={() => fetchLeaderboard(examSession.exam_code)}
-                className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded"
-                title="Refresh"
-              >
-                <RefreshCw className="h-4 w-4" />
-              </button>
-              
-              {/* Debug button - remove in production */}
-              <button
-                onClick={debugLeaderboard}
-                className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded"
-                title="Debug"
-              >
-                🐛
-              </button>
-            </div>
+            <button
+              onClick={manualRefresh}
+              className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded"
+              title="Refresh"
+            >
+              <RefreshCw className="h-4 w-4" />
+            </button>
           </div>
 
           {/* Stats */}
@@ -712,14 +658,6 @@ export default function EnhancedExamInterface() {
             <div className="bg-gray-900 p-3 rounded">
               <div className="text-2xl font-bold text-green-400">{Math.round(examStats.average_score || 0)}%</div>
               <div className="text-xs text-gray-400">Avg Score</div>
-            </div>
-            <div className="bg-gray-900 p-3 rounded">
-              <div className="text-2xl font-bold text-purple-400">{examStats.highest_score || 0}%</div>
-              <div className="text-xs text-gray-400">Top Score</div>
-            </div>
-            <div className="bg-gray-900 p-3 rounded">
-              <div className="text-2xl font-bold text-orange-400">{examStats.waiting_submissions || 0}</div>
-              <div className="text-xs text-gray-400">Working</div>
             </div>
           </div>
 

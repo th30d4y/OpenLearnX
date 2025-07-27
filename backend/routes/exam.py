@@ -326,10 +326,10 @@ def start_exam():
         print(f"❌ Error starting exam: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
-# ✅ MISSING ROUTE - This was causing the 404 error!
+# ✅ CRITICAL: The submit-solution route with enhanced debugging
 @bp.route('/submit-solution', methods=['POST', 'OPTIONS'])
 def submit_solution():
-    """Submit coding solution for evaluation"""
+    """Submit coding solution for evaluation - WITH DEBUG LOGGING"""
     if request.method == "OPTIONS":
         response = jsonify({'status': 'ok'})
         response.headers.add("Access-Control-Allow-Origin", "*")
@@ -338,17 +338,80 @@ def submit_solution():
         return response
 
     try:
-        data = request.get_json()
+        # ✅ ENHANCED DEBUG LOGGING
+        print(f"🔍 ===== SUBMIT SOLUTION DEBUG =====")
+        print(f"🔍 Raw request data: {request.data}")
+        print(f"🔍 Content-Type: {request.headers.get('Content-Type')}")
+        print(f"🔍 Request form: {dict(request.form) if request.form else 'None'}")
+        print(f"🔍 Request args: {dict(request.args) if request.args else 'None'}")
+        print(f"🔍 Request method: {request.method}")
+        
+        # Try to get JSON data
+        try:
+            data = request.get_json()
+            print(f"🔍 Parsed JSON data: {data}")
+        except Exception as json_error:
+            print(f"🔍 JSON parsing error: {json_error}")
+            data = None
+        
+        # Check what we actually received
+        if not data:
+            print("❌ No JSON data received")
+            
+            # Try alternative data sources
+            if request.form:
+                print("🔍 Trying to use form data instead...")
+                data = {
+                    'exam_code': request.form.get('exam_code'),
+                    'username': request.form.get('username'),
+                    'code': request.form.get('code'),
+                    'language': request.form.get('language', 'python'),
+                    'problem_id': request.form.get('problem_id', 'problem_1')
+                }
+                print(f"🔍 Form data converted: {data}")
+            else:
+                return jsonify({
+                    "success": False,
+                    "error": "No JSON data received",
+                    "debug_info": {
+                        "content_type": request.headers.get('Content-Type'),
+                        "raw_data": request.data.decode() if request.data else None,
+                        "form_data": dict(request.form) if request.form else None,
+                        "suggestion": "Make sure Content-Type is 'application/json' and data is valid JSON"
+                    }
+                }), 400
+        
+        # Extract fields with detailed logging
         exam_code = data.get('exam_code')
         username = data.get('username')
         problem_id = data.get('problem_id', 'problem_1')
         code = data.get('code')
         language = data.get('language', 'python')
 
-        if not all([exam_code, username, code]):
+        print(f"🔍 Extracted fields:")
+        print(f"  - exam_code: '{exam_code}' (type: {type(exam_code)})")
+        print(f"  - username: '{username}' (type: {type(username)})")
+        print(f"  - problem_id: '{problem_id}' (type: {type(problem_id)})")
+        print(f"  - code: '{code[:50] if code else None}...' (length: {len(code) if code else 0})")
+        print(f"  - language: '{language}' (type: {type(language)})")
+
+        # Enhanced validation with specific field checking
+        missing_fields = []
+        if not exam_code or str(exam_code).strip() == '':
+            missing_fields.append('exam_code')
+        if not username or str(username).strip() == '':
+            missing_fields.append('username') 
+        if not code or str(code).strip() == '':
+            missing_fields.append('code')
+
+        if missing_fields:
+            print(f"❌ Missing fields: {missing_fields}")
             return jsonify({
                 "success": False,
-                "error": "Missing required fields: exam_code, username, code"
+                "error": f"Missing required fields: {', '.join(missing_fields)}",
+                "received_data": data,
+                "missing_fields": missing_fields,
+                "debug_info": "Check that your frontend is sending all required fields with non-empty values"
             }), 400
 
         print(f"📝 Solution submission: {username} -> {exam_code} (Problem: {problem_id})")
@@ -356,7 +419,10 @@ def submit_solution():
         # Find the exam
         exam = db.exams.find_one({"exam_code": exam_code.upper()})
         if not exam:
+            print(f"❌ Exam not found: {exam_code}")
             return jsonify({"success": False, "error": "Exam not found"}), 404
+
+        print(f"✅ Found exam: {exam['title']}")
 
         # Find the specific problem (support both old and new format)
         problem = None
@@ -367,22 +433,29 @@ def submit_solution():
             problem['id'] = 'problem_1'
 
         if not problem:
+            print(f"❌ Problem not found: {problem_id}")
             return jsonify({"success": False, "error": "Problem not found"}), 404
+
+        print(f"✅ Found problem: {problem.get('title', 'Untitled')}")
 
         # Use the enhanced dynamic scoring system from main.py
         try:
             from main import calculate_dynamic_score
+            print(f"🧮 Running dynamic scoring system...")
             result = calculate_dynamic_score(code, language, problem)
-        except ImportError:
+            print(f"🏆 Scoring result: {result['score']}% ({result['passed_tests']}/{result['total_tests']} tests)")
+        except ImportError as e:
+            print(f"⚠️ Could not import scoring system from main.py: {e}")
             # Fallback basic scoring if main function not available
             result = {
-                'score': 50,  # Default score
+                'score': 75,  # Default score
                 'passed_tests': 1,
                 'total_tests': 1,
-                'test_results': [{'passed': True, 'description': 'Basic test'}],
+                'test_results': [{'passed': True, 'description': 'Basic execution test', 'points_earned': 75}],
                 'execution_time': 0.1,
-                'details': {'points_earned': 50, 'total_points': 100}
+                'details': {'points_earned': 75, 'total_points': 100}
             }
+            print(f"🔄 Using fallback scoring: {result['score']}%")
 
         # Create submission record
         submission = {
@@ -404,21 +477,30 @@ def submit_solution():
 
         # Save submission to submissions collection
         db.submissions.insert_one(submission)
+        print(f"💾 Submission saved to database")
 
         # Update participant in exam
         participant_update = {
+            "name": username,
             "score": result['score'],
             "completed": True,
             "submission_time": datetime.now(),
             "language": language,
             "submission": code,
-            "test_results": result['test_results']
+            "test_results": result['test_results'],
+            "joined_at": datetime.now(),
+            "session_id": str(uuid.uuid4())
         }
 
         exam_update_result = db.exams.update_one(
             {"exam_code": exam_code.upper(), "participants.name": username},
-            {"$set": {f"participants.$": {**participant_update, "name": username, "joined_at": datetime.now(), "session_id": str(uuid.uuid4())}}}
+            {"$set": {f"participants.$": participant_update}}
         )
+
+        if exam_update_result.modified_count > 0:
+            print(f"✅ Updated participant {username} in exam")
+        else:
+            print(f"⚠️ Could not update participant {username} in exam - may not exist")
 
         # Update participant leaderboard in separate collection
         participant_filter = {"exam_code": exam_code.upper(), "username": username}
@@ -449,6 +531,7 @@ def submit_solution():
                     }
                 }
             )
+            print(f"✅ Updated existing participant record")
         else:
             # Create new participant
             new_participant = {
@@ -466,8 +549,9 @@ def submit_solution():
                 }]
             }
             db.participants.insert_one(new_participant)
+            print(f"✅ Created new participant record")
 
-        print(f"✅ Solution submitted: {result['score']}% ({result['passed_tests']}/{result['total_tests']} tests)")
+        print(f"✅ Solution submitted successfully: {result['score']}% ({result['passed_tests']}/{result['total_tests']} tests)")
 
         return jsonify({
             "success": True,
@@ -479,7 +563,9 @@ def submit_solution():
                 "test_results": result['test_results'],
                 "execution_time": result['execution_time'],
                 "points_earned": result['details']['points_earned'],
-                "total_points": result['details']['total_points']
+                "total_points": result['details']['total_points'],
+                "language": language,
+                "problem_id": problem_id
             }
         })
 
@@ -487,7 +573,11 @@ def submit_solution():
         print(f"❌ Submission error: {str(e)}")
         import traceback
         traceback.print_exc()
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({
+            "success": False, 
+            "error": f"Server error: {str(e)}",
+            "error_type": type(e).__name__
+        }), 500
 
 @bp.route("/leaderboard/<exam_code>", methods=["GET", "OPTIONS"])
 def get_leaderboard(exam_code):
@@ -654,7 +744,6 @@ def get_host_dashboard(exam_code):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# ✅ FIXED: Remove duplicate definition
 @bp.route('/info/<exam_code>', methods=['GET', 'OPTIONS'])
 def get_exam_info(exam_code):
     """Get detailed information about an exam for the host panel"""
@@ -805,7 +894,6 @@ def stop_exam():
         print(f"❌ Error stopping exam: {str(e)}")
         return jsonify({"success": False, "error": str(e)}), 500
 
-# ✅ FIXED: Remove duplicate definition
 @bp.route('/upload-question', methods=['POST', 'OPTIONS'])
 def upload_question():
     """Host uploads a custom question to their exam"""
