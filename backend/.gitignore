@@ -1,0 +1,22 @@
+# Python environment
+venv/
+env/
+
+# Python bytecode and cache
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Logs and DB
+*.log
+*.sqlite3
+
+# Editor and system files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Foundry (if using)
+cache/
+out/
