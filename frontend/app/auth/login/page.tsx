@@ -1,89 +1,107 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/context/auth-context"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Wallet, Mail, Lock, Loader2, Shield, CheckCircle2, AlertCircle } from "lucide-react"
+import { Wallet, Mail, Lock, Loader2, CheckCircle2 } from "lucide-react"
 import { toast } from "react-hot-toast"
 
 export default function LoginPage() {
   const { 
-    connectWallet, 
-    loginWithEmail, 
-    isLoadingAuth, 
+    user, 
+    firebaseUser, 
     walletConnected, 
     walletAddress,
-    firebaseUser,
-    authMethod
+    isLoadingAuth, 
+    authMethod,
+    connectWallet, 
+    loginWithEmail 
   } = useAuth()
   
   const router = useRouter()
+  const hasRedirected = useRef(false)
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [isEmailLogin, setIsEmailLogin] = useState(false)
-  const [isConnectingWallet, setIsConnectingWallet] = useState(false)
   const [isSubmittingEmail, setIsSubmittingEmail] = useState(false)
-  const hasRedirected = useRef(false)
 
-  // ✅ Check for existing authentication
+  // ✅ FIXED: More comprehensive redirect logic with debug logging
   useEffect(() => {
-    if (hasRedirected.current || isLoadingAuth) return
+    console.log("🔍 Login page - checking auth state:", {
+      isLoadingAuth,
+      hasRedirected: hasRedirected.current,
+      user: !!user,
+      firebaseUser: !!firebaseUser,
+      walletConnected,
+      walletAddress,
+      authMethod
+    })
 
-    const checkAuth = setTimeout(() => {
-      if (isLoadingAuth) return
+    // Don't redirect if still loading or already redirected
+    if (isLoadingAuth || hasRedirected.current) {
+      console.log("⏳ Skipping redirect - loading or already redirected")
+      return
+    }
 
-      const isAuthenticated = (walletConnected && walletAddress) || firebaseUser
+    // Check for successful authentication
+    const isMetaMaskAuth = walletConnected && walletAddress && user && authMethod === "metamask"
+    const isFirebaseAuth = firebaseUser && authMethod === "firebase"
+    const isAuthenticated = isMetaMaskAuth || isFirebaseAuth
 
-      if (isAuthenticated && !hasRedirected.current) {
-        console.log('✅ User already authenticated, redirecting to dashboard...')
-        hasRedirected.current = true
+    console.log("🔍 Authentication check:", {
+      isMetaMaskAuth,
+      isFirebaseAuth,
+      isAuthenticated
+    })
+
+    if (isAuthenticated && !hasRedirected.current) {
+      console.log("✅ User authenticated - redirecting to dashboard...")
+      hasRedirected.current = true
+      
+      // Add a small delay to ensure state is fully updated
+      setTimeout(() => {
         router.replace("/dashboard")
-      }
-    }, 500)
+      }, 100)
+    }
+  }, [
+    user, 
+    firebaseUser, 
+    walletConnected, 
+    walletAddress, 
+    authMethod,
+    isLoadingAuth, 
+    router
+  ]) // ✅ FIXED: Include all necessary dependencies
 
-    return () => clearTimeout(checkAuth)
-  }, [isLoadingAuth, walletConnected, walletAddress, firebaseUser, router])
-
-  // ✅ Handle MetaMask connection
-  const handleWalletConnect = async () => {
-    if (isConnectingWallet || isLoadingAuth) return
-
-    setIsConnectingWallet(true)
-    
+  // ✅ Handle MetaMask connection with immediate redirect check
+  const handleMetaMaskLogin = async () => {
     try {
-      console.log('🦊 Starting MetaMask connection...')
+      console.log("🦊 Starting MetaMask login...")
+      await connectWallet()
+      console.log("🦊 MetaMask login completed, checking for redirect...")
       
-      // Check if MetaMask is installed
-      if (typeof window !== 'undefined' && !window.ethereum) {
-        toast.error("MetaMask not detected. Please install MetaMask extension.")
-        window.open('https://metamask.io/download/', '_blank')
-        return
-      }
-
-      const success = await connectWallet()
-      
-      if (success) {
-        console.log('✅ MetaMask connection successful')
-        // Redirect will be handled by useEffect
-      }
-    } catch (error: any) {
-      console.error('❌ Wallet connection error:', error)
-    } finally {
-      setIsConnectingWallet(false)
+      // Force a redirect check after a short delay
+      setTimeout(() => {
+        const isAuth = walletConnected && walletAddress && user && authMethod === "metamask"
+        if (isAuth && !hasRedirected.current) {
+          console.log("🔄 Force redirecting after MetaMask success...")
+          hasRedirected.current = true
+          router.replace("/dashboard")
+        }
+      }, 500)
+    } catch (error) {
+      console.error("❌ MetaMask login failed:", error)
     }
   }
 
   // ✅ Handle email login
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    
-    if (isSubmittingEmail || isLoadingAuth) return
     
     if (!email.trim() || !password.trim()) {
       toast.error("Please enter both email and password")
@@ -96,34 +114,39 @@ export default function LoginPage() {
       await loginWithEmail(email, password)
       // Redirect will be handled by useEffect
     } catch (error: any) {
-      console.error('❌ Email login failed:', error)
-      toast.error(error.message || "Login failed. Please check your credentials.")
+      console.error("❌ Email login failed:", error)
+      toast.error(error.message || "Login failed")
     } finally {
       setIsSubmittingEmail(false)
     }
   }
 
-  // Show connected state
-  if ((walletConnected && walletAddress) || firebaseUser) {
+  // ✅ Show success state when authenticated but not yet redirected
+  const isAuthenticated = (walletConnected && walletAddress && user) || firebaseUser
+  
+  if (isAuthenticated && !hasRedirected.current) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-blue-900/20 dark:to-purple-900/20 p-4">
         <Card className="w-full max-w-md shadow-2xl">
           <CardHeader className="text-center">
             <CheckCircle2 className="w-12 h-12 text-green-600 mx-auto mb-4" />
             <CardTitle className="text-xl font-bold text-green-600">
-              {walletConnected ? "MetaMask Connected! 🦊" : "Email Login Successful! 📧"}
+              Login Successful! ✅
             </CardTitle>
           </CardHeader>
           <CardContent className="text-center space-y-4">
-            <Alert className="border-green-200 bg-green-50">
-              <AlertDescription className="text-green-700">
-                {walletConnected 
-                  ? `🦊 ${walletAddress?.slice(0, 6)}...${walletAddress?.slice(-4)}`
-                  : `📧 ${firebaseUser?.email}`
-                }
-              </AlertDescription>
-            </Alert>
+            <p className="text-gray-700">
+              {authMethod === "metamask" 
+                ? `🦊 MetaMask connected: ${walletAddress?.slice(0, 6)}...${walletAddress?.slice(-4)}`
+                : `📧 Email: ${firebaseUser?.email}`
+              }
+            </p>
+            <div className="flex items-center justify-center space-x-2">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span>Redirecting to dashboard...</span>
+            </div>
             
+            {/* Manual redirect button as backup */}
             <Button 
               onClick={() => {
                 if (!hasRedirected.current) {
@@ -131,9 +154,9 @@ export default function LoginPage() {
                   router.replace("/dashboard")
                 }
               }} 
-              className="w-full"
+              className="w-full mt-4"
             >
-              Go to Dashboard
+              Go to Dashboard Manually
             </Button>
           </CardContent>
         </Card>
@@ -141,26 +164,11 @@ export default function LoginPage() {
     )
   }
 
-  // Show loading while initializing
-  if (isLoadingAuth) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
-          <p>Initializing...</p>
-        </div>
-      </div>
-    )
-  }
-
+  // ✅ Show login form
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-blue-900/20 dark:to-purple-900/20 p-4">
       <Card className="w-full max-w-md shadow-2xl">
         <CardHeader className="text-center space-y-4">
-          <div className="mx-auto w-16 h-16 bg-gradient-to-br from-purple-500 to-blue-600 rounded-full flex items-center justify-center">
-            <Shield className="w-8 h-8 text-white" />
-          </div>
-          
           <CardTitle className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
             Welcome to OpenLearnX! 🎓
           </CardTitle>
@@ -170,11 +178,11 @@ export default function LoginPage() {
           {/* MetaMask Login */}
           <div className="space-y-4">
             <Button
-              onClick={handleWalletConnect}
-              disabled={isConnectingWallet || isLoadingAuth || isSubmittingEmail}
+              onClick={handleMetaMaskLogin}
+              disabled={isLoadingAuth || isSubmittingEmail}
               className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white py-3"
             >
-              {isConnectingWallet ? (
+              {isLoadingAuth ? (
                 <>
                   <Loader2 className="w-5 h-5 mr-2 animate-spin" />
                   Connecting MetaMask...
@@ -201,7 +209,7 @@ export default function LoginPage() {
             <Button
               variant="outline"
               onClick={() => setIsEmailLogin(!isEmailLogin)}
-              disabled={isConnectingWallet || isSubmittingEmail}
+              disabled={isLoadingAuth || isSubmittingEmail}
               className="w-full"
             >
               <Mail className="w-4 h-4 mr-2" />
@@ -218,7 +226,7 @@ export default function LoginPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="Enter your email"
-                    disabled={isSubmittingEmail || isConnectingWallet}
+                    disabled={isSubmittingEmail || isLoadingAuth}
                     required
                   />
                 </div>
@@ -231,14 +239,14 @@ export default function LoginPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Enter your password"
-                    disabled={isSubmittingEmail || isConnectingWallet}
+                    disabled={isSubmittingEmail || isLoadingAuth}
                     required
                   />
                 </div>
 
                 <Button
                   type="submit"
-                  disabled={isSubmittingEmail || isConnectingWallet || !email.trim() || !password.trim()}
+                  disabled={isSubmittingEmail || isLoadingAuth || !email.trim() || !password.trim()}
                   className="w-full"
                 >
                   {isSubmittingEmail ? (
@@ -256,23 +264,6 @@ export default function LoginPage() {
               </form>
             )}
           </div>
-
-          {/* MetaMask Installation Help */}
-          {typeof window !== 'undefined' && !window.ethereum && (
-            <Alert className="border-orange-200 bg-orange-50">
-              <AlertCircle className="w-4 h-4 text-orange-600" />
-              <AlertDescription className="text-orange-700">
-                MetaMask not detected. 
-                <Button 
-                  variant="link" 
-                  className="p-0 h-auto font-semibold text-orange-600 ml-1"
-                  onClick={() => window.open('https://metamask.io/download/', '_blank')}
-                >
-                  Install MetaMask →
-                </Button>
-              </AlertDescription>
-            </Alert>
-          )}
         </CardContent>
       </Card>
     </div>

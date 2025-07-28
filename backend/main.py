@@ -13,6 +13,9 @@ from pymongo import MongoClient
 from bson import ObjectId
 import hashlib
 import time
+import signal
+import io
+from contextlib import redirect_stdout, redirect_stderr
 
 # Load environment variables
 load_dotenv()
@@ -276,7 +279,7 @@ def get_comprehensive_stats():
         # Calculate real-time statistics
         current_time = datetime.now()
         join_date = user_stats.get('join_date', current_time - timedelta(days=30)) if user_stats else current_time - timedelta(days=30)
-        days_since_join = (current_time - join_date).days if days_since_join > 0 else 30
+        days_since_join = (current_time - join_date).days if (current_time - join_date).days > 0 else 30
         
         # ✅ ENHANCED: Calculate coding streak with proper logic
         coding_streak = calculate_coding_streak(db, user_id)
@@ -381,34 +384,41 @@ def get_recent_activity():
         ]
         
         for collection, activity_type, default_title, default_points in activity_sources:
-            recent_items = collection.find(
-                {"user_id": user_id}
-            ).sort([("completed_at", -1), ("submitted_at", -1), ("earned_at", -1), ("issued_at", -1)]).limit(max_records // len(activity_sources))
-            
-            for item in recent_items:
-                # Determine the completion date field
-                completed_at = (
-                    item.get('completed_at') or 
-                    item.get('submitted_at') or 
-                    item.get('earned_at') or 
-                    item.get('issued_at') or 
-                    datetime.now()
-                )
+            try:
+                recent_items = collection.find(
+                    {"user_id": user_id}
+                ).sort([("completed_at", -1), ("submitted_at", -1), ("earned_at", -1), ("issued_at", -1)]).limit(max_records // len(activity_sources))
                 
-                if isinstance(completed_at, str):
-                    completed_at = datetime.fromisoformat(completed_at)
-                
-                activities.append({
-                    "id": str(item.get('_id', uuid.uuid4())),
-                    "type": activity_type,
-                    "title": item.get('title', item.get('name', default_title)),
-                    "description": format_activity_description(item, activity_type),
-                    "completed_at": completed_at.isoformat(),
-                    "points_earned": item.get('points', item.get('points_earned', default_points)),
-                    "success_rate": item.get('score', item.get('completion_percentage', 100)),
-                    "difficulty": item.get('difficulty', 'Intermediate'),
-                    "blockchain_verified": item.get('blockchain_verified', False)
-                })
+                for item in recent_items:
+                    # Determine the completion date field
+                    completed_at = (
+                        item.get('completed_at') or 
+                        item.get('submitted_at') or 
+                        item.get('earned_at') or 
+                        item.get('issued_at') or 
+                        datetime.now()
+                    )
+                    
+                    if isinstance(completed_at, str):
+                        try:
+                            completed_at = datetime.fromisoformat(completed_at)
+                        except:
+                            completed_at = datetime.now()
+                    
+                    activities.append({
+                        "id": str(item.get('_id', uuid.uuid4())),
+                        "type": activity_type,
+                        "title": item.get('title', item.get('name', default_title)),
+                        "description": format_activity_description(item, activity_type),
+                        "completed_at": completed_at.isoformat(),
+                        "points_earned": item.get('points', item.get('points_earned', default_points)),
+                        "success_rate": item.get('score', item.get('completion_percentage', 100)),
+                        "difficulty": item.get('difficulty', 'Intermediate'),
+                        "blockchain_verified": item.get('blockchain_verified', False)
+                    })
+            except Exception as e:
+                logger.warning(f"⚠️ Failed to fetch {activity_type} activities: {e}")
+                continue
         
         # Sort all activities by completion date
         activities.sort(key=lambda x: x['completed_at'], reverse=True)
@@ -559,7 +569,10 @@ def calculate_coding_streak(db, user_id):
         for submission in submissions:
             submission_date = submission.get('submitted_at')
             if isinstance(submission_date, str):
-                submission_date = datetime.fromisoformat(submission_date).date()
+                try:
+                    submission_date = datetime.fromisoformat(submission_date).date()
+                except:
+                    continue
             elif isinstance(submission_date, datetime):
                 submission_date = submission_date.date()
             else:
@@ -860,15 +873,11 @@ def format_activity_description(item, activity_type):
         return "Activity completed"
 
 # ===================================================================
-# ✅ ENHANCED DYNAMIC SCORING SYSTEM - WITH YOUR UPDATES
+# ✅ ENHANCED DYNAMIC SCORING SYSTEM
 # ===================================================================
 
 def calculate_dynamic_score(code, language, problem):
     """Enhanced dynamic scoring with better error handling and feedback"""
-    import io
-    from contextlib import redirect_stdout, redirect_stderr
-    import time
-    import signal
     
     # Handle both old and new problem formats
     test_cases = problem.get('test_cases', [])
@@ -906,11 +915,24 @@ def calculate_dynamic_score(code, language, problem):
                 # ✅ ENHANCED: Safer execution environment
                 exec_globals = {
                     "__builtins__": {
-                        **__builtins__,
-                        '__import__': None,  # Disable imports for security
-                        'open': None,        # Disable file operations
-                        'eval': None,        # Disable eval
-                        'exec': None,        # Disable nested exec
+                        'print': print,
+                        'len': len,
+                        'str': str,
+                        'int': int,
+                        'float': float,
+                        'list': list,
+                        'dict': dict,
+                        'tuple': tuple,
+                        'set': set,
+                        'range': range,
+                        'enumerate': enumerate,
+                        'zip': zip,
+                        'sum': sum,
+                        'max': max,
+                        'min': min,
+                        'sorted': sorted,
+                        'abs': abs,
+                        'round': round,
                     },
                     "__name__": "__main__"
                 }
@@ -923,18 +945,25 @@ def calculate_dynamic_score(code, language, problem):
                 else:
                     exec_globals['input'] = lambda prompt='': ''
                 
-                # ✅ ADDED: Timeout protection
-                def timeout_handler(signum, frame):
-                    raise TimeoutError("Code execution timed out")
-                
-                signal.signal(signal.SIGALRM, timeout_handler)
-                signal.alarm(5)  # 5 second timeout
+                # ✅ ADDED: Timeout protection (Unix-like systems only)
+                try:
+                    def timeout_handler(signum, frame):
+                        raise TimeoutError("Code execution timed out")
+                    
+                    signal.signal(signal.SIGALRM, timeout_handler)
+                    signal.alarm(5)  # 5 second timeout
+                except:
+                    # Skip timeout on Windows
+                    pass
                 
                 try:
                     with redirect_stdout(stdout_buffer), redirect_stderr(stderr_buffer):
                         exec(code, exec_globals)
                 finally:
-                    signal.alarm(0)  # Cancel timeout
+                    try:
+                        signal.alarm(0)  # Cancel timeout
+                    except:
+                        pass
                 
                 actual_output = stdout_buffer.getvalue().strip()
                 stderr_content = stderr_buffer.getvalue().strip()
