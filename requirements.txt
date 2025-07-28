@@ -135,3 +135,6 @@ requests==2.31.0
 
 # Docker
 docker
+
+
+flask_jwt_extended

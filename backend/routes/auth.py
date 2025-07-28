@@ -1,90 +1,160 @@
-from flask import Blueprint, request, jsonify, current_app
-import jwt
+from flask import Blueprint, request, jsonify
 from datetime import datetime, timedelta
-import secrets
+from pymongo import MongoClient
+import os
+import uuid
+import jwt
+import logging
+from eth_account.messages import encode_defunct
+from web3 import Web3
 
-bp = Blueprint("auth", __name__)
+bp = Blueprint('auth', __name__)
+logger = logging.getLogger(__name__)
 
-# Store nonces temporarily (in production, use Redis or database)
-nonces = {}
+# MongoDB connection
+mongo_uri = os.getenv('MONGODB_URI', 'mongodb://localhost:27017/')
+client = MongoClient(mongo_uri)
+db = client.openlearnx
 
-@bp.route("/nonce", methods=["POST"])
+# JWT secret
+JWT_SECRET = os.getenv('JWT_SECRET', 'your-secret-key-here')
+
+@bp.route('/nonce', methods=['POST', 'OPTIONS'])
 def get_nonce():
-    data = request.get_json()
-    wallet_address = data.get("wallet_address")
-    
-    if not wallet_address:
-        return jsonify({"error": "wallet_address is required"}), 400
-    
-    # Generate nonce
-    nonce = secrets.token_hex(16)
-    message = f"Sign this message to authenticate with OpenLearnX: {nonce}"
-    
-    # Store nonce for this wallet address
-    nonces[wallet_address.lower()] = nonce
-    
-    return jsonify({"nonce": nonce, "message": message})
-
-@bp.route("/verify", methods=["POST"])
-def verify_signature():
-    data = request.get_json()
-    wallet_address = data.get("wallet_address", "").lower()
-    signature = data.get("signature")
-    message = data.get("message")
-    
-    if not all([wallet_address, signature, message]):
-        return jsonify({"error": "Missing required fields"}), 400
-    
-    # Verify nonce
-    stored_nonce = nonces.get(wallet_address)
-    if not stored_nonce or stored_nonce not in message:
-        return jsonify({"error": "Invalid nonce"}), 400
+    """Generate nonce for MetaMask authentication"""
+    if request.method == "OPTIONS":
+        return jsonify({'status': 'ok'})
     
     try:
-        web3_service = current_app.config["WEB3_SERVICE"]
+        data = request.get_json()
+        wallet_address = data.get('wallet_address')
         
-        # Verify signature
-        if not web3_service.verify_signature(wallet_address, message, signature):
-            return jsonify({"error": "Invalid signature"}), 401
+        if not wallet_address:
+            return jsonify({
+                "success": False,
+                "error": "Wallet address required"
+            }), 400
         
-        # For now, create a mock user without database operations
-        # This bypasses the async MongoDB issues entirely
-        user = {
-            "_id": f"user_{wallet_address}",
-            "wallet_address": wallet_address,
-            "created_at": datetime.utcnow(),
-            "total_tests": 0,
-            "certificates": []
-        }
+        # Generate unique nonce
+        nonce = str(uuid.uuid4())
+        timestamp = datetime.now().isoformat()
         
-        # Create JWT token
+        # Create message to sign
+        message = f"Sign this message to authenticate with OpenLearnX:\n\nNonce: {nonce}\nTimestamp: {timestamp}\nAddress: {wallet_address}"
+        
+        logger.info(f"🔐 Generated nonce for wallet: {wallet_address}")
+        
+        return jsonify({
+            "success": True,
+            "nonce": nonce,
+            "message": message,
+            "timestamp": timestamp
+        })
+        
+    except Exception as e:
+        logger.error(f"❌ Error generating nonce: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+@bp.route('/verify', methods=['POST', 'OPTIONS'])
+def verify_signature():
+    """Verify MetaMask signature and authenticate user"""
+    if request.method == "OPTIONS":
+        return jsonify({'status': 'ok'})
+    
+    try:
+        data = request.get_json()
+        wallet_address = data.get('wallet_address')
+        signature = data.get('signature')
+        message = data.get('message')
+        
+        if not all([wallet_address, signature, message]):
+            return jsonify({
+                "success": False,
+                "error": "Wallet address, signature, and message are required"
+            }), 400
+        
+        # Verify the signature
+        try:
+            # Create the message hash that was signed
+            message_hash = encode_defunct(text=message)
+            
+            # Recover the address from the signature
+            w3 = Web3()
+            recovered_address = w3.eth.account.recover_message(message_hash, signature=signature)
+            
+            # Check if recovered address matches the claimed address
+            if recovered_address.lower() != wallet_address.lower():
+                return jsonify({
+                    "success": False,
+                    "error": "Signature verification failed"
+                }), 401
+                
+        except Exception as e:
+            logger.error(f"❌ Signature verification error: {str(e)}")
+            return jsonify({
+                "success": False,
+                "error": "Invalid signature"
+            }), 401
+        
+        # Check if user exists, create if not
+        user = db.users.find_one({"wallet_address": wallet_address.lower()})
+        
+        if not user:
+            # Create new user
+            user = {
+                "wallet_address": wallet_address.lower(),
+                "created_at": datetime.now(),
+                "last_login": datetime.now(),
+                "login_count": 1
+            }
+            result = db.users.insert_one(user)
+            user["_id"] = str(result.inserted_id)
+            logger.info(f"✅ Created new user: {wallet_address}")
+        else:
+            # Update existing user
+            db.users.update_one(
+                {"wallet_address": wallet_address.lower()},
+                {
+                    "$set": {"last_login": datetime.now()},
+                    "$inc": {"login_count": 1}
+                }
+            )
+            user["_id"] = str(user["_id"])
+            logger.info(f"✅ Updated existing user: {wallet_address}")
+        
+        # Generate JWT token
         token_payload = {
-            "user_id": str(user["_id"]),
-            "wallet_address": wallet_address,
+            "user_id": user["wallet_address"],
+            "wallet_address": user["wallet_address"],
+            "iat": datetime.utcnow(),
             "exp": datetime.utcnow() + timedelta(days=7)
         }
         
-        token = jwt.encode(
-            token_payload, 
-            current_app.config["SECRET_KEY"], 
-            algorithm="HS256"
-        )
+        token = jwt.encode(token_payload, JWT_SECRET, algorithm="HS256")
         
-        # Clean up nonce
-        if wallet_address in nonces:
-            del nonces[wallet_address]
+        # Prepare user data for response
+        user_response = {
+            "id": user["wallet_address"],
+            "wallet_address": user["wallet_address"],
+            "created_at": user["created_at"].isoformat() if isinstance(user["created_at"], datetime) else str(user["created_at"]),
+            "last_login": user["last_login"].isoformat() if isinstance(user["last_login"], datetime) else str(user["last_login"])
+        }
+        
+        logger.info(f"✅ Authentication successful for: {wallet_address}")
         
         return jsonify({
             "success": True,
             "token": token,
-            "user": {
-                "id": str(user["_id"]),
-                "wallet_address": user["wallet_address"],
-                "total_tests": user.get("total_tests", 0),
-                "certificates": len(user.get("certificates", []))
-            }
+            "user": user_response,
+            "message": "Authentication successful"
         })
         
     except Exception as e:
-        print(f"Authentication error: {str(e)}")
-        return jsonify({"error": "Authentication failed"}), 500
+        logger.error(f"❌ Error verifying signature: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
