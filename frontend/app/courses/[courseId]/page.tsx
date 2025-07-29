@@ -6,6 +6,7 @@ import { Loader2, Play, Clock, BookOpen, ChevronDown, ChevronRight, User, Users,
 import { toast } from "react-hot-toast"
 import api from "@/lib/api"
 import { useAuth } from "@/context/auth-context"
+import { CertificateModal } from "@/components/certificate-modal"
 
 type Course = {
   id: string
@@ -60,6 +61,9 @@ export default function CoursePage() {
   const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null)
   const [expandedModules, setExpandedModules] = useState<{ [moduleId: string]: boolean }>({})
   const [completed, setCompleted] = useState(false)
+  
+  // ✅ Certificate Modal State
+  const [showCertificateModal, setShowCertificateModal] = useState(false)
 
   useEffect(() => {
     if (!authLoading && !user && !firebaseUser) {
@@ -320,9 +324,10 @@ export default function CoursePage() {
     return allLessons.length > 0 && allLessons[allLessons.length - 1].id === selectedLessonId
   }
 
+  // ✅ Updated markComplete function to show certificate modal
   const markComplete = () => {
     setCompleted(true)
-    toast.success("Course Completed! 🎉")
+    setShowCertificateModal(true) // Show certificate modal instead of just toast
   }
 
   const getTotalLessons = () => {
@@ -638,13 +643,19 @@ export default function CoursePage() {
                       )}
                     </div>
 
-                    {/* Completion Message */}
-                    {completed && (
+                    {/* ✅ Updated Completion Message */}
+                    {completed && !showCertificateModal && (
                       <div className="mt-8 bg-green-50 border border-green-200 rounded-lg p-6 text-center">
                         <div className="text-green-700">
                           <div className="text-4xl mb-2">🎉</div>
                           <h3 className="text-xl font-bold mb-2">Congratulations!</h3>
-                          <p>You have successfully completed this course. Certificate coming soon!</p>
+                          <p className="mb-4">You have successfully completed this course!</p>
+                          <button
+                            onClick={() => setShowCertificateModal(true)}
+                            className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+                          >
+                            Get Your Certificate 🏆
+                          </button>
                         </div>
                       </div>
                     )}
@@ -731,6 +742,19 @@ export default function CoursePage() {
           </main>
         </div>
       </div>
+
+      {/* ✅ Certificate Modal */}
+      {showCertificateModal && course && (
+        <CertificateModal
+          isOpen={showCertificateModal}
+          onClose={() => setShowCertificateModal(false)}
+          courseTitle={course.title}
+          courseMentor={course.mentor}
+          courseId={course.id}
+          userId={user?.uid || firebaseUser?.uid || 'anonymous'}
+          walletId={user?.wallet || firebaseUser?.uid || 'no-wallet'} // Adjust based on your user structure
+        />
+      )}
     </div>
   )
 }
