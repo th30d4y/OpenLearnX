@@ -1,69 +1,63 @@
 "use client"
 
+import { useEffect, useState } from "react"
+import { useRouter, useParams } from "next/navigation"
+import { toast } from "react-hot-toast"
+import { useAuth } from "@/context/auth-context"
+import api from "@/lib/api"
 import { CourseSidebar } from "@/components/course-sidebar"
 import { LessonViewer } from "@/components/lesson-viewer"
 import { Loader2 } from "lucide-react"
-import { useAuth } from "@/context/auth-context"
-import { useRouter } from "next/navigation"
-import { toast } from "react-hot-toast"
-import { useState, useEffect, use } from "react" // ✅ Added 'use' import
 import type { Course } from "@/lib/types"
-import api from "@/lib/api"
 
-interface CourseDetailPageProps {
-  params: Promise<{ // ✅ Changed to Promise
-    courseId: string
-    lessonId: string
-  }>
-}
-
-export default function CourseDetailPage({ params }: CourseDetailPageProps) {
-  const { courseId, lessonId } = use(params) // ✅ Unwrap params using React.use()
-  const { user, firebaseUser, isLoadingAuth } = useAuth()
+export default function LessonDetailPage() {
+  const params = useParams()
   const router = useRouter()
+  const courseId = params?.courseId ?? ''
+  const lessonId = params?.lessonId ?? ''
+  const { user, firebaseUser, isLoading: isAuthLoading } = useAuth()
+
   const [course, setCourse] = useState<Course | null>(null)
-  const [isLoadingCourse, setIsLoadingCourse] = useState(true)
+  const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!isLoadingAuth && !user && !firebaseUser) {
-      toast.error("Please login to view courses.")
-      router.push("/")
+    if (!isAuthLoading && !user && !firebaseUser) {
+      toast.error("Please login to view lessons.")
+      router.replace("/")
       return
     }
 
-    const fetchCourse = async () => {
-      setIsLoadingCourse(true)
-      setError(null)
-      try {
-        const response = await api.get<Course>(`/api/courses/${courseId}`)
-        setCourse(response.data)
-      } catch (err: any) {
-        console.error("Failed to fetch course details:", err)
-        setError(err.response?.data?.message || "Failed to load course details.")
-        toast.error(err.response?.data?.message || "Failed to load course details.")
-      } finally {
-        setIsLoadingCourse(false)
+    if ((user || firebaseUser) && courseId) {
+      const fetchCourse = async () => {
+        setLoading(true)
+        setError(null)
+        try {
+          const response = await api.get<Course>(`/api/courses/${courseId}?t=${Date.now()}`)
+          setCourse(response.data)
+        } catch (err: any) {
+          setError(err.message || "Failed to load course.")
+          toast.error(err.message || "Failed to load course.")
+        } finally {
+          setLoading(false)
+        }
       }
-    }
-
-    if (user || firebaseUser) {
       fetchCourse()
     }
-  }, [user, firebaseUser, isLoadingAuth, router, courseId])
+  }, [user, firebaseUser, isAuthLoading, router, courseId])
 
-  if (isLoadingAuth || isLoadingCourse) {
+  if (isAuthLoading || loading) {
     return (
-      <div className="flex justify-center items-center min-h-[calc(100vh-64px)]">
-        <Loader2 className="h-8 w-8 animate-spin text-primary-purple" />
-        <span className="ml-2 text-lg">Loading course...</span>
+      <div className="flex justify-center items-center min-h-screen bg-white">
+        <Loader2 className="h-10 w-10 animate-spin text-indigo-600" />
+        <span className="ml-3 text-indigo-700 text-lg">Loading lesson...</span>
       </div>
     )
   }
 
   if (error) {
     return (
-      <div className="flex justify-center items-center min-h-[calc(100vh-64px)] text-red-500">
+      <div className="flex justify-center items-center min-h-screen bg-white text-red-600">
         <p>{error}</p>
       </div>
     )
@@ -71,22 +65,18 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
 
   if (!course) {
     return (
-      <div className="flex justify-center items-center min-h-[calc(100vh-64px)] text-gray-600 dark:text-gray-300">
-        <p className="text-xl">Course not found.</p>
+      <div className="flex justify-center items-center min-h-screen bg-white text-gray-700">
+        <p>Course not found.</p>
       </div>
     )
   }
 
   return (
-    <div className="flex flex-col md:flex-row min-h-[calc(100vh-64px)]">
-      <CourseSidebar 
-        courseId={course.id} 
-        modules={course.modules} 
-        activeLessonId={lessonId} 
-      />
-      <div className="flex-1 p-4 md:p-8 overflow-y-auto">
+    <div className="flex flex-col md:flex-row min-h-screen bg-gray-50">
+      <CourseSidebar courseId={course.id} modules={course.modules} activeLessonId={lessonId} />
+      <main className="flex-grow p-8 max-w-4xl mx-auto w-full">
         <LessonViewer courseId={course.id} lessonId={lessonId} />
-      </div>
+      </main>
     </div>
   )
 }
