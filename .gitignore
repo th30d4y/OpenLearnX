@@ -1,6 +1,7 @@
 # Ignore Python virtual environments
 venv/
 env/
+frontend.zip
 
 # Python bytecode and cache
 __pycache__/
