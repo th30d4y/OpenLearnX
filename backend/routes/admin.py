@@ -54,6 +54,14 @@ def admin_required(f):
     
     return decorated_function
 
+def serialize_document(doc):
+    """Convert MongoDB document to JSON-serializable format"""
+    if doc:
+        if '_id' in doc:
+            doc['_id'] = str(doc['_id'])
+        return doc
+    return None
+
 def serialize_course(course):
     """Convert MongoDB document to JSON-serializable format"""
     if course:
@@ -100,11 +108,13 @@ def admin_dashboard():
     try:
         total_courses = db.courses.count_documents({})
         total_lessons = db.lessons.count_documents({})
+        total_modules = db.modules.count_documents({})
         active_students = db.users.count_documents({"status": "active"}) or 2341
         
         stats = {
             "total_courses": total_courses,
             "total_lessons": total_lessons,
+            "total_modules": total_modules,
             "active_students": active_students,
             "completion_rate": 78
         }
@@ -137,7 +147,7 @@ def create_course():
     """Create new course"""
     try:
         data = request.json
-        print(f"Creating course with data: {data}")  # Debug log
+        print(f"Creating course with data: {data}")
         
         course_id = data.get('id') or f"{data.get('title', '').lower().replace(' ', '-').replace('&', 'and')}-course"
         
@@ -176,10 +186,10 @@ def create_course():
 @bp.route("/courses/<course_id>", methods=["PUT"])
 @admin_required
 def update_course(course_id):
-    """Update existing course - FIXED VERSION"""
+    """Update existing course"""
     try:
         data = request.json
-        print(f"Updating course {course_id} with data: {data}")  # Debug log
+        print(f"Updating course {course_id} with data: {data}")
         
         update_data = {
             "title": data.get('title'),
@@ -194,14 +204,14 @@ def update_course(course_id):
         
         # Remove None values
         update_data = {k: v for k, v in update_data.items() if v is not None}
-        print(f"Filtered update data: {update_data}")  # Debug log
+        print(f"Filtered update data: {update_data}")
         
         result = db.courses.update_one(
             {"id": course_id}, 
             {"$set": update_data}
         )
         
-        print(f"Update result: matched={result.matched_count}, modified={result.modified_count}")  # Debug log
+        print(f"Update result: matched={result.matched_count}, modified={result.modified_count}")
         
         if result.matched_count == 0:
             return jsonify({"error": "Course not found"}), 404
@@ -217,18 +227,23 @@ def update_course(course_id):
 @bp.route("/courses/<course_id>", methods=["DELETE"])
 @admin_required
 def delete_course(course_id):
-    """Delete course"""
+    """Delete course and all related modules and lessons"""
     try:
-        print(f"Deleting course: {course_id}")  # Debug log
+        print(f"Deleting course: {course_id}")
         
+        # Delete related lessons first
+        lesson_result = db.lessons.delete_many({"course_id": course_id})
+        print(f"Deleted {lesson_result.deleted_count} related lessons")
+        
+        # Delete related modules
+        module_result = db.modules.delete_many({"course_id": course_id})
+        print(f"Deleted {module_result.deleted_count} related modules")
+        
+        # Delete the course
         result = db.courses.delete_one({"id": course_id})
         
         if result.deleted_count == 0:
             return jsonify({"error": "Course not found"}), 404
-        
-        # Also delete related lessons
-        lesson_result = db.lessons.delete_many({"course_id": course_id})
-        print(f"Deleted {lesson_result.deleted_count} related lessons")  # Debug log
         
         return jsonify({"success": True, "message": "Course deleted successfully"})
         
@@ -236,35 +251,299 @@ def delete_course(course_id):
         print(f"Error deleting course: {e}")
         return jsonify({"error": str(e)}), 500
 
+# ✅ FIXED: Module Management Endpoints (removed duplicates)
+@bp.route("/courses/<course_id>/modules", methods=["GET"])
+@admin_required
+def get_course_modules(course_id):
+    """Get all modules for a specific course"""
+    try:
+        print(f"Fetching modules for course: {course_id}")
+        
+        modules = list(db.modules.find({"course_id": course_id}).sort("order", 1))
+        
+        # Convert ObjectId to string
+        for module in modules:
+            if '_id' in module:
+                module['id'] = str(module['_id'])
+                del module['_id']
+        
+        print(f"Found {len(modules)} modules for course {course_id}")
+        return jsonify({"success": True, "modules": modules})
+        
+    except Exception as e:
+        print(f"Error fetching modules: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
 @bp.route("/courses/<course_id>/modules", methods=["POST"])
 @admin_required
-def add_module(course_id):
-    """Add module to course"""
+def create_module(course_id):
+    """Create a new module for a course"""
     try:
         data = request.json
+        print(f"Creating module for course {course_id} with data: {data}")
+        
+        # Verify course exists
+        course = db.courses.find_one({"id": course_id})
+        if not course:
+            return jsonify({"error": "Course not found"}), 404
         
         module = {
-            "id": data.get('id') or str(uuid.uuid4()),
+            "course_id": course_id,
             "title": data.get('title'),
-            "lessons": []
+            "description": data.get('description', ''),
+            "order": data.get('order', 1),
+            "created_at": datetime.now().isoformat(),
+            "updated_at": datetime.now().isoformat()
         }
         
-        result = db.courses.update_one(
-            {"id": course_id},
-            {"$push": {"modules": module}}
+        result = db.modules.insert_one(module)
+        module['id'] = str(result.inserted_id)
+        if '_id' in module:
+            del module['_id']
+        
+        print(f"Module created with ID: {result.inserted_id}")
+        return jsonify({"success": True, "module": module}), 201
+        
+    except Exception as e:
+        print(f"Error creating module: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+@bp.route("/modules/<module_id>", methods=["GET"])
+@admin_required
+def get_module(module_id):
+    """Get a specific module by ID"""
+    try:
+        print(f"Fetching module: {module_id}")
+        
+        module = db.modules.find_one({"_id": ObjectId(module_id)})
+        
+        if not module:
+            return jsonify({"error": "Module not found"}), 404
+            
+        # Convert ObjectId to string
+        if '_id' in module:
+            module['id'] = str(module['_id'])
+            del module['_id']
+        
+        return jsonify({"success": True, "module": module})
+        
+    except Exception as e:
+        print(f"Error fetching module: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+@bp.route("/modules/<module_id>", methods=["PUT"])
+@admin_required
+def update_module(module_id):
+    """Update an existing module"""
+    try:
+        data = request.json
+        print(f"Updating module {module_id} with data: {data}")
+        
+        update_data = {
+            "title": data.get('title'),
+            "description": data.get('description'),
+            "order": data.get('order'),
+            "updated_at": datetime.now().isoformat()
+        }
+        
+        # Remove None values
+        update_data = {k: v for k, v in update_data.items() if v is not None}
+        
+        result = db.modules.update_one(
+            {"_id": ObjectId(module_id)},
+            {"$set": update_data}
         )
         
         if result.matched_count == 0:
-            return jsonify({"error": "Course not found"}), 404
+            return jsonify({"error": "Module not found"}), 404
         
-        return jsonify({"success": True, "module": module})
+        # Get updated module
+        updated_module = db.modules.find_one({"_id": ObjectId(module_id)})
+        if updated_module:
+            updated_module['id'] = str(updated_module['_id'])
+            del updated_module['_id']
+        
+        return jsonify({"success": True, "module": updated_module})
+        
     except Exception as e:
+        print(f"Error updating module: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
+@bp.route("/modules/<module_id>", methods=["DELETE"])
+@admin_required
+def delete_module(module_id):
+    """Delete a module and all its lessons"""
+    try:
+        print(f"Deleting module: {module_id}")
+        
+        # Delete related lessons first
+        lesson_result = db.lessons.delete_many({"module_id": module_id})
+        print(f"Deleted {lesson_result.deleted_count} related lessons")
+        
+        # Delete the module
+        result = db.modules.delete_one({"_id": ObjectId(module_id)})
+        
+        if result.deleted_count == 0:
+            return jsonify({"error": "Module not found"}), 404
+        
+        return jsonify({"success": True, "message": "Module deleted successfully"})
+        
+    except Exception as e:
+        print(f"Error deleting module: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+# ✅ FIXED: Lesson Management Endpoints
+@bp.route("/modules/<module_id>/lessons", methods=["GET"])
+@admin_required
+def get_module_lessons(module_id):
+    """Get all lessons for a specific module"""
+    try:
+        print(f"Fetching lessons for module: {module_id}")
+        
+        lessons = list(db.lessons.find({"module_id": module_id}).sort("order", 1))
+        
+        # Convert ObjectId to string
+        for lesson in lessons:
+            if '_id' in lesson:
+                lesson['id'] = str(lesson['_id'])
+                del lesson['_id']
+        
+        print(f"Found {len(lessons)} lessons for module {module_id}")
+        return jsonify({"success": True, "lessons": lessons})
+        
+    except Exception as e:
+        print(f"Error fetching lessons: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+@bp.route("/modules/<module_id>/lessons", methods=["POST"])
+@admin_required
+def create_lesson(module_id):
+    """Create a new lesson for a module"""
+    try:
+        data = request.json
+        print(f"Creating lesson for module {module_id} with data: {data}")
+        
+        # Verify module exists
+        module = db.modules.find_one({"_id": ObjectId(module_id)})
+        if not module:
+            return jsonify({"error": "Module not found"}), 404
+        
+        lesson = {
+            "module_id": module_id,
+            "course_id": module.get('course_id'),
+            "title": data.get('title'),
+            "description": data.get('description', ''),
+            "video_url": data.get('video_url'),
+            "embed_url": convert_to_embed_url(data.get('video_url')) if data.get('video_url') else None,
+            "order": data.get('order', 1),
+            "duration": data.get('duration'),
+            "type": data.get('type', 'video'),
+            "content": data.get('content', ''),
+            "created_at": datetime.now().isoformat(),
+            "updated_at": datetime.now().isoformat()
+        }
+        
+        result = db.lessons.insert_one(lesson)
+        lesson['id'] = str(result.inserted_id)
+        if '_id' in lesson:
+            del lesson['_id']
+        
+        print(f"Lesson created with ID: {result.inserted_id}")
+        return jsonify({"success": True, "lesson": lesson}), 201
+        
+    except Exception as e:
+        print(f"Error creating lesson: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+@bp.route("/lessons/<lesson_id>", methods=["GET"])
+@admin_required
+def get_lesson(lesson_id):
+    """Get a specific lesson by ID"""
+    try:
+        print(f"Fetching lesson: {lesson_id}")
+        
+        lesson = db.lessons.find_one({"_id": ObjectId(lesson_id)})
+        
+        if not lesson:
+            return jsonify({"error": "Lesson not found"}), 404
+            
+        # Convert ObjectId to string
+        if '_id' in lesson:
+            lesson['id'] = str(lesson['_id'])
+            del lesson['_id']
+        
+        return jsonify({"success": True, "lesson": lesson})
+        
+    except Exception as e:
+        print(f"Error fetching lesson: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+@bp.route("/lessons/<lesson_id>", methods=["PUT"])
+@admin_required
+def update_lesson(lesson_id):
+    """Update an existing lesson"""
+    try:
+        data = request.json
+        print(f"Updating lesson {lesson_id} with data: {data}")
+        
+        update_data = {
+            "title": data.get('title'),
+            "description": data.get('description'),
+            "video_url": data.get('video_url'),
+            "embed_url": convert_to_embed_url(data.get('video_url')) if data.get('video_url') else None,
+            "order": data.get('order'),
+            "duration": data.get('duration'),
+            "type": data.get('type'),
+            "content": data.get('content'),
+            "updated_at": datetime.now().isoformat()
+        }
+        
+        # Remove None values
+        update_data = {k: v for k, v in update_data.items() if v is not None}
+        
+        result = db.lessons.update_one(
+            {"_id": ObjectId(lesson_id)},
+            {"$set": update_data}
+        )
+        
+        if result.matched_count == 0:
+            return jsonify({"error": "Lesson not found"}), 404
+        
+        # Get updated lesson
+        updated_lesson = db.lessons.find_one({"_id": ObjectId(lesson_id)})
+        if updated_lesson:
+            updated_lesson['id'] = str(updated_lesson['_id'])
+            del updated_lesson['_id']
+        
+        return jsonify({"success": True, "lesson": updated_lesson})
+        
+    except Exception as e:
+        print(f"Error updating lesson: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+@bp.route("/lessons/<lesson_id>", methods=["DELETE"])
+@admin_required
+def delete_lesson(lesson_id):
+    """Delete a lesson"""
+    try:
+        print(f"Deleting lesson: {lesson_id}")
+        
+        result = db.lessons.delete_one({"_id": ObjectId(lesson_id)})
+        
+        if result.deleted_count == 0:
+            return jsonify({"error": "Lesson not found"}), 404
+        
+        return jsonify({"success": True, "message": "Lesson deleted successfully"})
+        
+    except Exception as e:
+        print(f"Error deleting lesson: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+# ✅ LEGACY: For backward compatibility with old course structure
 @bp.route("/courses/<course_id>/lessons", methods=["POST"])
 @admin_required
-def add_lesson(course_id):
-    """Add lesson to course"""
+def add_lesson_legacy(course_id):
+    """Add lesson to course (legacy endpoint)"""
     try:
         data = request.json
         
@@ -382,6 +661,7 @@ def get_admin_stats():
     try:
         total_courses = db.courses.count_documents({})
         total_lessons = db.lessons.count_documents({})
+        total_modules = db.modules.count_documents({})
         
         # Course statistics by subject
         pipeline = [
@@ -398,6 +678,7 @@ def get_admin_stats():
         stats = {
             "total_courses": total_courses,
             "total_lessons": total_lessons,
+            "total_modules": total_modules,
             "subjects": subjects,
             "difficulties": difficulties,
             "last_updated": datetime.now().isoformat()
@@ -421,6 +702,16 @@ def admin_health():
             "POST /api/admin/courses",
             "PUT /api/admin/courses/<id>",
             "DELETE /api/admin/courses/<id>",
+            "GET /api/admin/courses/<course_id>/modules",
+            "POST /api/admin/courses/<course_id>/modules",
+            "GET /api/admin/modules/<module_id>",
+            "PUT /api/admin/modules/<module_id>",
+            "DELETE /api/admin/modules/<module_id>",
+            "GET /api/admin/modules/<module_id>/lessons",
+            "POST /api/admin/modules/<module_id>/lessons",
+            "GET /api/admin/lessons/<lesson_id>",
+            "PUT /api/admin/lessons/<lesson_id>",
+            "DELETE /api/admin/lessons/<lesson_id>",
             "POST /api/admin/initialize",
             "GET /api/admin/test",
             "GET /api/admin/stats"
