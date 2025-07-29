@@ -11,7 +11,7 @@ interface Certificate {
   course_title: string
   mentor_name: string
   completion_date: string
-  wallet_id?: string
+  wallet_address?: string
   verification_url?: string
   share_code?: string
   public_url?: string
@@ -84,7 +84,7 @@ export function CertificateModal({
           course_title: certificateData.course_title,
           mentor_name: certificateData.mentor_name,
           completion_date: certificateData.completion_date,
-          wallet_id: walletId,
+          wallet_address: walletId,
           verification_url: certificateData.verification_url,
           share_code: certificateData.share_code,
           public_url: certificateData.public_url,
@@ -158,13 +158,6 @@ export function CertificateModal({
               margin: 20px 0; 
             }
             
-            .subtitle { 
-              font-size: 18px; 
-              color: #6b7280; 
-              margin-bottom: 30px; 
-              font-weight: 500;
-            }
-            
             .student-name { 
               font-family: 'Playfair Display', serif;
               font-size: 48px; 
@@ -232,28 +225,23 @@ export function CertificateModal({
               border-radius: 8px;
               border: 1px solid #e5e7eb;
             }
-            
-            .trophy {
-              font-size: 60px;
-              margin-bottom: 20px;
-            }
           </style>
         </head>
         <body>
           <div class="certificate">
-            <div class="trophy">🏆</div>
+            <div style="font-size: 60px; margin-bottom: 20px;">🏆</div>
             <h1 class="title">CERTIFICATE OF COMPLETION</h1>
             
-            <div class="subtitle">This is to certify that</div>
+            <div style="font-size: 18px; color: #6b7280; margin-bottom: 30px;">This is to certify that</div>
             
             <div class="student-name">${certificate.user_name}</div>
             
             <div class="wallet-container">
               <div style="font-size: 14px; color: #374151; margin-bottom: 8px; font-weight: 600;">Blockchain Wallet Address</div>
-              <div class="wallet-address">${certificate.wallet_id}</div>
+              <div class="wallet-address">${certificate.wallet_address}</div>
             </div>
             
-            <div class="subtitle">has successfully completed the course</div>
+            <div style="font-size: 18px; color: #6b7280; margin-bottom: 20px;">has successfully completed the course</div>
             <div class="course-title">"${certificate.course_title}"</div>
             
             <div class="date">✅ Completed on: ${new Date(certificate.completion_date).toLocaleDateString('en-US', { 
@@ -290,7 +278,7 @@ export function CertificateModal({
           }, 500)
         }
         
-        toast.success("Certificate PDF download initiated! Use your browser's print dialog to save as PDF.")
+        toast.success("Certificate PDF download initiated!")
       } else {
         toast.error("Popup blocked. Please allow popups and try again.")
       }
@@ -506,7 +494,7 @@ export function CertificateModal({
                   <p className="text-sm text-gray-500 mb-2">Blockchain Wallet Address:</p>
                   <div className="bg-purple-100 border-2 border-dashed border-purple-300 rounded-lg p-3 mx-auto max-w-md">
                     <p className="text-purple-700 font-mono text-sm break-all">
-                      {certificate.wallet_id}
+                      {certificate.wallet_address}
                     </p>
                   </div>
                 </div>

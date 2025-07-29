@@ -39,12 +39,22 @@ except ImportError:
     DASHBOARD_AVAILABLE = False
     print("⚠️ Dashboard routes not available")
 
+# ✅ CRITICAL: Import certificate blueprint
+try:
+    from routes.certificate import bp as certificate_bp
+    CERTIFICATE_BLUEPRINT_AVAILABLE = True
+    print("✅ Certificate blueprint with all fixes available")
+except ImportError:
+    certificate_bp = None
+    CERTIFICATE_BLUEPRINT_AVAILABLE = False
+    print("❌ Certificate blueprint not available - check routes/certificate.py")
+
 # Blueprints - Updated order and error handling
 blueprints_to_register = [
     ('auth', '/api/auth'),
     ('test_flow', '/api/test'),
-    ('certificate', '/api/certificate'), 
-    ('dashboard', '/api/dashboard'),  # ✅ Dashboard with comprehensive features
+    ('certificate', '/api/certificate'),  # ✅ Use blueprint version
+    ('dashboard', '/api/dashboard'),
     ('courses', '/api/courses'),
     ('quizzes', '/api/quizzes'),
     ('admin', '/api/admin'),
@@ -83,183 +93,6 @@ except Exception as e:
     services_status['ai_quiz'] = False
     print(f"⚠️ AI Quiz Service unavailable: {str(e)}")
     print("🔄 Server will continue without AI features")
-
-# ✅ FIXED Certificate Manager Class with Enhanced Error Handling
-class CertificateManager:
-    def __init__(self):
-        # AES-256 key (store this securely in environment variables)
-        self.key = os.getenv('AES_ENCRYPTION_KEY', self._generate_key())
-        
-        # Validate key length
-        try:
-            decoded_key = base64.b64decode(self.key)
-            if len(decoded_key) != 32:  # AES-256 requires 32 bytes
-                logging.warning("AES key is not 32 bytes, regenerating...")
-                self.key = self._generate_key()
-        except Exception as e:
-            logging.error(f"Invalid AES key format, regenerating: {e}")
-            self.key = self._generate_key()
-    
-    def _generate_key(self):
-        """Generate a new AES-256 key (32 bytes)"""
-        key_bytes = get_random_bytes(32)  # 32 bytes = 256 bits
-        return base64.b64encode(key_bytes).decode('utf-8')
-    
-    def encrypt_wallet_id(self, wallet_id):
-        """Encrypt wallet ID using AES-256 with improved error handling"""
-        try:
-            # Validate input
-            if not wallet_id:
-                logging.error("Empty wallet_id provided for encryption")
-                return None
-            
-            # Ensure wallet_id is string and clean it
-            wallet_str = str(wallet_id).strip()
-            if not wallet_str:
-                logging.error("Wallet ID is empty after cleaning")
-                return None
-            
-            logging.info(f"Encrypting wallet ID: {wallet_str[:10]}...")  # Log first 10 chars for debugging
-            
-            # Decode the base64 key
-            try:
-                key_bytes = base64.b64decode(self.key)
-                if len(key_bytes) != 32:
-                    raise ValueError(f"Key must be 32 bytes, got {len(key_bytes)}")
-            except Exception as e:
-                logging.error(f"Failed to decode encryption key: {e}")
-                # Generate new key and try again
-                self.key = self._generate_key()
-                key_bytes = base64.b64decode(self.key)
-            
-            # Create cipher with CBC mode
-            cipher = AES.new(key_bytes, AES.MODE_CBC)
-            
-            # Pad the data to be multiple of 16 bytes (AES block size)
-            padded_data = pad(wallet_str.encode('utf-8'), AES.block_size)
-            
-            # Encrypt the data
-            encrypted_bytes = cipher.encrypt(padded_data)
-            
-            # Encode IV and encrypted data as base64
-            iv_b64 = base64.b64encode(cipher.iv).decode('utf-8')
-            encrypted_b64 = base64.b64encode(encrypted_bytes).decode('utf-8')
-            
-            result = {
-                "iv": iv_b64,
-                "encrypted": encrypted_b64,
-                "algorithm": "AES-256-CBC"  # Add algorithm info for debugging
-            }
-            
-            logging.info("Wallet ID encrypted successfully")
-            return result
-            
-        except Exception as e:
-            logging.error(f"Encryption error: {str(e)}")
-            logging.error(f"Wallet ID type: {type(wallet_id)}, Value: {repr(wallet_id)}")
-            return None
-    
-    def decrypt_wallet_id(self, encrypted_data):
-        """Decrypt wallet ID with improved error handling"""
-        try:
-            # Validate input
-            if not encrypted_data:
-                logging.error("No encrypted data provided for decryption")
-                return None
-            
-            if not isinstance(encrypted_data, dict):
-                logging.error(f"Invalid encrypted data format. Expected dict, got {type(encrypted_data)}")
-                return None
-            
-            if 'iv' not in encrypted_data or 'encrypted' not in encrypted_data:
-                logging.error("Missing 'iv' or 'encrypted' fields in encrypted data")
-                return None
-            
-            # Decode the base64 key
-            try:
-                key_bytes = base64.b64decode(self.key)
-                if len(key_bytes) != 32:
-                    raise ValueError(f"Key must be 32 bytes, got {len(key_bytes)}")
-            except Exception as e:
-                logging.error(f"Failed to decode decryption key: {e}")
-                return None
-            
-            # Decode IV and encrypted data
-            try:
-                iv = base64.b64decode(encrypted_data['iv'])
-                encrypted_bytes = base64.b64decode(encrypted_data['encrypted'])
-            except Exception as e:
-                logging.error(f"Failed to decode IV or encrypted data: {e}")
-                return None
-            
-            # Validate IV length (should be 16 bytes for AES)
-            if len(iv) != 16:
-                logging.error(f"Invalid IV length. Expected 16 bytes, got {len(iv)}")
-                return None
-            
-            # Create cipher and decrypt
-            cipher = AES.new(key_bytes, AES.MODE_CBC, iv)
-            
-            try:
-                decrypted_padded = cipher.decrypt(encrypted_bytes)
-                # Remove padding
-                decrypted_bytes = unpad(decrypted_padded, AES.block_size)
-                # Convert to string
-                decrypted_str = decrypted_bytes.decode('utf-8')
-                
-                logging.info("Wallet ID decrypted successfully")
-                return decrypted_str
-                
-            except ValueError as e:
-                logging.error(f"Padding error during decryption: {e}")
-                return None
-            except UnicodeDecodeError as e:
-                logging.error(f"Unicode decode error: {e}")
-                return None
-                
-        except Exception as e:
-            logging.error(f"Decryption error: {str(e)}")
-            return None
-    
-    def generate_certificate_id(self):
-        """Generate unique certificate ID"""
-        return ''.join(secrets.choice(string.ascii_uppercase + string.digits) for _ in range(12))
-    
-    def generate_unique_code(self):
-        """Generate unique share code for certificate"""
-        return ''.join(secrets.choice(string.ascii_lowercase + string.digits) for _ in range(8))
-    
-    def test_encryption(self, test_data="test_wallet_0x123456789"):
-        """Test encryption/decryption functionality"""
-        try:
-            logging.info(f"Testing encryption with data: {test_data}")
-            
-            # Test encryption
-            encrypted = self.encrypt_wallet_id(test_data)
-            if not encrypted:
-                logging.error("Encryption test failed")
-                return False
-            
-            # Test decryption
-            decrypted = self.decrypt_wallet_id(encrypted)
-            if not decrypted:
-                logging.error("Decryption test failed")
-                return False
-            
-            # Verify data integrity
-            if decrypted != test_data:
-                logging.error(f"Data integrity test failed. Original: {test_data}, Decrypted: {decrypted}")
-                return False
-            
-            logging.info("Encryption/decryption test passed successfully")
-            return True
-            
-        except Exception as e:
-            logging.error(f"Encryption test error: {e}")
-            return False
-
-# Initialize Certificate Manager
-cert_manager = CertificateManager()
 
 # Utility functions
 def generate_room_code(length=6):
@@ -395,9 +228,17 @@ def register_blueprints():
             if bp_name == 'dashboard' and not DASHBOARD_AVAILABLE:
                 print(f"⚠️ Skipping {bp_name} - not available")
                 continue
-                
-            module = __import__(f'routes.{bp_name}', fromlist=['bp'])
-            blueprint_modules[bp_name] = (module.bp, prefix)
+            
+            if bp_name == 'certificate':
+                if CERTIFICATE_BLUEPRINT_AVAILABLE:
+                    blueprint_modules[bp_name] = (certificate_bp, prefix)
+                    print(f"✅ Certificate blueprint loaded")
+                else:
+                    print(f"❌ Skipping certificate blueprint - not available")
+                    continue
+            else:
+                module = __import__(f'routes.{bp_name}', fromlist=['bp'])
+                blueprint_modules[bp_name] = (module.bp, prefix)
             
         except ImportError as e:
             blueprints_failed.append((prefix, f"Import error: {str(e)}"))
@@ -433,463 +274,12 @@ def get_db():
         return None
 
 # ===================================================================
-# ✅ COMPLETELY FIXED CERTIFICATE ENDPOINTS - ALL ISSUES RESOLVED
+# ✅ REMOVED ALL CERTIFICATE ROUTES - NOW USING BLUEPRINT
+# Certificate routes have been moved to routes/certificate.py blueprint
+# This eliminates conflicts and async event loop issues
 # ===================================================================
 
-@app.route('/api/certificates', methods=['POST', 'OPTIONS'])
-def create_certificate():
-    """Create a new certificate after course completion - ALL ISSUES FIXED"""
-    if request.method == "OPTIONS":
-        return jsonify({'status': 'ok'})
-    
-    try:
-        data = request.json
-        logger.info(f"📝 Certificate creation request: {data}")
-        
-        # Validate required fields
-        required_fields = ['user_name', 'course_id', 'wallet_id', 'user_id']
-        for field in required_fields:
-            if not data.get(field):
-                logger.error(f"❌ Missing required field: {field}")
-                return jsonify({"error": f"Missing required field: {field}"}), 400
-        
-        # ✅ CRITICAL FIX: Get the STUDENT's entered name (exactly as they typed it)
-        student_entered_name = data.get('user_name', '').strip()
-        if not student_entered_name:
-            logger.error("❌ Student name cannot be empty")
-            return jsonify({"error": "Student name is required"}), 400
-        
-        # ✅ LOG THE ACTUAL STUDENT NAME BEING PROCESSED
-        logger.info(f"🎓 PROCESSING CERTIFICATE FOR STUDENT: '{student_entered_name}'")
-        logger.info(f"🎓 Student name length: {len(student_entered_name)} characters")
-        
-        # Validate wallet_id format
-        wallet_id = data.get('wallet_id', '').strip()
-        if not wallet_id:
-            return jsonify({"error": "Wallet ID is required"}), 400
-        
-        # Database connection check
-        db = get_db()
-        if db is None:
-            logger.error("❌ Database connection failed")
-            return jsonify({"error": "Database connection failed"}), 500
-        
-        # ✅ Check if certificate already exists for this user and course
-        existing_certificate = db.certificates.find_one({
-            "user_id": data['user_id'],
-            "course_id": data['course_id']
-        })
-        
-        if existing_certificate is not None:
-            logger.info(f"📜 Certificate already exists for STUDENT: '{student_entered_name}'")
-            return jsonify({
-                "success": True,
-                "certificate": {
-                    "certificate_id": existing_certificate['certificate_id'],
-                    "user_name": student_entered_name,  # ✅ FORCE RETURN STUDENT'S ENTERED NAME
-                    "course_title": existing_certificate['course_title'],
-                    "mentor_name": existing_certificate.get('mentor_name', '5t4l1n'),
-                    "completion_date": existing_certificate['completion_date'],
-                    "unique_url": f"/certificate/{existing_certificate.get('share_code', existing_certificate['certificate_id'])}",  # ✅ UNIQUE URL
-                    "share_code": existing_certificate.get('share_code', existing_certificate['certificate_id']),
-                    "message": "Certificate already exists!"
-                }
-            }), 200
-        
-        # Check if course exists
-        try:
-            course = db.courses.find_one({"id": data['course_id']})
-            if course is None:
-                return jsonify({"error": "Course not found"}), 404
-        except Exception as e:
-            logger.error(f"❌ Error finding course: {e}")
-            return jsonify({"error": "Failed to verify course"}), 500
-        
-        # Test encryption before proceeding
-        if not cert_manager.test_encryption():
-            return jsonify({"error": "Certificate system is not working properly"}), 500
-        
-        # Generate certificate ID and unique codes
-        certificate_id = cert_manager.generate_certificate_id()
-        token_id = str(uuid.uuid4())
-        share_code = cert_manager.generate_unique_code()  # ✅ UNIQUE SHARE CODE
-        
-        logger.info(f"🆔 Generated certificate ID: {certificate_id}")
-        logger.info(f"🔗 Generated share code: {share_code}")
-        
-        # Encrypt wallet ID
-        encrypted_wallet = cert_manager.encrypt_wallet_id(wallet_id)
-        if encrypted_wallet is None:
-            return jsonify({"error": "Failed to encrypt wallet ID"}), 500
-        
-        # ✅ CRITICAL FIX: Extract INSTRUCTOR name from course (separate from student)
-        instructor_name = course.get('mentor', '5t4l1n')
-        if isinstance(instructor_name, dict):
-            instructor_name = instructor_name.get('name', '5t4l1n')
-        
-        # ✅ PREVENT STUDENT NAME FROM BEING USED AS INSTRUCTOR NAME
-        if instructor_name == student_entered_name or instructor_name == student_entered_name.lower():
-            instructor_name = '5t4l1n'  # Force default instructor name
-        
-        logger.info(f"🎓 FINAL VERIFICATION - STUDENT: '{student_entered_name}' | INSTRUCTOR: '{instructor_name}'")
-        
-        # ✅ Create certificate document with EXPLICIT field separation and GUARANTEED STORAGE
-        certificate = {
-            "certificate_id": certificate_id,
-            "token_id": token_id,
-            "share_code": share_code,  # ✅ UNIQUE SHARE CODE FOR URL
-            "student_name": student_entered_name,  # ✅ EXPLICIT STUDENT FIELD
-            "user_name": student_entered_name,     # ✅ STUDENT'S ENTERED NAME (main field)
-            "user_id": data['user_id'],
-            "course_id": data['course_id'],
-            "course_title": course['title'],
-            "mentor_name": instructor_name,        # ✅ INSTRUCTOR NAME
-            "instructor_name": instructor_name,    # ✅ EXPLICIT INSTRUCTOR FIELD
-            "encrypted_wallet_id": encrypted_wallet,
-            "completion_date": datetime.now().isoformat(),
-            "created_at": datetime.now().isoformat(),
-            "updated_at": datetime.now().isoformat(),
-            "status": "active",
-            "issued_by": "OpenLearnX",
-            "verification_url": f"/certificates/{certificate_id}",
-            "share_url": f"/certificate/{share_code}",  # ✅ UNIQUE SHARE URL
-            "public_url": f"{request.host_url}certificate/{share_code}",  # ✅ FULL PUBLIC URL
-            "blockchain_hash": None,
-            "is_revoked": False,
-            "view_count": 0,  # ✅ TRACK VIEWS
-            "shared_count": 0  # ✅ TRACK SHARES
-        }
-        
-        # ✅ LOG THE CERTIFICATE DOCUMENT BEFORE SAVING
-        logger.info(f"📄 Certificate document to be saved:")
-        logger.info(f"   🎓 student_name: '{certificate['student_name']}'")
-        logger.info(f"   🎓 user_name: '{certificate['user_name']}'")
-        logger.info(f"   👨‍🏫 instructor_name: '{certificate['instructor_name']}'")
-        logger.info(f"   🔗 share_code: '{certificate['share_code']}'")
-        
-        # ✅ GUARANTEED DATABASE SAVE with enhanced retry mechanism
-        max_retries = 5
-        saved_successfully = False
-        
-        for attempt in range(max_retries):
-            try:
-                # Create unique indexes to prevent duplicates
-                db.certificates.create_index([("certificate_id", 1)], unique=True, background=True)
-                db.certificates.create_index([("share_code", 1)], unique=True, background=True)
-                db.certificates.create_index([("user_id", 1), ("course_id", 1)], background=True)
-                
-                result = db.certificates.insert_one(certificate)
-                logger.info(f"✅ Certificate saved successfully for STUDENT: '{student_entered_name}' with MongoDB ID: {result.inserted_id}")
-                saved_successfully = True
-                break
-                
-            except Exception as e:
-                if "E11000" in str(e) and "duplicate key" in str(e):
-                    if attempt < max_retries - 1:
-                        # Generate new unique IDs and try again
-                        certificate_id = cert_manager.generate_certificate_id()
-                        token_id = str(uuid.uuid4())
-                        share_code = cert_manager.generate_unique_code()
-                        
-                        certificate["certificate_id"] = certificate_id
-                        certificate["token_id"] = token_id
-                        certificate["share_code"] = share_code
-                        certificate["verification_url"] = f"/certificates/{certificate_id}"
-                        certificate["share_url"] = f"/certificate/{share_code}"
-                        certificate["public_url"] = f"{request.host_url}certificate/{share_code}"
-                        
-                        logger.warning(f"⚠️ Duplicate key error, retrying with new IDs (attempt {attempt + 2})")
-                        continue
-                    else:
-                        logger.error(f"❌ Failed to save certificate after {max_retries} attempts: {e}")
-                        return jsonify({"error": "Failed to save certificate due to ID conflict"}), 500
-                else:
-                    logger.error(f"❌ Database save error (attempt {attempt + 1}): {e}")
-                    if attempt == max_retries - 1:
-                        return jsonify({"error": "Failed to save certificate to database"}), 500
-                    time.sleep(0.5)  # Wait before retry
-        
-        if not saved_successfully:
-            logger.error(f"❌ Failed to save certificate after all attempts")
-            return jsonify({"error": "Failed to save certificate"}), 500
-        
-        # ✅ CRITICAL FIX: Return response with GUARANTEED STUDENT NAME and UNIQUE URLS
-        certificate_response = {
-            "certificate_id": certificate_id,
-            "token_id": token_id,
-            "share_code": share_code,
-            "user_name": student_entered_name,     # ✅ STUDENT'S ENTERED NAME (GUARANTEED)
-            "student_name": student_entered_name,  # ✅ EXPLICIT STUDENT NAME
-            "course_title": course['title'],
-            "mentor_name": instructor_name,        # ✅ INSTRUCTOR NAME
-            "instructor_name": instructor_name,    # ✅ EXPLICIT INSTRUCTOR NAME
-            "completion_date": certificate['completion_date'],
-            "verification_url": certificate['verification_url'],
-            "share_url": certificate['share_url'],          # ✅ UNIQUE SHARE URL
-            "public_url": certificate['public_url'],        # ✅ FULL PUBLIC URL
-            "unique_url": f"/certificate/{share_code}",     # ✅ UNIQUE CERTIFICATE PATH
-            "message": f"Certificate generated successfully for {student_entered_name}!"
-        }
-        
-        # ✅ FINAL VERIFICATION LOG
-        logger.info(f"📤 RETURNING CERTIFICATE RESPONSE:")
-        logger.info(f"   🎓 user_name: '{certificate_response['user_name']}'")
-        logger.info(f"   🎓 student_name: '{certificate_response['student_name']}'")
-        logger.info(f"   👨‍🏫 mentor_name: '{certificate_response['mentor_name']}'")
-        logger.info(f"   🔗 unique_url: '{certificate_response['unique_url']}'")
-        logger.info(f"   🌐 public_url: '{certificate_response['public_url']}'")
-        
-        return jsonify({
-            "success": True,
-            "certificate": certificate_response
-        }), 201
-        
-    except Exception as e:
-        logger.error(f"❌ Unexpected error creating certificate: {str(e)}")
-        import traceback
-        logger.error(f"❌ Traceback: {traceback.format_exc()}")
-        return jsonify({"error": "Failed to create certificate"}), 500
-
-# ✅ UNIQUE CERTIFICATE VIEW ENDPOINT
-@app.route('/certificate/<share_code>', methods=['GET', 'OPTIONS'])
-@app.route('/api/certificate/<share_code>', methods=['GET', 'OPTIONS'])
-def view_certificate_by_code(share_code):
-    """View certificate by unique share code"""
-    if request.method == "OPTIONS":
-        return jsonify({'status': 'ok'})
-    
-    try:
-        db = get_db()
-        if db is None:
-            return jsonify({"error": "Database connection failed"}), 500
-        
-        # Find certificate by share code
-        certificate = db.certificates.find_one({"share_code": share_code})
-        
-        if certificate is None:
-            return jsonify({"error": "Certificate not found"}), 404
-        
-        # Check if certificate is revoked
-        if certificate.get('is_revoked', False):
-            return jsonify({"error": "Certificate has been revoked"}), 410
-        
-        # ✅ INCREMENT VIEW COUNT
-        db.certificates.update_one(
-            {"share_code": share_code},
-            {"$inc": {"view_count": 1}}
-        )
-        
-        # Decrypt wallet ID for display
-        decrypted_wallet = None
-        if certificate.get('encrypted_wallet_id') is not None:
-            decrypted_wallet = cert_manager.decrypt_wallet_id(certificate['encrypted_wallet_id'])
-        
-        # ✅ PREPARE RESPONSE WITH GUARANTEED STUDENT NAME
-        certificate_response = {
-            "certificate_id": certificate['certificate_id'],
-            "share_code": certificate['share_code'],
-            "user_name": certificate.get('student_name', certificate.get('user_name', 'Student')),  # ✅ STUDENT NAME
-            "student_name": certificate.get('student_name', certificate.get('user_name', 'Student')),
-            "course_title": certificate['course_title'],
-            "mentor_name": certificate.get('instructor_name', certificate.get('mentor_name', '5t4l1n')),  # ✅ INSTRUCTOR NAME
-            "instructor_name": certificate.get('instructor_name', certificate.get('mentor_name', '5t4l1n')),
-            "completion_date": certificate['completion_date'],
-            "status": certificate['status'],
-            "wallet_id": decrypted_wallet,
-            "issued_by": certificate.get('issued_by', 'OpenLearnX'),
-            "verification_url": certificate.get('verification_url'),
-            "share_url": certificate.get('share_url'),
-            "public_url": certificate.get('public_url'),
-            "view_count": certificate.get('view_count', 0),
-            "is_verified": True,
-            "is_revoked": certificate.get('is_revoked', False)
-        }
-        
-        return jsonify({
-            "success": True,
-            "certificate": certificate_response
-        })
-        
-    except Exception as e:
-        logger.error(f"Error fetching certificate by code: {str(e)}")
-        return jsonify({"error": "Failed to fetch certificate"}), 500
-
-@app.route('/api/certificates/<certificate_id>', methods=['GET', 'OPTIONS'])
-def get_certificate(certificate_id):
-    """Get certificate by ID"""
-    if request.method == "OPTIONS":
-        return jsonify({'status': 'ok'})
-    
-    try:
-        db = get_db()
-        if db is None:
-            return jsonify({"error": "Database connection failed"}), 500
-        
-        try:
-            certificate = db.certificates.find_one({"certificate_id": certificate_id})
-        except Exception as e:
-            logger.error(f"Error finding certificate: {e}")
-            return jsonify({"error": "Database query failed"}), 500
-        
-        if certificate is None:
-            return jsonify({"error": "Certificate not found"}), 404
-        
-        # Check if certificate is revoked
-        if certificate.get('is_revoked', False):
-            return jsonify({"error": "Certificate has been revoked"}), 410
-        
-        # Decrypt wallet ID for display
-        decrypted_wallet = None
-        if certificate.get('encrypted_wallet_id') is not None:
-            decrypted_wallet = cert_manager.decrypt_wallet_id(certificate['encrypted_wallet_id'])
-        
-        # ✅ PREPARE RESPONSE WITH GUARANTEED STUDENT NAME
-        certificate_response = {
-            "certificate_id": certificate['certificate_id'],
-            "token_id": certificate.get('token_id'),
-            "share_code": certificate.get('share_code'),
-            "user_name": certificate.get('student_name', certificate.get('user_name', 'Student')),  # ✅ STUDENT NAME
-            "student_name": certificate.get('student_name', certificate.get('user_name', 'Student')),
-            "course_title": certificate['course_title'],
-            "mentor_name": certificate.get('instructor_name', certificate.get('mentor_name', '5t4l1n')),  # ✅ INSTRUCTOR NAME
-            "instructor_name": certificate.get('instructor_name', certificate.get('mentor_name', '5t4l1n')),
-            "completion_date": certificate['completion_date'],
-            "status": certificate['status'],
-            "wallet_id": decrypted_wallet,
-            "issued_by": certificate.get('issued_by', 'OpenLearnX'),
-            "verification_url": certificate.get('verification_url'),
-            "share_url": certificate.get('share_url'),
-            "public_url": certificate.get('public_url'),
-            "unique_url": f"/certificate/{certificate.get('share_code', certificate_id)}",
-            "view_count": certificate.get('view_count', 0),
-            "blockchain_hash": certificate.get('blockchain_hash'),
-            "is_verified": True,
-            "is_revoked": certificate.get('is_revoked', False)
-        }
-        
-        return jsonify({
-            "success": True,
-            "certificate": certificate_response
-        })
-        
-    except Exception as e:
-        logger.error(f"Error fetching certificate: {str(e)}")
-        return jsonify({"error": "Failed to fetch certificate"}), 500
-
-# ✅ SHARE TRACKING ENDPOINT
-@app.route('/api/certificates/<certificate_id>/share', methods=['POST', 'OPTIONS'])
-def track_certificate_share(certificate_id):
-    """Track certificate sharing"""
-    if request.method == "OPTIONS":
-        return jsonify({'status': 'ok'})
-    
-    try:
-        db = get_db()
-        if db is None:
-            return jsonify({"error": "Database connection failed"}), 500
-        
-        # Increment share count
-        result = db.certificates.update_one(
-            {"certificate_id": certificate_id},
-            {"$inc": {"shared_count": 1}}
-        )
-        
-        if result.matched_count == 0:
-            return jsonify({"error": "Certificate not found"}), 404
-        
-        return jsonify({
-            "success": True,
-            "message": "Share tracked successfully"
-        })
-        
-    except Exception as e:
-        logger.error(f"Error tracking share: {str(e)}")
-        return jsonify({"error": "Failed to track share"}), 500
-
-@app.route('/api/certificates/user/<user_id>', methods=['GET', 'OPTIONS'])
-def get_user_certificates(user_id):
-    """Get all certificates for a user"""
-    if request.method == "OPTIONS":
-        return jsonify({'status': 'ok'})
-    
-    try:
-        db = get_db()
-        if db is None:
-            return jsonify({"error": "Database connection failed"}), 500
-        
-        try:
-            certificates = list(db.certificates.find(
-                {"user_id": user_id}, 
-                {"_id": 0, "encrypted_wallet_id": 0}
-            ))
-        except Exception as e:
-            logger.error(f"Error finding user certificates: {e}")
-            return jsonify({"error": "Database query failed"}), 500
-        
-        return jsonify({
-            "success": True,
-            "certificates": certificates,
-            "count": len(certificates)
-        })
-        
-    except Exception as e:
-        logger.error(f"Error fetching user certificates: {str(e)}")
-        return jsonify({"error": "Failed to fetch certificates"}), 500
-
-@app.route('/api/admin/certificates', methods=['GET', 'OPTIONS'])
-def get_all_certificates():
-    """Admin endpoint to get all certificates"""
-    if request.method == "OPTIONS":
-        return jsonify({'status': 'ok'})
-    
-    try:
-        # Check admin authentication
-        auth_header = request.headers.get('Authorization')
-        if auth_header is None or not auth_header.startswith('Bearer '):
-            return jsonify({"error": "Unauthorized"}), 401
-        
-        token = auth_header.split(' ')[1]
-        expected_token = os.getenv('ADMIN_TOKEN', 'admin-secret-key')
-        
-        if token != expected_token:
-            return jsonify({"error": "Invalid admin token"}), 401
-        
-        db = get_db()
-        if db is None:
-            return jsonify({"error": "Database connection failed"}), 500
-        
-        # Add pagination
-        page = int(request.args.get('page', 1))
-        limit = int(request.args.get('limit', 10))
-        skip = (page - 1) * limit
-        
-        try:
-            certificates = list(db.certificates.find(
-                {}, 
-                {"_id": 0, "encrypted_wallet_id": 0}
-            ).skip(skip).limit(limit).sort("created_at", -1))
-            
-            total = db.certificates.count_documents({})
-        except Exception as e:
-            logger.error(f"Error fetching certificates: {e}")
-            return jsonify({"error": "Database query failed"}), 500
-        
-        return jsonify({
-            "success": True,
-            "certificates": certificates,
-            "pagination": {
-                "page": page,
-                "limit": limit,
-                "total": total,
-                "pages": (total + limit - 1) // limit
-            }
-        })
-        
-    except Exception as e:
-        logger.error(f"Error fetching certificates: {str(e)}")
-        return jsonify({"error": "Failed to fetch certificates"}), 500
-
-# ✅ ADD WALLET AUTHENTICATION ENDPOINT
+# ✅ ADD WALLET AUTHENTICATION ENDPOINT (Keep this in main app)
 @app.route('/api/auth/wallet-login', methods=['POST', 'OPTIONS'])
 def wallet_login():
     """Authenticate user with wallet signature"""
@@ -966,37 +356,6 @@ def verify_wallet_signature(address, signature, timestamp):
         logger.error(f"Signature verification failed: {e}")
         return False
 
-# Test encryption endpoint
-@app.route('/api/test-encryption', methods=['GET'])
-def test_encryption_endpoint():
-    """Test encryption system"""
-    try:
-        test_wallet = "0x742d35Cc6634C0532925a3b8D4034DfF77cf3C4"
-        
-        # Test encryption
-        encrypted = cert_manager.encrypt_wallet_id(test_wallet)
-        if not encrypted:
-            return jsonify({"error": "Encryption failed"}), 500
-        
-        # Test decryption
-        decrypted = cert_manager.decrypt_wallet_id(encrypted)
-        if not decrypted:
-            return jsonify({"error": "Decryption failed"}), 500
-        
-        success = decrypted == test_wallet
-        
-        return jsonify({
-            "success": success,
-            "original": test_wallet,
-            "decrypted": decrypted,
-            "encrypted_data": encrypted,
-            "message": "Encryption test completed"
-        })
-        
-    except Exception as e:
-        logger.error(f"Encryption test error: {e}")
-        return jsonify({"error": str(e)}), 500
-
 # ===================================================================
 # ✅ HEALTH ENDPOINTS
 # ===================================================================
@@ -1005,7 +364,7 @@ def test_encryption_endpoint():
 def health_root():
     return jsonify({
         "status": "OpenLearnX Professional Dashboard API",
-        "version": "4.0.0 - ALL CERTIFICATE ISSUES FIXED",
+        "version": "5.0.0 - BLUEPRINT-BASED CERTIFICATE SYSTEM",
         "timestamp": datetime.now().isoformat(),
         "features": {
             "mongodb": service_status.get('mongodb', False),
@@ -1014,15 +373,16 @@ def health_root():
             "compiler": services_status['compiler'],
             "ai_quiz_service": services_status['ai_quiz'],
             "comprehensive_dashboard": DASHBOARD_AVAILABLE,
-            "certificate_system": True,  # ✅ Fixed feature
-            "unique_certificate_urls": True,  # ✅ New feature
-            "certificate_sharing": True,  # ✅ New feature
-            "aes256_encryption": True   # ✅ New feature
+            "certificate_system": CERTIFICATE_BLUEPRINT_AVAILABLE,  # ✅ Blueprint-based
+            "unique_certificate_urls": CERTIFICATE_BLUEPRINT_AVAILABLE,
+            "certificate_sharing": CERTIFICATE_BLUEPRINT_AVAILABLE,
+            "aes256_encryption": CERTIFICATE_BLUEPRINT_AVAILABLE
         },
         "endpoints": {
             "comprehensive_stats": "/api/dashboard/comprehensive-stats",
-            "certificates": "/api/certificates",  # ✅ Fixed endpoint
-            "unique_certificates": "/certificate/<share_code>",  # ✅ New endpoint
+            "certificates": "/api/certificate/mint",  # ✅ Blueprint endpoint
+            "certificate_test": "/api/certificate/test-db",  # ✅ Blueprint endpoint
+            "unique_certificates": "/certificate/<share_code>",
             "health": "/api/health"
         }
     })
@@ -1043,7 +403,7 @@ def api_health():
                 "user_quizzes": db.user_quizzes.count_documents({}),
                 "user_submissions": db.user_submissions.count_documents({}),
                 "user_achievements": db.user_achievements.count_documents({}),
-                "certificates": db.certificates.count_documents({})  # ✅ Added certificates collection
+                "certificates": db.certificates.count_documents({})
             }
         except Exception as e:
             db_status = f"error: {str(e)}"
@@ -1060,15 +420,15 @@ def api_health():
             "compiler": services_status['compiler'],
             "ai_quiz_service": services_status['ai_quiz'],
             "comprehensive_dashboard": DASHBOARD_AVAILABLE,
-            "certificate_system": True,  # ✅ Fixed service
-            "unique_urls": True,  # ✅ New service
-            "share_tracking": True,  # ✅ New service
-            "aes256_encryption": True    # ✅ New service
+            "certificate_system": CERTIFICATE_BLUEPRINT_AVAILABLE,  # ✅ Blueprint status
+            "unique_urls": CERTIFICATE_BLUEPRINT_AVAILABLE,
+            "share_tracking": CERTIFICATE_BLUEPRINT_AVAILABLE,
+            "aes256_encryption": CERTIFICATE_BLUEPRINT_AVAILABLE
         },
         "collections": collections_count,
         "blueprints_registered": blueprints_registered,
         "blueprints_failed": blueprints_failed,
-        "version": "4.0.0-all-certificate-issues-fixed"
+        "version": "5.0.0-blueprint-based-certificates"
     }), 200 if status == "healthy" else 503
 
 # ===================================================================
@@ -1083,12 +443,12 @@ def not_found(e):
         "method": request.method,
         "available_endpoints": [
             "/api/dashboard/comprehensive-stats",
-            "/api/certificates",          # ✅ Fixed endpoint
-            "/api/certificates/<id>",     # ✅ Fixed endpoint
-            "/certificate/<share_code>",  # ✅ New unique URL endpoint
-            "/api/admin/certificates",    # ✅ Fixed endpoint
-            "/api/auth/wallet-login",     # ✅ New endpoint
-            "/api/test-encryption",       # ✅ New endpoint
+            "/api/certificate/mint",       # ✅ Blueprint endpoint
+            "/api/certificate/test-db",    # ✅ Blueprint endpoint
+            "/api/certificate/<id>",       # ✅ Blueprint endpoint
+            "/api/certificate/verify/<share_code>",  # ✅ Blueprint endpoint
+            "/api/certificate/list-all",   # ✅ Blueprint endpoint
+            "/api/auth/wallet-login",
             "/api/health"
         ],
         "suggestion": "Check the API documentation for valid endpoints"
@@ -1109,30 +469,20 @@ def internal_error(e):
 # ===================================================================
 
 if __name__ == "__main__":
-    print("🚀 Starting OpenLearnX Professional Dashboard Backend v4.0.0")
-    print("📊 Features: Comprehensive Analytics, Real-time Data, Professional Dashboard, Fixed Certificate System")
+    print("🚀 Starting OpenLearnX Professional Dashboard Backend v5.0.0")
+    print("📊 Features: Comprehensive Analytics, Real-time Data, Blueprint-based Certificate System")
     print(f"🔗 MongoDB URI: {app.config['MONGODB_URI']}")
     print(f"🌐 Web3 Provider: {app.config['WEB3_PROVIDER_URL']}")
     print(f"📄 Contract Address: {app.config['CONTRACT_ADDRESS']}")
     print(f"🔐 JWT Expiration: {os.getenv('JWT_EXPIRATION_HOURS', 168)} hours")
     print(f"📊 Dashboard Cache: {app.config['DASHBOARD_CACHE_TIMEOUT']} seconds")
-    print(f"🏆 Certificate System: ✅ AES-256 Encryption {'Configured' if app.config.get('AES_ENCRYPTION_KEY') else 'Using Default Key'}")
-    
-    # Test encryption system on startup
-    print("\n🔐 Testing certificate encryption system...")
-    if cert_manager.test_encryption():
-        print("✅ Certificate encryption system working properly")
-    else:
-        print("❌ Certificate encryption system has issues - check logs")
     
     print(f"\n📋 Service Status:")
     print(f"   - MongoDB: {'✅ Connected' if service_status.get('mongodb') else '❌ Failed'}")
     print(f"   - Web3/Anvil: {'✅ Connected' if service_status.get('web3') else '❌ Failed'}")
     print(f"   - Comprehensive Dashboard: {'✅ Available' if DASHBOARD_AVAILABLE else '❌ Unavailable'}")
     print(f"   - AI Quiz Service: {'✅ Available' if services_status['ai_quiz'] else '❌ Unavailable'}")
-    print(f"   - Certificate System: ✅ Available - ALL ISSUES FIXED")
-    print(f"   - Unique Certificate URLs: ✅ Available")  
-    print(f"   - Share Tracking: ✅ Available")
+    print(f"   - Certificate System: {'✅ Blueprint Available' if CERTIFICATE_BLUEPRINT_AVAILABLE else '❌ Blueprint Missing'}")
     print(f"   - JWT Authentication: ✅ Configured")
     print(f"   - Enhanced Security: ✅ Timeout Protection")
     print(f"   - Blueprints: {len(blueprints_registered)} registered")
@@ -1146,28 +496,31 @@ if __name__ == "__main__":
     print(f"   - GET  /api/dashboard/comprehensive-stats")
     print(f"   - GET  /api/health")
     
-    print(f"\n🏆 Certificate System Endpoints (ALL ISSUES FIXED):")
-    print(f"   - POST /api/certificates")
-    print(f"   - GET  /api/certificates/<certificate_id>")
-    print(f"   - GET  /certificate/<share_code>")  # ✅ Unique URLs
-    print(f"   - GET  /api/certificate/<share_code>")  # ✅ API version
-    print(f"   - POST /api/certificates/<certificate_id>/share")  # ✅ Share tracking
-    print(f"   - GET  /api/certificates/user/<user_id>")
-    print(f"   - GET  /api/admin/certificates")
+    if CERTIFICATE_BLUEPRINT_AVAILABLE:
+        print(f"\n🏆 Certificate System Endpoints (Blueprint-based):")
+        print(f"   - GET  /api/certificate/test-db")
+        print(f"   - POST /api/certificate/mint")
+        print(f"   - GET  /api/certificate/test-generation")
+        print(f"   - GET  /api/certificate/<certificate_id>")
+        print(f"   - GET  /api/certificate/verify/<share_code>")
+        print(f"   - GET  /api/certificate/list-all")
+    else:
+        print(f"\n❌ Certificate System: Blueprint not available")
+        print(f"   - Create routes/certificate.py with the blueprint code")
     
     print(f"\n🔐 Authentication Endpoints:")
     print(f"   - POST /api/auth/wallet-login")
     
-    print(f"\n🧪 Testing Endpoints:")
-    print(f"   - GET  /api/test-encryption")
+    print(f"\n🎓 BLUEPRINT-BASED CERTIFICATE SYSTEM:")
+    print(f"   ✅ Isolated MongoDB connections (no async conflicts)")
+    print(f"   ✅ Unique certificate ID generation")
+    print(f"   ✅ Proper student name display")
+    print(f"   ✅ Guaranteed database saving")
+    print(f"   ✅ Enhanced error handling")
+    print(f"   ✅ No event loop conflicts")
     
-    print(f"\n🎓 ALL CERTIFICATE ISSUES FIXED:")
-    print(f"   ✅ Student name displays correctly (entered name shows prominently)")
-    print(f"   ✅ Database storage works properly (guaranteed save with retry mechanism)")
-    print(f"   ✅ Unique certificate URLs (/certificate/<unique_code>)")
-    print(f"   ✅ Share tracking (view counts and share counts)")
-    print(f"   ✅ Mentor name shows only at bottom as instructor signature")
-    print(f"   ✅ Enhanced error handling and logging")
+    # Set MongoDB URI as environment variable
+    os.environ['MONGODB_URI'] = app.config['MONGODB_URI']
     
     try:
         app.run(
