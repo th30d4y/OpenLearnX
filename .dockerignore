@@ -1,0 +1,52 @@
+# Git
+.git
+.gitignore
+README.md
+
+# Node modules
+node_modules
+frontend/node_modules
+frontend/.next
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+venv
+.pytest_cache
+
+# Environment files
+.env*
+!.env.example
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# Logs
+*.log
+logs
+backend/openlearnx.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Temporary
+tmp/
+temp/
+cache/
+backend/cache/
+
+# Build artifacts
+dist/
+build/
+out/

@@ -1,0 +1,69 @@
+version: '3.8'
+
+services:
+  # Main OpenLearnX Application
+  openlearnx:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+    environment:
+      - DATABASE_URL=postgresql://postgres:openlearnx123@postgres:5432/openlearnx
+      - REDIS_URL=redis://redis:6379
+      - FLASK_ENV=production
+      - NODE_ENV=production
+      - TF_CPP_MIN_LOG_LEVEL=2
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - openlearnx-network
+    volumes:
+      - app_uploads:/app/uploads
+      - app_logs:/app/logs
+
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: openlearnx
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: openlearnx123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - openlearnx-network
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    restart: unless-stopped
+    networks:
+      - openlearnx-network
+
+networks:
+  openlearnx-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
+  app_uploads:
+  app_logs:
