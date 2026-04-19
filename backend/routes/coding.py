@@ -8,8 +8,15 @@ import uuid
 from datetime import datetime
 import docker
 import psutil
+from pymongo import MongoClient
+from activity_logger import log_user_activity, resolve_user_identity
 
 bp = Blueprint('coding', __name__)
+
+# MongoDB connection
+mongo_uri = os.getenv('MONGODB_URI', 'mongodb://localhost:27017/')
+client = MongoClient(mongo_uri)
+db = client.openlearnx
 
 def secure_execution_required(f):
     @wraps(f)
@@ -34,6 +41,20 @@ def start_coding_session():
         session['start_time'] = datetime.now().isoformat()
         session['course_id'] = course_id
         session['lesson_id'] = lesson_id
+
+        identity = resolve_user_identity(request, db)
+        log_user_activity(
+            db,
+            identity.get("user_id"),
+            "coding",
+            "Started coding session",
+            "Entered secure coding session",
+            {
+                "session_id": session_id,
+                "course_id": course_id,
+                "lesson_id": lesson_id,
+            },
+        )
         
         return jsonify({
             "success": True,
@@ -92,6 +113,36 @@ def submit_coding_test():
             code,
             test_result
         )
+
+        identity = resolve_user_identity(request, db)
+        resolved_user_id = identity.get("user_id")
+        if resolved_user_id:
+            db.user_submissions.insert_one({
+                "user_id": resolved_user_id,
+                "session_id": session.get('coding_session_id'),
+                "course_id": session.get('course_id'),
+                "problem_id": problem_id,
+                "score": test_result.get('score', 0),
+                "points_earned": int(test_result.get('score', 0)),
+                "submitted_at": datetime.now(),
+                "status": "submitted",
+            })
+
+            log_user_activity(
+                db,
+                resolved_user_id,
+                "coding",
+                "Submitted coding solution",
+                f"Submitted coding test for problem '{problem_id}'",
+                {
+                    "submission_id": submission_id,
+                    "problem_id": problem_id,
+                    "score": test_result.get('score', 0),
+                    "passed": test_result.get('passed', 0),
+                    "total": test_result.get('total', 0),
+                },
+                points_earned=int(test_result.get('score', 0)),
+            )
         
         return jsonify({
             "success": True,
@@ -184,11 +235,6 @@ def get_run_command(language, filename):
 
 def log_coding_attempt(session_id, code, language):
     """Log all coding attempts for monitoring"""
-    from pymongo import MongoClient
-    
-    client = MongoClient(os.getenv('MONGODB_URI', 'mongodb://localhost:27017/'))
-    db = client.openlearnx
-    
     db.coding_logs.insert_one({
         "session_id": session_id,
         "code": code,

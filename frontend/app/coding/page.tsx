@@ -289,7 +289,7 @@ Redirecting to exam interface...`)
   // Role Selection Screen with Enhanced Animations
   if (userRole === 'selector') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-indigo-900 flex items-center justify-center relative overflow-hidden animate-fade-in">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:bg-gradient-to-br dark:from-[#1b3760] dark:via-[#24467d] dark:to-[#4a2f86] flex items-center justify-center relative overflow-hidden animate-fade-in">
         {/* Animated Background Elements */}
         <div className="absolute inset-0 opacity-10">
           <div className="absolute top-1/4 left-1/4 w-32 h-32 bg-white rounded-full animate-float"></div>
@@ -310,7 +310,7 @@ Redirecting to exam interface...`)
           <Star className="w-4 h-4 text-white opacity-50 animate-spin-slow" />
         </div>
 
-        <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-10 max-w-lg w-full transform animate-scale-in hover:scale-105 transition-all duration-500 relative overflow-hidden group">
+        <div className="bg-white/95 dark:bg-[#22314a]/95 backdrop-blur-sm rounded-2xl shadow-2xl p-10 max-w-lg w-full transform animate-scale-in hover:scale-105 transition-all duration-500 relative overflow-hidden group border border-gray-200 dark:border-blue-300/20">
           {/* Card shine effect */}
           <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-1000"></div>
           
@@ -319,10 +319,10 @@ Redirecting to exam interface...`)
               <div className="flex justify-center mb-4 animate-bounce">
                 <Code className="h-16 w-16 text-blue-600 animate-pulse" />
               </div>
-              <h1 className="text-3xl font-bold text-gray-800 mb-3 animate-slide-down">
+              <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-3 animate-slide-down">
                 OpenLearnX Coding Exam
               </h1>
-              <p className="text-gray-600 animate-fade-in animate-delay-300">
+              <p className="text-gray-600 dark:text-gray-300 animate-fade-in animate-delay-300">
                 Choose your role to get started
               </p>
             </div>
@@ -330,7 +330,7 @@ Redirecting to exam interface...`)
             <div className="space-y-6">
               <button
                 onClick={() => setUserRole('host')}
-                className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white py-4 px-6 rounded-xl flex items-center justify-center space-x-3 transform transition-all duration-300 hover:scale-105 hover:shadow-2xl active:scale-95 animate-slide-up group relative overflow-hidden"
+                className="w-full bg-gradient-to-r from-blue-600 to-blue-700 dark:from-blue-700 dark:to-blue-800 hover:from-blue-700 hover:to-blue-800 dark:hover:from-blue-800 dark:hover:to-blue-900 text-white py-4 px-6 rounded-xl flex items-center justify-center space-x-3 transform transition-all duration-300 hover:scale-105 hover:shadow-2xl active:scale-95 animate-slide-up group relative overflow-hidden"
                 style={{ animationDelay: '0.1s' }}
               >
                 {/* Button background animation */}
@@ -349,7 +349,7 @@ Redirecting to exam interface...`)
               
               <button
                 onClick={() => setUserRole('participant')}
-                className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white py-4 px-6 rounded-xl flex items-center justify-center space-x-3 transform transition-all duration-300 hover:scale-105 hover:shadow-2xl active:scale-95 animate-slide-up group relative overflow-hidden"
+                className="w-full bg-gradient-to-r from-green-600 to-green-700 dark:from-green-700 dark:to-green-800 hover:from-green-700 hover:to-green-800 dark:hover:from-green-800 dark:hover:to-green-900 text-white py-4 px-6 rounded-xl flex items-center justify-center space-x-3 transform transition-all duration-300 hover:scale-105 hover:shadow-2xl active:scale-95 animate-slide-up group relative overflow-hidden"
                 style={{ animationDelay: '0.2s' }}
               >
                 {/* Button background animation */}
@@ -369,7 +369,7 @@ Redirecting to exam interface...`)
 
             {/* Animated footer */}
             <div className="mt-8 text-center animate-fade-in animate-delay-500">
-              <p className="text-sm text-gray-500 hover:text-gray-700 transition-colors duration-300">
+              <p className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors duration-300">
                 Secure • Real-time • Professional
               </p>
             </div>
@@ -382,7 +382,7 @@ Redirecting to exam interface...`)
   // Host Setup Screen with Enhanced UI
   if (userRole === 'host' && !examId) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-900 via-indigo-900 to-purple-900 flex items-center justify-center relative overflow-hidden animate-fade-in">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:bg-gradient-to-br dark:from-[#1b3760] dark:via-[#24467d] dark:to-[#4a2f86] flex items-center justify-center relative overflow-hidden animate-fade-in">
         {/* Enhanced background animations */}
         <div className="absolute inset-0 opacity-5">
           <div className="absolute top-0 left-0 w-96 h-96 bg-white rounded-full mix-blend-overlay animate-blob"></div>
@@ -398,7 +398,7 @@ Redirecting to exam interface...`)
           <Zap className="w-6 h-6 text-white opacity-20 animate-bounce" />
         </div>
 
-        <div className="bg-white/95 backdrop-blur-lg rounded-3xl shadow-2xl p-12 max-w-xl w-full transform animate-scale-in hover:scale-105 transition-all duration-500 relative overflow-hidden group">
+        <div className="bg-white/95 dark:bg-[#22314a]/95 backdrop-blur-lg rounded-3xl shadow-2xl p-12 max-w-xl w-full transform animate-scale-in hover:scale-105 transition-all duration-500 relative overflow-hidden group border border-gray-200 dark:border-blue-300/20">
           {/* Enhanced shine effect */}
           <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full bg-gradient-to-r from-transparent via-blue-200/30 to-transparent transition-transform duration-1000"></div>
           
@@ -412,10 +412,10 @@ Redirecting to exam interface...`)
                 <div className="absolute -top-2 -right-2 w-3 h-3 bg-blue-400 rounded-full animate-ping"></div>
                 <div className="absolute -bottom-2 -left-2 w-2 h-2 bg-blue-300 rounded-full animate-ping animation-delay-500"></div>
               </div>
-              <h1 className="text-4xl font-bold text-gray-800 mb-4 animate-slide-down">
+              <h1 className="text-4xl font-bold text-gray-800 dark:text-white mb-4 animate-slide-down">
                 Host Coding Exam
               </h1>
-              <p className="text-gray-600 text-lg animate-fade-in animate-delay-300">
+              <p className="text-gray-600 dark:text-gray-300 text-lg animate-fade-in animate-delay-300">
                 Create a secure coding environment for your participants
               </p>
             </div>
@@ -427,7 +427,7 @@ Redirecting to exam interface...`)
                   placeholder="Enter your name"
                   value={participantName}
                   onChange={(e) => setParticipantName(e.target.value)}
-                  className="w-full p-4 border-2 border-gray-200 rounded-xl text-lg transition-all duration-300 focus:ring-4 focus:ring-blue-200 focus:border-blue-500 hover:border-blue-300 bg-gray-50 hover:bg-white focus:bg-white group"
+                  className="w-full p-4 border-2 border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 rounded-xl text-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-300 focus:ring-4 focus:ring-blue-200 dark:focus:ring-blue-800 focus:border-blue-500 dark:focus:border-blue-400 hover:border-blue-300 dark:hover:border-blue-500 hover:bg-white dark:hover:bg-gray-600 focus:bg-white dark:focus:bg-gray-700 group"
                 />
                 {/* Input decoration */}
                 <div className="absolute right-4 top-1/2 transform -translate-y-1/2 opacity-0 group-focus-within:opacity-100 transition-opacity duration-300">
@@ -438,7 +438,7 @@ Redirecting to exam interface...`)
               <button
                 onClick={createExam}
                 disabled={!participantName}
-                className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:from-gray-400 disabled:to-gray-500 text-white py-4 px-6 rounded-xl text-lg font-semibold transform transition-all duration-300 hover:scale-105 hover:shadow-2xl active:scale-95 disabled:hover:scale-100 animate-slide-up group relative overflow-hidden"
+                className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-700 dark:to-indigo-700 hover:from-blue-700 hover:to-indigo-700 dark:hover:from-blue-800 dark:hover:to-indigo-800 disabled:from-gray-400 disabled:to-gray-500 text-white py-4 px-6 rounded-xl text-lg font-semibold transform transition-all duration-300 hover:scale-105 hover:shadow-2xl active:scale-95 disabled:hover:scale-100 animate-slide-up group relative overflow-hidden"
                 style={{ animationDelay: '0.2s' }}
               >
                 {/* Button animation background */}
@@ -455,7 +455,7 @@ Redirecting to exam interface...`)
             </div>
             
             {/* Enhanced Debug Info */}
-            <div className="mt-8 p-6 bg-gradient-to-r from-gray-50 to-blue-50 rounded-xl text-sm text-gray-600 animate-fade-in border border-gray-200 hover:border-blue-300 transition-colors duration-300" style={{ animationDelay: '0.3s' }}>
+            <div className="mt-8 p-6 bg-gradient-to-r from-gray-50 to-blue-50 dark:from-gray-700 dark:to-gray-800 rounded-xl text-sm text-gray-600 dark:text-gray-300 animate-fade-in border border-gray-200 dark:border-gray-600 hover:border-blue-300 dark:hover:border-blue-500 transition-colors duration-300" style={{ animationDelay: '0.3s' }}>
               <div className="flex items-center space-x-2 mb-3">
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                 <span className="font-semibold">System Status</span>
@@ -484,7 +484,7 @@ Redirecting to exam interface...`)
   // Join Exam Screen with Enhanced Animations
   if (userRole === 'participant' && !examInfo) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-900 via-emerald-900 to-blue-900 flex items-center justify-center relative overflow-hidden animate-fade-in">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-green-50 to-blue-50 dark:bg-gradient-to-br dark:from-[#1b3760] dark:via-[#1f4f63] dark:to-[#274f80] flex items-center justify-center relative overflow-hidden animate-fade-in">
         {/* Enhanced background effects */}
         <div className="absolute inset-0 opacity-10">
           <div className="absolute top-1/4 left-1/4 w-40 h-40 bg-white rounded-full animate-float hover:scale-150 transition-transform duration-500"></div>
@@ -499,7 +499,7 @@ Redirecting to exam interface...`)
           <div className="absolute top-1/2 left-1/5 w-2.5 h-2.5 bg-white rounded-full animate-pulse animate-delay-700 opacity-50"></div>
         </div>
 
-        <div className="bg-white/95 backdrop-blur-lg rounded-3xl shadow-2xl p-12 max-w-xl w-full transform animate-scale-in hover:scale-105 transition-all duration-500 relative overflow-hidden group">
+        <div className="bg-white/95 dark:bg-[#22314a]/95 backdrop-blur-lg rounded-3xl shadow-2xl p-12 max-w-xl w-full transform animate-scale-in hover:scale-105 transition-all duration-500 relative overflow-hidden group border border-gray-200 dark:border-blue-300/20">
           {/* Enhanced card effects */}
           <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full bg-gradient-to-r from-transparent via-green-200/30 to-transparent transition-transform duration-1000"></div>
           
@@ -513,10 +513,10 @@ Redirecting to exam interface...`)
                 <div className="absolute inset-0 border-4 border-green-300 rounded-full animate-ping opacity-30"></div>
                 <div className="absolute inset-2 border-2 border-green-400 rounded-full animate-ping opacity-40 animation-delay-500"></div>
               </div>
-              <h1 className="text-4xl font-bold text-gray-800 mb-4 animate-slide-down">
+              <h1 className="text-4xl font-bold text-gray-800 dark:text-white mb-4 animate-slide-down">
                 Join Coding Exam
               </h1>
-              <p className="text-gray-600 text-lg animate-fade-in animate-delay-300">
+              <p className="text-gray-600 dark:text-gray-300 text-lg animate-fade-in animate-delay-300">
                 Enter the exam code to participate in the coding challenge
               </p>
             </div>
@@ -528,7 +528,7 @@ Redirecting to exam interface...`)
                   placeholder="Enter exam code (e.g., 3BPIBZ)"
                   value={examId}
                   onChange={(e) => setExamId(e.target.value.toUpperCase())}
-                  className="w-full p-4 border-2 border-gray-200 rounded-xl text-center font-mono text-2xl tracking-widest uppercase transition-all duration-300 focus:ring-4 focus:ring-green-200 focus:border-green-500 hover:border-green-300 bg-gray-50 hover:bg-white focus:bg-white relative group"
+                  className="w-full p-4 border-2 border-gray-200 dark:border-gray-600 rounded-xl text-center font-mono text-2xl tracking-widest uppercase text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-300 focus:ring-4 focus:ring-green-200 dark:focus:ring-green-800 focus:border-green-500 dark:focus:border-green-400 hover:border-green-300 dark:hover:border-green-500 bg-gray-50 dark:bg-gray-700 hover:bg-white dark:hover:bg-gray-600 focus:bg-white dark:focus:bg-gray-700 relative group"
                   maxLength={6}
                 />
                 {/* Input decorations */}
@@ -546,7 +546,7 @@ Redirecting to exam interface...`)
                   placeholder="Enter your name"
                   value={participantName}
                   onChange={(e) => setParticipantName(e.target.value)}
-                  className="w-full p-4 border-2 border-gray-200 rounded-xl text-lg transition-all duration-300 focus:ring-4 focus:ring-green-200 focus:border-green-500 hover:border-green-300 bg-gray-50 hover:bg-white focus:bg-white group"
+                  className="w-full p-4 border-2 border-gray-200 dark:border-gray-600 rounded-xl text-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-300 focus:ring-4 focus:ring-green-200 dark:focus:ring-green-800 focus:border-green-500 dark:focus:border-green-400 hover:border-green-300 dark:hover:border-green-500 bg-gray-50 dark:bg-gray-700 hover:bg-white dark:hover:bg-gray-600 focus:bg-white dark:focus:bg-gray-700 group"
                 />
                 {/* Name validation indicator */}
                 {participantName.length > 2 && (
@@ -579,7 +579,7 @@ Redirecting to exam interface...`)
               </button>
               
               {/* Enhanced Debug Info */}
-              <div className="text-sm text-gray-500 p-6 bg-gradient-to-r from-gray-50 to-green-50 rounded-xl animate-fade-in border border-gray-200 hover:border-green-300 transition-colors duration-300" style={{ animationDelay: '0.4s' }}>
+              <div className="text-sm text-gray-500 dark:text-gray-400 p-6 bg-gradient-to-r from-gray-50 to-green-50 dark:from-gray-700 dark:to-green-800 rounded-xl animate-fade-in border border-gray-200 dark:border-gray-600 hover:border-green-300 dark:hover:border-green-500 transition-colors duration-300" style={{ animationDelay: '0.4s' }}>
                 <div className="flex items-center space-x-2 mb-3">
                   <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
                   <span className="font-semibold">Connection Status</span>
@@ -605,7 +605,7 @@ Redirecting to exam interface...`)
   // Enhanced System Requirements Check
   if (!systemChecked) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-red-900 to-black text-white flex items-center justify-center relative overflow-hidden animate-fade-in">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:bg-gradient-to-br dark:from-[#1b3760] dark:via-[#3f3b77] dark:to-[#4a2f86] text-gray-900 dark:text-white flex items-center justify-center relative overflow-hidden animate-fade-in">
         {/* Animated warning elements */}
         <div className="absolute inset-0 opacity-5">
           <div className="absolute top-1/4 left-1/4 w-32 h-32 bg-red-500 rounded-full animate-pulse"></div>
@@ -621,7 +621,7 @@ Redirecting to exam interface...`)
           <Shield className="w-6 h-6 text-yellow-400 opacity-40 animate-bounce" />
         </div>
 
-        <div className="bg-gray-800/95 backdrop-blur-lg rounded-3xl p-12 max-w-2xl w-full transform animate-scale-in hover:scale-105 transition-all duration-500 border border-red-500/30 relative overflow-hidden group">
+        <div className="bg-white dark:bg-[#22314a]/95 backdrop-blur-lg rounded-3xl p-12 max-w-2xl w-full transform animate-scale-in hover:scale-105 transition-all duration-500 border border-red-500/30 dark:border-red-400/30 relative overflow-hidden group">
           {/* Security-themed background */}
           <div className="absolute inset-0 bg-gradient-to-r from-red-900/20 to-yellow-900/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
           
@@ -638,7 +638,7 @@ Redirecting to exam interface...`)
               <h1 className="text-4xl font-bold mb-6 animate-slide-down">
                 System Requirements Check
               </h1>
-              <p className="text-xl text-gray-300 animate-fade-in animate-delay-300">
+              <p className="text-xl text-gray-300 dark:text-gray-300 animate-fade-in animate-delay-300">
                 Preparing secure exam environment
               </p>
             </div>
@@ -648,7 +648,7 @@ Redirecting to exam interface...`)
                 <Shield className="h-8 w-8 text-green-400 animate-pulse" />
                 <div className="flex-1">
                   <span className="text-lg font-medium">Fullscreen mode support</span>
-                  <p className="text-sm text-gray-400">Required for secure examination</p>
+                  <p className="text-sm text-gray-400 dark:text-gray-400">Required for secure examination</p>
                 </div>
                 <CheckCircle className="h-6 w-6 text-green-400 animate-bounce" />
               </div>
@@ -657,7 +657,7 @@ Redirecting to exam interface...`)
                 <Lock className="h-8 w-8 text-yellow-400 animate-bounce" />
                 <div className="flex-1">
                   <span className="text-lg font-medium">Copy/paste will be disabled</span>
-                  <p className="text-sm text-gray-400">Prevents unauthorized assistance</p>
+                  <p className="text-sm text-gray-400 dark:text-gray-400">Prevents unauthorized assistance</p>
                 </div>
                 <XCircle className="h-6 w-6 text-yellow-400 animate-pulse" />
               </div>
@@ -666,7 +666,7 @@ Redirecting to exam interface...`)
                 <AlertTriangle className="h-8 w-8 text-red-400 animate-pulse" />
                 <div className="flex-1">
                   <span className="text-lg font-medium">Virtual environments will be detected</span>
-                  <p className="text-sm text-gray-400">Ensures exam integrity</p>
+                  <p className="text-sm text-gray-400 dark:text-gray-400">Ensures exam integrity</p>
                 </div>
                 <Shield className="h-6 w-6 text-red-400 animate-bounce" />
               </div>
@@ -691,12 +691,12 @@ Redirecting to exam interface...`)
             </button>
 
             {/* Security notice */}
-            <div className="mt-6 p-4 bg-yellow-900/30 border border-yellow-500/50 rounded-xl animate-fade-in animate-delay-500">
+            <div className="mt-6 p-4 bg-yellow-900/30 border border-yellow-500/50 rounded-xl animate-fade-in animate-delay-500 dark:bg-yellow-900/30 dark:border-yellow-500/50">
               <div className="flex items-center space-x-2 mb-2">
                 <AlertTriangle className="w-5 h-5 text-yellow-400 animate-pulse" />
                 <span className="font-semibold text-yellow-300">Security Notice</span>
               </div>
-              <p className="text-sm text-yellow-200">
+              <p className="text-sm text-yellow-200 dark:text-yellow-200">
                 This exam uses advanced security measures. Browser restrictions will be enforced during the examination period.
               </p>
             </div>
@@ -708,7 +708,7 @@ Redirecting to exam interface...`)
 
   // Enhanced Main Exam Interface
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-slate-900 to-black text-white animate-fade-in relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:bg-gradient-to-br dark:from-[#1b3760] dark:via-[#24467d] dark:to-[#4a2f86] text-gray-900 dark:text-white animate-fade-in relative overflow-hidden">
       {/* Animated background elements */}
       <div className="absolute inset-0 opacity-5">
         <div className="absolute top-0 left-0 w-96 h-96 bg-blue-500 rounded-full mix-blend-overlay animate-blob"></div>
@@ -772,11 +772,11 @@ Redirecting to exam interface...`)
                 <div className="flex-1 h-1 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full animate-pulse"></div>
               </div>
               
-              <p className="mb-6 text-lg text-gray-300 animate-slide-up" style={{ animationDelay: '0.1s' }}>
+              <p className="mb-6 text-lg text-gray-300 dark:text-gray-300 animate-slide-up" style={{ animationDelay: '0.1s' }}>
                 Write a function that converts a string to uppercase.
               </p>
               
-              <div className="bg-black/50 p-6 rounded-xl transform transition-all duration-300 hover:bg-black/60 animate-slide-up border border-gray-600 hover:border-blue-500/50" style={{ animationDelay: '0.2s' }}>
+              <div className="bg-blue-950/35 p-6 rounded-xl transform transition-all duration-300 hover:bg-blue-900/40 animate-slide-up border border-blue-300/25 hover:border-blue-300/60" style={{ animationDelay: '0.2s' }}>
                 <pre className="text-green-400 font-mono text-lg">
 {`def capitalize_string(text):
     # Your code here
@@ -807,11 +807,11 @@ Redirecting to exam interface...`)
                 
                 {/* Editor status indicators */}
                 <div className="flex items-center space-x-3">
-                  <div className="flex items-center space-x-2 px-3 py-1 bg-green-900/30 rounded-full">
+                  <div className="flex items-center space-x-2 px-3 py-1 bg-green-900/30 rounded-full dark:bg-green-900/30">
                     <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                    <span className="text-sm text-green-300">Ready</span>
+                    <span className="text-sm text-green-300 dark:text-green-300">Ready</span>
                   </div>
-                  <div className="text-sm text-gray-400 font-mono">
+                  <div className="text-sm text-gray-400 dark:text-gray-400 font-mono">
                     Lines: {code.split('\n').length} | Chars: {code.length}
                   </div>
                 </div>
@@ -822,7 +822,7 @@ Redirecting to exam interface...`)
                   value={code}
                   onChange={(e) => setCode(e.target.value)}
                   placeholder="def capitalize_string(text):\n    # Your code here\n    pass"
-                  className="w-full h-80 bg-black/70 text-green-400 font-mono p-6 rounded-xl border-2 border-gray-600 resize-none transition-all duration-300 focus:border-green-500 focus:ring-4 focus:ring-green-500/20 hover:border-gray-500 animate-slide-up backdrop-blur-sm"
+                  className="w-full h-80 bg-blue-950/55 text-green-300 font-mono p-6 rounded-xl border-2 border-blue-300/25 resize-none transition-all duration-300 focus:border-green-400 focus:ring-4 focus:ring-green-500/20 hover:border-blue-300/50 animate-slide-up backdrop-blur-sm"
                   style={{ 
                     userSelect: 'none', 
                     WebkitUserSelect: 'none', 
@@ -842,7 +842,7 @@ Redirecting to exam interface...`)
                 </div>
                 
                 {/* Line numbers overlay */}
-                <div className="absolute left-2 top-6 text-gray-500 font-mono text-sm select-none pointer-events-none">
+                <div className="absolute left-2 top-6 text-gray-500 dark:text-gray-600 font-mono text-sm select-none pointer-events-none">
                   {Array.from({ length: code.split('\n').length }, (_, i) => (
                     <div key={i} className="h-6 leading-6">
                       {i + 1}
@@ -897,14 +897,14 @@ Redirecting to exam interface...`)
                 </div>
                 
                 {/* Code statistics */}
-                <div className="flex items-center space-x-4 text-sm text-gray-400">
+                <div className="flex items-center space-x-4 text-sm text-gray-400 dark:text-gray-400">
                   <div className="flex items-center space-x-2">
-                    <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
-                    <span>Python 3.9</span>
+                    <div className="w-2 h-2 bg-blue-400 dark:bg-blue-400 rounded-full animate-pulse"></div>
+                    <span className="text-white dark:text-white">Python 3.9</span>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <CheckCircle className="w-4 h-4 text-green-400" />
-                    <span>Syntax OK</span>
+                    <CheckCircle className="w-4 h-4 text-green-400 dark:text-green-400" />
+                    <span className="text-white dark:text-white">Syntax OK</span>
                   </div>
                 </div>
               </div>
@@ -925,18 +925,18 @@ Redirecting to exam interface...`)
               <div className="p-3 bg-yellow-600/20 rounded-xl animate-bounce">
                 <Trophy className="h-8 w-8 text-yellow-400 animate-pulse" />
               </div>
-              <h3 className="text-2xl font-bold">Leaderboard</h3>
+              <h3 className="text-2xl font-bold dark:text-white">Leaderboard</h3>
               <div className="flex-1 h-1 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-full animate-pulse"></div>
             </div>
             
             {/* Leaderboard stats */}
-            <div className="mb-6 p-4 bg-black/30 rounded-xl border border-gray-600">
+            <div className="mb-6 p-4 bg-blue-950/25 rounded-xl border border-blue-300/25 dark:border-blue-300/25">
               <div className="flex justify-between items-center mb-2">
-                <span className="text-sm text-gray-400">Total Participants</span>
+                <span className="text-sm text-gray-400 dark:text-gray-400">Total Participants</span>
                 <span className="font-bold text-blue-400">{leaderboard.length}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-400">Completed</span>
+                <span className="text-sm text-gray-400 dark:text-gray-400">Completed</span>
                 <span className="font-bold text-green-400">
                   {leaderboard.filter(p => p.completed).length}
                 </span>
@@ -1003,7 +1003,7 @@ Redirecting to exam interface...`)
                     
                     {/* Submission time */}
                     {participant.submitted_at && (
-                      <div className="text-xs text-gray-400">
+                      <div className="text-xs text-gray-400 dark:text-gray-400">
                         Submitted: {new Date(participant.submitted_at).toLocaleTimeString()}
                       </div>
                     )}
@@ -1013,7 +1013,7 @@ Redirecting to exam interface...`)
                   <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full bg-gradient-to-r from-transparent via-white/5 to-transparent transition-transform duration-700"></div>
                 </div>
               )) : (
-                <div className="text-center py-8 text-gray-400 animate-pulse">
+                <div className="text-center py-8 text-gray-400 dark:text-gray-400 animate-pulse">
                   <Users className="h-12 w-12 mx-auto mb-3 opacity-50" />
                   <p>No participants yet</p>
                 </div>

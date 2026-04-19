@@ -224,26 +224,26 @@ fn main() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:bg-gradient-to-br dark:from-gray-900 dark:via-blue-900 dark:to-purple-900 text-gray-900 dark:text-white">
       {/* Header */}
-      <div className="bg-gray-800 border-b border-gray-700 p-4">
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4 shadow">
         <div className="max-w-7xl mx-auto">
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-2xl font-bold">OpenLearnX Real Compiler</h1>
-              <p className="text-gray-400">Execute code in multiple programming languages with real output</p>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">OpenLearnX Real Compiler</h1>
+              <p className="text-gray-600 dark:text-gray-400">Execute code in multiple programming languages with real output</p>
             </div>
             
             <div className="flex items-center space-x-4">
               <button
                 onClick={testCompiler}
-                className="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded flex items-center space-x-2"
+                className="bg-purple-600 dark:bg-purple-700 hover:bg-purple-700 dark:hover:bg-purple-800 px-4 py-2 rounded flex items-center space-x-2 text-white"
               >
                 <Settings className="h-4 w-4" />
                 <span>Test Compiler</span>
               </button>
               
-              <div className="text-sm text-gray-400">
+              <div className="text-sm text-gray-600 dark:text-gray-400">
                 {languages.length} languages supported
               </div>
             </div>
@@ -256,14 +256,14 @@ fn main() {
           {/* Code Editor */}
           <div className="space-y-4">
             {/* Language Selector & Controls */}
-            <div className="bg-gray-800 rounded-lg p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700 shadow">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-bold">Code Editor</h2>
+                <h2 className="text-lg font-bold text-gray-900 dark:text-white">Code Editor</h2>
                 <div className="flex items-center space-x-2">
                   <select
                     value={selectedLanguage}
                     onChange={(e) => setSelectedLanguage(e.target.value)}
-                    className="bg-gray-700 text-white px-3 py-1 rounded border border-gray-600"
+                    className="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-1 rounded border border-gray-300 dark:border-gray-600"
                   >
                     {languages.map(lang => (
                       <option key={lang.id} value={lang.id}>
@@ -281,14 +281,14 @@ fn main() {
                   />
                   <label
                     htmlFor="file-upload"
-                    className="bg-gray-600 hover:bg-gray-700 px-3 py-1 rounded cursor-pointer"
+                    className="bg-gray-600 dark:bg-gray-600 hover:bg-gray-700 dark:hover:bg-gray-700 px-3 py-1 rounded cursor-pointer text-white"
                   >
                     <Upload className="h-4 w-4" />
                   </label>
                   
                   <button
                     onClick={downloadCode}
-                    className="bg-gray-600 hover:bg-gray-700 px-3 py-1 rounded"
+                    className="bg-gray-600 dark:bg-gray-600 hover:bg-gray-700 dark:hover:bg-gray-700 px-3 py-1 rounded text-white"
                   >
                     <Download className="h-4 w-4" />
                   </button>

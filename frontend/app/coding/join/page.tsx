@@ -27,10 +27,16 @@ export default function JoinExam() {
     setLoading(true)
 
     try {
+      const token = localStorage.getItem("openlearnx_jwt_token")
+      const storedUserRaw = localStorage.getItem("openlearnx_user")
+      const storedUser = storedUserRaw ? JSON.parse(storedUserRaw) : null
+
       // ✅ CORRECT FIELD NAMES - Must match backend expectations
       const payload = {
         exam_code: examCode.trim().toUpperCase(),    // Backend expects exam_code
-        student_name: studentName.trim()             // Backend expects student_name
+        student_name: studentName.trim(),            // Backend expects student_name
+        wallet_address: storedUser?.wallet_address,
+        user_id: storedUser?.id
       }
       
       console.log('🚀 Sending payload:', payload)
@@ -39,7 +45,8 @@ export default function JoinExam() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json'
+          'Accept': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
         },
         body: JSON.stringify(payload) // ✅ MUST stringify the payload
       })

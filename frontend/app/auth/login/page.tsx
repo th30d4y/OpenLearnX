@@ -10,15 +10,19 @@ import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { Wallet, Mail, Lock, Loader2, CheckCircle2 } from "lucide-react"
 import { toast } from "react-hot-toast"
+import Link from "next/link"
+import { MetaMaskEmailModal } from "@/components/metamask-email-modal"
 
 export default function LoginPage() {
   const { 
     user, 
-    firebaseUser, 
     walletConnected, 
     walletAddress,
     isLoadingAuth, 
     authMethod,
+    token,
+    showMetaMaskEmailModal,
+    setShowMetaMaskEmailModal,
     connectWallet, 
     loginWithEmail 
   } = useAuth()
@@ -36,7 +40,6 @@ export default function LoginPage() {
       isLoadingAuth,
       hasRedirected: hasRedirected.current,
       user: !!user,
-      firebaseUser: !!firebaseUser,
       walletConnected,
       walletAddress,
       authMethod
@@ -50,12 +53,12 @@ export default function LoginPage() {
 
     // Check for successful authentication
     const isMetaMaskAuth = walletConnected && walletAddress && user && authMethod === "metamask"
-    const isFirebaseAuth = firebaseUser && authMethod === "firebase"
-    const isAuthenticated = isMetaMaskAuth || isFirebaseAuth
+    const isEmailAuth = user && authMethod === "email"
+    const isAuthenticated = isMetaMaskAuth || isEmailAuth
 
     console.log("🔍 Authentication check:", {
       isMetaMaskAuth,
-      isFirebaseAuth,
+      isEmailAuth,
       isAuthenticated
     })
 
@@ -70,7 +73,6 @@ export default function LoginPage() {
     }
   }, [
     user, 
-    firebaseUser, 
     walletConnected, 
     walletAddress, 
     authMethod,
@@ -122,7 +124,7 @@ export default function LoginPage() {
   }
 
   // ✅ Show success state when authenticated but not yet redirected
-  const isAuthenticated = (walletConnected && walletAddress && user) || firebaseUser
+  const isAuthenticated = (walletConnected && walletAddress && user) || (user && authMethod === "email")
   
   if (isAuthenticated && !hasRedirected.current) {
     return (
@@ -138,7 +140,7 @@ export default function LoginPage() {
             <p className="text-gray-700">
               {authMethod === "metamask" 
                 ? `🦊 MetaMask connected: ${walletAddress?.slice(0, 6)}...${walletAddress?.slice(-4)}`
-                : `📧 Email: ${firebaseUser?.email}`
+                : `📧 Email: ${user?.email || user?.id}`
               }
             </p>
             <div className="flex items-center justify-center space-x-2">
@@ -264,8 +266,34 @@ export default function LoginPage() {
               </form>
             )}
           </div>
+
+          <div className="text-center pt-4 border-t">
+            <p className="text-sm text-gray-600">
+              Don't have an account?{" "}
+              <Link href="/auth/signup" className="text-purple-600 hover:text-purple-700 font-semibold">
+                Sign Up
+              </Link>
+            </p>
+          </div>
         </CardContent>
       </Card>
+
+      {/* MetaMask Email Modal */}
+      {token && walletAddress && (
+        <MetaMaskEmailModal
+          isOpen={showMetaMaskEmailModal}
+          walletAddress={walletAddress}
+          token={token}
+          onSuccess={(user) => {
+            setShowMetaMaskEmailModal(false)
+            toast.success("Profile setup complete!")
+          }}
+          onCancel={() => {
+            setShowMetaMaskEmailModal(false)
+            // User can always add email later from dashboard
+          }}
+        />
+      )}
     </div>
   )
 }

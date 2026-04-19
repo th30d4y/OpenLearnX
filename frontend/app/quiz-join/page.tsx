@@ -49,12 +49,23 @@ export default function QuizJoinPage() {
 
     setLoading(true)
     try {
+      const token = localStorage.getItem("openlearnx_jwt_token")
+      const storedUserRaw = localStorage.getItem("openlearnx_user")
+      const storedUser = storedUserRaw ? JSON.parse(storedUserRaw) : null
+
+      const headers: Record<string, string> = { "Content-Type": "application/json" }
+      if (token) {
+        headers.Authorization = `Bearer ${token}`
+      }
+
       const response = await fetch('http://127.0.0.1:5000/api/quizzes/join-room', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
           room_code: code,
-          username: username.trim()
+          username: username.trim(),
+          wallet_address: storedUser?.wallet_address,
+          user_id: storedUser?.id
         })
       })
 
@@ -83,25 +94,25 @@ export default function QuizJoinPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:bg-gradient-to-br dark:from-gray-900 dark:via-blue-900 dark:to-purple-900 text-gray-900 dark:text-white">
       <div className="max-w-4xl mx-auto p-6">
         <div className="text-center mb-8">
-          <Users className="h-16 w-16 text-blue-400 mx-auto mb-4" />
-          <h1 className="text-4xl font-bold mb-4">🎯 Join Quiz</h1>
-          <p className="text-gray-400">
+          <Users className="h-16 w-16 text-blue-600 dark:text-blue-400 mx-auto mb-4" />
+          <h1 className="text-4xl font-bold mb-4 text-gray-900 dark:text-white">🎯 Join Quiz</h1>
+          <p className="text-gray-600 dark:text-gray-300">
             Join an adaptive quiz and test your knowledge!
           </p>
         </div>
 
         {/* Username Input */}
-        <div className="bg-gray-800 p-6 rounded-lg mb-6">
-          <h2 className="text-xl font-bold mb-4">👤 Enter Your Name</h2>
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg mb-6 border border-gray-200 dark:border-gray-700 shadow">
+          <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">👤 Enter Your Name</h2>
           <input
             type="text"
             placeholder="Your username"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            className="w-full p-3 bg-gray-700 rounded border border-gray-600 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            className="w-full p-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 rounded border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:outline-none"
             maxLength={20}
           />
         </div>
@@ -110,10 +121,10 @@ export default function QuizJoinPage() {
         <div className="flex space-x-1 mb-6">
           <button
             onClick={() => setJoinMode('public')}
-            className={`flex-1 p-4 rounded-lg flex items-center justify-center space-x-2 ${
+            className={`flex-1 p-4 rounded-lg flex items-center justify-center space-x-2 transition-colors ${
               joinMode === 'public' 
-                ? 'bg-blue-600 text-white' 
-                : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                ? 'bg-blue-600 dark:bg-blue-700 text-white' 
+                : 'bg-gray-300 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-400 dark:hover:bg-gray-600'
             }`}
           >
             <Globe className="h-5 w-5" />
@@ -121,10 +132,10 @@ export default function QuizJoinPage() {
           </button>
           <button
             onClick={() => setJoinMode('code')}
-            className={`flex-1 p-4 rounded-lg flex items-center justify-center space-x-2 ${
+            className={`flex-1 p-4 rounded-lg flex items-center justify-center space-x-2 transition-colors ${
               joinMode === 'code' 
-                ? 'bg-blue-600 text-white' 
-                : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                ? 'bg-blue-600 dark:bg-blue-700 text-white' 
+                : 'bg-gray-300 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-400 dark:hover:bg-gray-600'
             }`}
           >
             <Lock className="h-5 w-5" />
@@ -134,9 +145,9 @@ export default function QuizJoinPage() {
 
         {/* Join with Code */}
         {joinMode === 'code' && (
-          <div className="bg-gray-800 p-6 rounded-lg">
-            <h2 className="text-xl font-bold mb-4 flex items-center space-x-2">
-              <Lock className="h-5 w-5 text-yellow-400" />
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700 shadow">
+            <h2 className="text-xl font-bold mb-4 flex items-center space-x-2 text-gray-900 dark:text-white">
+              <Lock className="h-5 w-5 text-yellow-500" />
               <span>🔐 Join with Room Code</span>
             </h2>
             
@@ -146,7 +157,7 @@ export default function QuizJoinPage() {
                 placeholder="Enter room code (e.g., ABC123)"
                 value={roomCode}
                 onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
-                className="flex-1 p-3 bg-gray-700 rounded border border-gray-600 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                className="flex-1 p-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 rounded border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:outline-none"
                 maxLength={6}
               />
               <button

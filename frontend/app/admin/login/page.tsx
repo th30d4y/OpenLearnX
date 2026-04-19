@@ -137,7 +137,7 @@ export default function AdminLogin() {
             {/* Error Message */}
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-600 px-3 py-2 rounded text-sm">
-                ⚠️ {error}
+                {error}
               </div>
             )}
             
@@ -153,7 +153,7 @@ export default function AdminLogin() {
                   Authenticating...
                 </div>
               ) : (
-                '🔐 Login to Admin Panel'
+                'Login to Admin Panel'
               )}
             </button>
           </form>
@@ -162,7 +162,7 @@ export default function AdminLogin() {
           <div className="mt-6 pt-4 border-t border-gray-100">
             <div className="text-center">
               <p className="text-xs text-gray-500">
-                🔒 Secure access only - Contact administrator for credentials
+                Secure access only - Contact administrator for credentials
               </p>
             </div>
           </div>
@@ -171,7 +171,7 @@ export default function AdminLogin() {
         {/* Footer */}
         <div className="text-center mt-4">
           <p className="text-sm text-gray-500">
-            Welcome back, <span className="font-medium text-gray-700">5t4l1n</span>! 👋
+            Welcome back, <span className="font-medium text-gray-700">5t4l1n</span>
           </p>
         </div>
       </div>

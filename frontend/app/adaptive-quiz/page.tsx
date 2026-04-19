@@ -152,7 +152,7 @@ export default function AdaptiveQuizPage() {
 
   if (!quizStarted) {
     return (
-      <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">
+      <div className="min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-white flex items-center justify-center">
         <div className="max-w-2xl mx-auto p-6 text-center">
           <div className="mb-8">
             <Brain className="h-16 w-16 text-purple-400 mx-auto mb-4" />
@@ -209,7 +209,7 @@ export default function AdaptiveQuizPage() {
 
   if (quizCompleted) {
     return (
-      <div className="min-h-screen bg-gray-900 text-white">
+      <div className="min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-white">
         <div className="max-w-4xl mx-auto p-6">
           <div className="text-center mb-8">
             <Award className="h-16 w-16 text-yellow-400 mx-auto mb-4" />
@@ -252,16 +252,16 @@ export default function AdaptiveQuizPage() {
           )}
 
           {sessionStats && (
-            <div className="bg-gray-800 p-6 rounded-lg mb-6">
-              <h3 className="text-xl font-bold mb-4">Performance by Difficulty</h3>
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg mb-6">
+              <h3 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">Performance by Difficulty</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {Object.entries(sessionStats.difficulty_breakdown).map(([difficulty, stats]) => (
-                  <div key={difficulty} className="bg-gray-900 p-4 rounded">
+                  <div key={difficulty} className="bg-gray-50 dark:bg-gray-900 p-4 rounded">
                     <div className={`px-2 py-1 rounded text-xs font-medium mb-2 ${getDifficultyColor(difficulty)}`}>
                       {difficulty.toUpperCase()}
                     </div>
-                    <div className="text-lg font-bold">{stats.accuracy}%</div>
-                    <div className="text-sm text-gray-400">
+                    <div className="text-lg font-bold text-gray-900 dark:text-white">{stats.accuracy}%</div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400">
                       {stats.correct}/{stats.questions} questions
                     </div>
                   </div>

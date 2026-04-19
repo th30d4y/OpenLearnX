@@ -13,10 +13,11 @@ import signal
 
 class RealCompilerService:
     def __init__(self):
-        self.client = docker.from_env()
+        self.client = None  # Lazy initialization
         self.execution_queue = queue.Queue()
         self.active_executions = {}
         self.max_concurrent_executions = 5
+        self.docker_available = False
         
         # Enhanced language configurations with real execution
         self.language_configs = {
@@ -97,6 +98,18 @@ class RealCompilerService:
         # Start execution worker
         self.start_execution_worker()
 
+    def _get_docker_client(self):
+        """Lazily initialize Docker client"""
+        if self.client is None:
+            try:
+                self.client = docker.from_env()
+                self.docker_available = True
+            except Exception as e:
+                print(f"⚠️ Docker initialization failed: {e}")
+                self.docker_available = False
+                self.client = None
+        return self.client
+
     def start_execution_worker(self):
         """Start background worker for code execution"""
         def worker():
@@ -176,6 +189,17 @@ class RealCompilerService:
         input_data = context['input_data']
         config = context['config']
         
+        # Check Docker availability
+        docker_client = self._get_docker_client()
+        if docker_client is None or not self.docker_available:
+            return {
+                "output": "",
+                "error": "Docker service is not available. Compiler service cannot execute code.",
+                "exit_code": -1,
+                "execution_time": 0,
+                "memory_used": 0
+            }
+        
         with tempfile.TemporaryDirectory() as temp_dir:
             # Prepare code file
             filename = f"code{config['file_ext']}" if language != 'java' else "Main.java"
@@ -193,7 +217,7 @@ class RealCompilerService:
                 start_time = time.time()
                 
                 # Create and run container
-                container = self.client.containers.run(
+                container = docker_client.containers.run(
                     config['image'],
                     command=self._build_execution_command(config, filename),
                     volumes={temp_dir: {'bind': '/app', 'mode': 'rw'}},
@@ -302,4 +326,8 @@ class RealCompilerService:
         return False
 
 # Create global instance
-real_compiler_service = RealCompilerService()
+try:
+    real_compiler_service = RealCompilerService()
+except Exception as e:
+    print(f"⚠️ Failed to initialize RealCompilerService: {e}")
+    real_compiler_service = RealCompilerService()  # Still create instance for graceful fallback

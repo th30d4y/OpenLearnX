@@ -49,7 +49,7 @@ export default function ExamLandingPage() {
                 onChange={(e) => setExamCode(e.target.value.toUpperCase())}
                 onKeyPress={handleKeyPress}
                 placeholder="Enter exam code (e.g. ABC123)"
-                className="flex-1 p-4 bg-gray-700 border border-gray-600 rounded-lg text-center text-xl font-mono tracking-widest"
+                className="flex-1 p-4 bg-gray-700 border border-gray-600 rounded-lg text-center text-xl font-mono tracking-widest text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 maxLength={6}
               />
               <button

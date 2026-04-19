@@ -96,12 +96,21 @@ export default function QuizTaking() {
 
     setSubmitting(true)
     try {
+      const token = localStorage.getItem("openlearnx_jwt_token") || localStorage.getItem("openlearnx_token")
+      const storedUserRaw = localStorage.getItem("openlearnx_user")
+      const storedUser = storedUserRaw ? JSON.parse(storedUserRaw) : null
+
       const response = await fetch(`http://127.0.0.1:5000/api/quizzes/${quizId}/submit`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
         body: JSON.stringify({
           answers,
-          participant_name: 'User' // You can get this from auth context
+          participant_name: storedUser?.name || storedUser?.username || 'User',
+          user_id: storedUser?.id,
+          wallet_address: storedUser?.wallet_address
         })
       })
 
@@ -120,7 +129,7 @@ export default function QuizTaking() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">
+      <div className="min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-white flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto mb-4"></div>
           <p>Loading AI Quiz...</p>
@@ -131,7 +140,7 @@ export default function QuizTaking() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">
+      <div className="min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-white flex items-center justify-center">
         <div className="text-center">
           <AlertCircle className="h-12 w-12 text-red-400 mx-auto mb-4" />
           <p className="text-xl mb-4">{error}</p>
@@ -148,7 +157,7 @@ export default function QuizTaking() {
 
   if (results) {
     return (
-      <div className="min-h-screen bg-gray-900 text-white">
+      <div className="min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-white">
         <div className="max-w-4xl mx-auto p-6">
           <div className="text-center mb-8">
             <div className="text-6xl mb-4">
@@ -170,9 +179,9 @@ export default function QuizTaking() {
               
               <div className="space-y-4">
                 {results.ai_feedback.map((feedback: any, index: number) => (
-                  <div key={index} className="bg-gray-900 p-4 rounded border-l-4 border-purple-500">
-                    <h3 className="font-semibold mb-2">Question {index + 1}</h3>
-                    <p className="text-sm text-gray-300 mb-2">{feedback.question}</p>
+                  <div key={index} className="bg-gray-50 dark:bg-gray-900 p-4 rounded border-l-4 border-purple-500">
+                    <h3 className="font-semibold mb-2 text-gray-900 dark:text-white">Question {index + 1}</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">{feedback.question}</p>
                     <div className="flex items-center space-x-2 mb-2">
                       {feedback.is_correct ? (
                         <CheckCircle className="h-4 w-4 text-green-400" />
@@ -213,7 +222,7 @@ export default function QuizTaking() {
   const progress = ((currentQuestion + 1) / quiz.questions.length) * 100
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
+    <div className="min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-white">
       <div className="max-w-4xl mx-auto p-6">
         {/* Header */}
         <div className="mb-6">

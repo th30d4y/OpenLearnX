@@ -51,7 +51,7 @@ export default function LessonDetailPage() {
   const router = useRouter()
   const courseId = params?.courseId ?? ''
   const lessonId = params?.lessonId ?? ''
-  const { user, firebaseUser, isLoading: isAuthLoading } = useAuth()
+  const { user, isLoading: isAuthLoading } = useAuth()
 
   const [course, setCourse] = useState<Course | null>(null)
   const [modules, setModules] = useState<Module[]>([])
@@ -61,16 +61,16 @@ export default function LessonDetailPage() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!isAuthLoading && !user && !firebaseUser) {
+    if (!isAuthLoading && !user) {
       toast.error("Please login to view lessons.")
       router.replace("/")
       return
     }
 
-    if ((user || firebaseUser) && courseId) {
+    if (user && courseId) {
       fetchCourseData()
     }
-  }, [user, firebaseUser, isAuthLoading, router, courseId])
+  }, [user, isAuthLoading, router, courseId])
 
   const fetchCourseData = async () => {
     setLoading(true)

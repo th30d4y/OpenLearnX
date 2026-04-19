@@ -15,15 +15,15 @@ import { Loader2 } from "lucide-react"
 import api from "@/lib/api" // Import api
 
 export function QuizList() {
-  const { user, firebaseUser, isLoadingAuth, authMethod, token } = useAuth() // Check token for access
+  const { user, isLoadingAuth, authMethod, token } = useAuth() // Check token for access
   const router = useRouter()
   const [quizzes, setQuizzes] = useState<Quiz[]>([])
   const [isLoadingQuizzes, setIsLoadingQuizzes] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!isLoadingAuth && !user && !firebaseUser) {
-      // Allow either MetaMask or Firebase user
+    if (!isLoadingAuth && !user) {
+      // Allow MetaMask or email auth
       toast.error("Please login to view quizzes.")
       router.push("/")
       return
@@ -46,11 +46,11 @@ export function QuizList() {
       }
     }
 
-    if (user || firebaseUser) {
-      // Fetch if either user type is logged in
+    if (user) {
+      // Fetch if user is logged in
       fetchQuizzes()
     }
-  }, [user, firebaseUser, isLoadingAuth, router, token])
+  }, [user, isLoadingAuth, router, token])
 
   const getDifficultyColor = (difficulty: Quiz["difficulty"]) => {
     switch (difficulty) {

@@ -60,7 +60,12 @@ export default function QuizPlayPage() {
   const fetchNextQuestion = async () => {
     try {
       setLoading(true)
-      const response = await fetch(`http://127.0.0.1:5000/api/quizzes/session/${sessionId}/next-question`)
+      const token = localStorage.getItem("openlearnx_jwt_token") || localStorage.getItem("openlearnx_token")
+      const response = await fetch(`http://127.0.0.1:5000/api/quizzes/session/${sessionId}/next-question`, {
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        }
+      })
       const data = await response.json()
 
       console.log('Next question response:', data) // ✅ Debug log
@@ -98,12 +103,20 @@ export default function QuizPlayPage() {
 
     try {
       setLoading(true)
+      const token = localStorage.getItem("openlearnx_jwt_token") || localStorage.getItem("openlearnx_token")
+      const storedUserRaw = localStorage.getItem("openlearnx_user")
+      const storedUser = storedUserRaw ? JSON.parse(storedUserRaw) : null
       const response = await fetch(`http://127.0.0.1:5000/api/quizzes/session/${sessionId}/submit-answer`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
         body: JSON.stringify({
           answer: selectedAnswer,
-          question_data: currentQuestion
+          question_data: currentQuestion,
+          user_id: storedUser?.id,
+          wallet_address: storedUser?.wallet_address
         })
       })
 

@@ -30,7 +30,7 @@ interface LessonData {
 }
 
 export function LessonViewer({ courseId, lessonId }: LessonViewerProps) {
-  const { user, firebaseUser, isLoadingAuth, authMethod, token } = useAuth()
+  const { user, isLoadingAuth, authMethod, token } = useAuth()
   const router = useRouter()
   const [lesson, setLesson] = useState<LessonData | null>(null)
   const [isLoadingLesson, setIsLoadingLesson] = useState(true)
@@ -38,7 +38,7 @@ export function LessonViewer({ courseId, lessonId }: LessonViewerProps) {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!isLoadingAuth && !user && !firebaseUser) {
+    if (!isLoadingAuth && !user) {
       toast.error("Please login to view lessons.")
       router.push("/")
       return
@@ -76,10 +76,10 @@ export function LessonViewer({ courseId, lessonId }: LessonViewerProps) {
       }
     }
 
-    if (user || firebaseUser) {
+    if (user) {
       fetchLesson()
     }
-  }, [user, firebaseUser, isLoadingAuth, router, courseId, lessonId, token])
+  }, [user, isLoadingAuth, router, courseId, lessonId, token])
 
   const markLessonCompleted = async () => {
     if (!lesson || lesson.completed || !token) {

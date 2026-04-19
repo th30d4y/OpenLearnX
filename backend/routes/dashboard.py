@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pymongo import MongoClient
 import os
 from bson import ObjectId
@@ -188,8 +188,11 @@ def get_comprehensive_stats():
             "courses_completed": courses_completed,
             "coding_problems_solved": coding_problems_solved,
             "quiz_accuracy": quiz_accuracy,
-            "coding_streak": coding_streak,
-            "longest_streak": max(longest_streak, coding_streak),
+            "streak_data": {
+                "current_streak": coding_streak,
+                "best_streak": max(longest_streak, coding_streak),
+                "last_active_date": datetime.now().isoformat()
+            },
             "total_courses": len(courses),
             "total_quizzes": len(quizzes),
             "global_rank": calculate_real_global_rank(user_stats, user_id) if user_stats else 0,
@@ -270,9 +273,143 @@ def get_recent_activity():
             }), 401
         
         logger.info(f"📋 Fetching REAL activity for wallet: {user_id}")
+
+        identity_candidates = {str(user_id)}
+        if wallet_address:
+            identity_candidates.add(str(wallet_address).lower())
+
+        # Resolve user identity aliases to avoid missing activity across auth methods.
+        user_doc = None
+        try:
+            maybe_oid = ObjectId(str(user_id))
+            user_doc = db.users.find_one({"_id": maybe_oid})
+        except Exception:
+            user_doc = db.users.find_one({"wallet_address": str(user_id).lower()}) or db.users.find_one({"email": str(user_id).lower()})
+
+        if user_doc:
+            if user_doc.get("_id"):
+                identity_candidates.add(str(user_doc.get("_id")))
+            if user_doc.get("wallet_address"):
+                identity_candidates.add(str(user_doc.get("wallet_address")).lower())
+            if user_doc.get("email"):
+                identity_candidates.add(str(user_doc.get("email")).lower())
+
+        logger.info(f"📋 Recent activity identity candidates: {sorted(identity_candidates)}")
         
         activities = []
+
+        def parse_datetime(value):
+            if isinstance(value, datetime):
+                return value
+            if isinstance(value, str):
+                candidate = value.replace("Z", "+00:00")
+                try:
+                    return datetime.fromisoformat(candidate)
+                except Exception:
+                    return None
+            return None
+
+        def to_utc_display(value):
+            dt = parse_datetime(value) or datetime.now(timezone.utc)
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+            else:
+                dt = dt.astimezone(timezone.utc)
+            return dt.strftime("%Y-%m-%d %H:%M:%S UTC")
+
+        # Primary source: explicit user activity event log.
+        event_docs = list(
+            db.user_activity_events.find({"user_id": {"$in": list(identity_candidates)}}).sort("occurred_at", -1).limit(150)
+        )
+        for item in event_docs:
+            occurred_at = item.get("occurred_at") or item.get("completed_at") or datetime.now(timezone.utc)
+            activities.append({
+                "id": str(item.get("_id", uuid.uuid4())),
+                "type": item.get("type", "activity"),
+                "title": item.get("title", "User Activity"),
+                "description": item.get("description", "Activity recorded"),
+                "completed_at": parse_datetime(occurred_at).isoformat() if parse_datetime(occurred_at) else datetime.now(timezone.utc).isoformat(),
+                "timestamp_utc": item.get("timestamp_utc") or to_utc_display(occurred_at),
+                "points_earned": int(item.get("points_earned", 0) or 0),
+                "success_rate": item.get("success_rate", 0),
+                "difficulty": item.get("difficulty", ""),
+                "blockchain_verified": item.get("blockchain_verified", False)
+            })
         
+        # Include admin/account status events from security logs as real activity fallback.
+        admin_status_logs = list(
+            db.security_logs.find({
+                "event_type": "admin_user_status",
+                "metadata.user_id": {"$in": list(identity_candidates)}
+            }).sort("timestamp", -1).limit(50)
+        )
+        for item in admin_status_logs:
+            occurred_at = item.get("timestamp", datetime.now(timezone.utc))
+            metadata = item.get("metadata") or {}
+            new_status = metadata.get("status") or metadata.get("new_status") or "updated"
+            activities.append({
+                "id": str(item.get("_id", uuid.uuid4())),
+                "type": "account_status",
+                "title": f"Account status changed to {new_status}",
+                "description": f"Admin changed your account status to {new_status}",
+                "completed_at": parse_datetime(occurred_at).isoformat() if parse_datetime(occurred_at) else datetime.now(timezone.utc).isoformat(),
+                "timestamp_utc": to_utc_display(occurred_at),
+                "points_earned": 0,
+                "success_rate": 0,
+                "difficulty": "",
+                "blockchain_verified": False,
+            })
+
+        # Fallback source: authenticated request audit logs for this user.
+        audit_logs = list(
+            db.security_logs.find({
+                "$or": [
+                    {"metadata.auth_user_id": {"$in": list(identity_candidates)}},
+                    {"metadata.auth_wallet_address": {"$in": list(identity_candidates)}},
+                    {"metadata.auth_email": {"$in": list(identity_candidates)}},
+                ]
+            }).sort("timestamp", -1).limit(150)
+        )
+        for item in audit_logs:
+            path = str(item.get("path") or "")
+            method = str(item.get("method") or "")
+            ts = item.get("timestamp", datetime.now(timezone.utc))
+            if not any(segment in path for segment in ["/api/quizzes", "/api/exam", "/api/coding", "/api/courses", "/api/auth"]):
+                continue
+
+            log_type = "activity"
+            title = f"{method} {path}"
+            description = f"API activity on {path}"
+            if "/api/quizzes" in path:
+                log_type = "quiz"
+                title = "Quiz activity"
+                description = f"{method} {path}"
+            elif "/api/exam" in path or "/api/coding" in path:
+                log_type = "coding"
+                title = "Coding activity"
+                description = f"{method} {path}"
+            elif "/api/courses" in path:
+                log_type = "course"
+                title = "Course activity"
+                description = f"{method} {path}"
+            elif "/api/auth" in path:
+                log_type = "auth_login"
+                title = "Authentication activity"
+                description = f"{method} {path}"
+
+            activities.append({
+                "id": str(item.get("_id", uuid.uuid4())),
+                "type": log_type,
+                "title": title,
+                "description": description,
+                "completed_at": parse_datetime(ts).isoformat() if parse_datetime(ts) else datetime.now(timezone.utc).isoformat(),
+                "timestamp_utc": to_utc_display(ts),
+                "points_earned": 0,
+                "success_rate": 0,
+                "difficulty": "",
+                "blockchain_verified": False,
+            })
+
         # ✅ ONLY REAL ACTIVITY SOURCES
         activity_sources = [
             (db.user_courses, "course", "Course Activity", "completed_at"),
@@ -285,7 +422,7 @@ def get_recent_activity():
             try:
                 # Get ONLY real MongoDB data
                 recent_items = list(collection.find(
-                    {"user_id": user_id}
+                    {"user_id": {"$in": list(identity_candidates)}}
                 ).sort(date_field, -1).limit(20))
                 
                 for item in recent_items:
@@ -305,6 +442,7 @@ def get_recent_activity():
                         "title": item.get('title', item.get('name', default_title)),
                         "description": format_real_activity_description(item, activity_type),
                         "completed_at": completed_at.isoformat(),
+                        "timestamp_utc": to_utc_display(completed_at),
                         "points_earned": item.get('points', item.get('points_earned', 0)),
                         "success_rate": item.get('score', item.get('completion_percentage', 0)),
                         "difficulty": item.get('difficulty', ''),
@@ -314,8 +452,26 @@ def get_recent_activity():
                 logger.warning(f"⚠️ Failed to fetch {activity_type} activities: {e}")
                 continue
         
+        # Exclude known placeholder/demo activity content from older seeded data.
+        fake_markers = {
+            "completed react fundamentals",
+            "scored 95% on javascript quiz",
+            "7-day learning streak achieved",
+            "moved up 5 positions in leaderboard",
+        }
+
+        filtered_activities = []
+        for entry in activities:
+            entry_text = f"{entry.get('title', '')} {entry.get('description', '')}".strip().lower()
+            if any(marker in entry_text for marker in fake_markers):
+                continue
+            filtered_activities.append(entry)
+
+        activities = filtered_activities
+
         # Sort by completion date
         activities.sort(key=lambda x: x['completed_at'], reverse=True)
+        activities = activities[:100]
         
         logger.info(f"✅ Found {len(activities)} REAL activities for wallet {user_id}")
         return jsonify({

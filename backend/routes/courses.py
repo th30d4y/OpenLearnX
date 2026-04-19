@@ -1,6 +1,8 @@
-from flask import Blueprint, jsonify, current_app
+from flask import Blueprint, jsonify, current_app, request
 from pymongo import MongoClient
 import os
+from datetime import datetime
+from activity_logger import log_user_activity, resolve_user_identity
 
 bp = Blueprint('courses', __name__)
 
@@ -68,11 +70,103 @@ def get_lesson(course_id, lesson_id):
 def mark_lesson_complete(course_id, lesson_id):
     """Mark a lesson as completed for the user"""
     try:
+        identity = resolve_user_identity(request, db)
+        user_id = identity.get("user_id")
+
+        if user_id:
+            course = db.courses.find_one({"id": course_id}, {"title": 1}) or {}
+            lesson = db.lessons.find_one({"id": lesson_id, "course_id": course_id}, {"title": 1}) or {}
+
+            db.user_courses.update_one(
+                {"user_id": user_id, "course_id": course_id},
+                {
+                    "$set": {
+                        "user_id": user_id,
+                        "course_id": course_id,
+                        "last_activity_at": datetime.utcnow(),
+                        "completed_at": datetime.utcnow(),
+                        "completed": True,
+                    },
+                    "$addToSet": {"lessons_completed": lesson_id},
+                },
+                upsert=True,
+            )
+
+            log_user_activity(
+                db,
+                user_id,
+                "course",
+                "Lesson completed",
+                f"Completed lesson '{lesson.get('title', lesson_id)}' in course '{course.get('title', course_id)}'",
+                {"course_id": course_id, "lesson_id": lesson_id},
+                points_earned=10,
+            )
+
         return jsonify({
             "success": True,
             "message": f"Lesson {lesson_id} marked as complete",
             "progress_updated": True
         })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@bp.route("/<course_id>/activity", methods=["POST"])
+def log_course_activity(course_id):
+    """Log course interactions like view/start for real dashboard activity."""
+    try:
+        identity = resolve_user_identity(request, db)
+        user_id = identity.get("user_id")
+        if not user_id:
+            return jsonify({"success": False, "error": "Authentication required"}), 401
+
+        data = request.get_json(silent=True) or {}
+        action = str(data.get("action") or "view").strip().lower()
+        lesson_id = str(data.get("lesson_id") or "").strip()
+
+        course = db.courses.find_one({"id": course_id}, {"title": 1}) or {}
+        lesson_title = lesson_id
+        if lesson_id:
+            lesson = db.lessons.find_one({"id": lesson_id, "course_id": course_id}, {"title": 1}) or {}
+            lesson_title = lesson.get("title", lesson_id)
+
+        if action == "start":
+            title = "Course started"
+            description = f"Started course '{course.get('title', course_id)}'"
+        elif action == "lesson_view":
+            title = "Lesson viewed"
+            description = f"Viewed lesson '{lesson_title}' in course '{course.get('title', course_id)}'"
+        else:
+            title = "Course viewed"
+            description = f"Opened course '{course.get('title', course_id)}'"
+
+        log_user_activity(
+            db,
+            user_id,
+            "course",
+            title,
+            description,
+            {"course_id": course_id, "lesson_id": lesson_id, "action": action},
+        )
+
+        db.user_courses.update_one(
+            {"user_id": user_id, "course_id": course_id},
+            {
+                "$set": {
+                    "user_id": user_id,
+                    "course_id": course_id,
+                    "last_activity_at": datetime.utcnow(),
+                },
+                "$setOnInsert": {
+                    "started_at": datetime.utcnow(),
+                    "completed": False,
+                    "lessons_completed": [],
+                },
+            },
+            upsert=True,
+        )
+
+        return jsonify({"success": True})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 

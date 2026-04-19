@@ -1,7 +1,7 @@
 'use client'
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { Trophy, Clock, Users, Send, RefreshCw, Play, Code, Wallet, Shield, TestTube } from 'lucide-react'
+import { Trophy, Clock, Users, Send, RefreshCw, Play, Code, Shield, TestTube } from 'lucide-react'
 
 interface Participant {
   name: string
@@ -54,6 +54,8 @@ export default function EnhancedExamInterface() {
   const [hasSubmitted, setHasSubmitted] = useState(false)
   const [examStats, setExamStats] = useState<any>({})
   const [timerInitialized, setTimerInitialized] = useState(false)
+  const [leftTab, setLeftTab] = useState<'description' | 'examples' | 'constraints'>('description')
+  const [rightTab, setRightTab] = useState<'result' | 'leaderboard'>('result')
 
   // ✅ CRITICAL FIX: Use refs to prevent infinite loops
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
@@ -62,11 +64,11 @@ export default function EnhancedExamInterface() {
   const isInitializedRef = useRef(false)
 
   const languageIcons: {[key: string]: string} = {
-    python: '🐍',
-    java: '☕',
-    javascript: '🟨',
-    c: '⚡',
-    bash: '💻'
+    python: 'Py',
+    java: 'Java',
+    javascript: 'JS',
+    c: 'C',
+    bash: 'Sh'
   }
 
   // ✅ FIXED: Memoized functions to prevent recreation
@@ -199,7 +201,7 @@ export default function EnhancedExamInterface() {
       setTimeRemaining(prev => {
         const newTime = Math.max(0, prev - 1)
         if (newTime === 0) {
-          alert('⏰ Time is up! Exam has ended.')
+          alert('Time is up. Exam has ended.')
         }
         return newTime
       })
@@ -255,12 +257,12 @@ export default function EnhancedExamInterface() {
       const result = await response.json()
       
       if (result.success) {
-        setOutput(`✅ Output:\n${result.output}`)
+        setOutput(`Output:\n${result.output}`)
         if (result.execution_time) {
-          setOutput(prev => prev + `\n⏱️ Execution time: ${result.execution_time}s`)
+          setOutput(prev => prev + `\nExecution time: ${result.execution_time}s`)
         }
       } else {
-        setOutput(`❌ Error:\n${result.error}`)
+        setOutput(`Error:\n${result.error}`)
       }
     } catch (error) {
       setOutput(`Execution failed: ${(error as Error).message}`)
@@ -313,15 +315,15 @@ export default function EnhancedExamInterface() {
         setHasSubmitted(true)
         setTestResults(data.result?.test_results || [])
         
-        let alertMessage = `🎉 Solution submitted successfully!\n\n`
-        alertMessage += `📊 Overall Score: ${data.result?.score || 0}%\n`
-        alertMessage += `✅ Tests Passed: ${data.result?.passed_tests || 0}/${data.result?.total_tests || 1}\n`
+        let alertMessage = `Solution submitted successfully.\n\n`
+        alertMessage += `Overall Score: ${data.result?.score || 0}%\n`
+        alertMessage += `Tests Passed: ${data.result?.passed_tests || 0}/${data.result?.total_tests || 1}\n`
         
         if (data.result?.execution_time) {
-          alertMessage += `⏱️ Execution Time: ${data.result.execution_time}s\n`
+          alertMessage += `Execution Time: ${data.result.execution_time}s\n`
         }
         
-        alertMessage += `\n🏆 Check the leaderboard for your ranking!`
+        alertMessage += `\nCheck the leaderboard for your ranking.`
         alert(alertMessage)
         
         // ✅ FIXED: Controlled refresh sequence - clear previous timeouts
@@ -342,12 +344,12 @@ export default function EnhancedExamInterface() {
         refreshTimeoutRefs.current.push(refreshTimeout)
         
       } else {
-        alert(`❌ Submission failed: ${data.error}`)
+        alert(`Submission failed: ${data.error}`)
       }
       
     } catch (error) {
-      console.error('❌ Submit network error:', error)
-      alert('❌ Network error: Could not submit solution. Please try again.')
+      console.error('Submit network error:', error)
+      alert('Network error: Could not submit solution. Please try again.')
     } finally {
       setIsSubmitting(false)
     }
@@ -364,9 +366,9 @@ export default function EnhancedExamInterface() {
     if (!results || results.length === 0) return null
 
     return (
-      <div className="mt-6 bg-gray-900 p-4 rounded border border-gray-600">
-        <h4 className="text-lg font-semibold text-white mb-4 flex items-center space-x-2">
-          <TestTube className="h-5 w-5 text-blue-400" />
+      <div className="mt-6 rounded border border-border bg-secondary/40 p-4">
+        <h4 className="mb-4 flex items-center space-x-2 text-lg font-semibold text-foreground">
+          <TestTube className="h-5 w-5 text-primary" />
           <span>Test Results</span>
         </h4>
         
@@ -383,9 +385,9 @@ export default function EnhancedExamInterface() {
               <div className="flex justify-between items-start mb-2">
                 <div className="flex items-center space-x-2">
                   <span className="font-semibold">
-                    Test {index + 1}: {result.passed ? '✅ PASSED' : '❌ FAILED'}
+                    Test {index + 1}: {result.passed ? 'PASSED' : 'FAILED'}
                   </span>
-                  <span className="text-sm bg-black bg-opacity-30 px-2 py-1 rounded font-bold">
+                  <span className="rounded bg-secondary px-2 py-1 text-sm font-bold text-secondary-foreground">
                     +{result.points_earned || 0} points
                   </span>
                 </div>
@@ -399,7 +401,7 @@ export default function EnhancedExamInterface() {
                 {result.input && (
                   <div>
                     <span className="font-medium">Input:</span>
-                    <code className="ml-2 bg-black bg-opacity-30 px-2 py-1 rounded">
+                    <code className="ml-2 rounded bg-secondary px-2 py-1 text-secondary-foreground">
                       "{result.input}"
                     </code>
                   </div>
@@ -408,7 +410,7 @@ export default function EnhancedExamInterface() {
                 {result.expected_output && (
                   <div>
                     <span className="font-medium">Expected:</span>
-                    <code className="ml-2 bg-black bg-opacity-30 px-2 py-1 rounded">
+                    <code className="ml-2 rounded bg-secondary px-2 py-1 text-secondary-foreground">
                       "{result.expected_output}"
                     </code>
                   </div>
@@ -417,7 +419,7 @@ export default function EnhancedExamInterface() {
                 {result.actual_output && (
                   <div>
                     <span className="font-medium">Your Output:</span>
-                    <code className="ml-2 bg-black bg-opacity-30 px-2 py-1 rounded">
+                    <code className="ml-2 rounded bg-secondary px-2 py-1 text-secondary-foreground">
                       "{result.actual_output}"
                     </code>
                   </div>
@@ -425,7 +427,7 @@ export default function EnhancedExamInterface() {
               </div>
               
               {!result.passed && result.error && (
-                <div className="mt-2 p-2 bg-red-800 bg-opacity-50 rounded text-sm">
+                <div className="mt-2 rounded bg-red-100 p-2 text-sm text-red-800 dark:bg-red-900/40 dark:text-red-200">
                   <span className="font-medium">Error:</span> {result.error}
                 </div>
               )}
@@ -455,270 +457,199 @@ export default function EnhancedExamInterface() {
 
   if (!examSession || !problem) {
     return (
-      <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">
+      <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-2 text-gray-400">Loading exam interface...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-2 text-muted-foreground">Loading exam interface...</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
-      {/* Header with Timer */}
-      <div className="bg-gray-800 border-b border-gray-700 p-4">
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
+    <div className="min-h-screen bg-background text-foreground">
+      <header className="border-b border-border bg-card px-4 py-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-xl font-bold">{problem.title}</h1>
-            <p className="text-gray-400">Code: {examCode} | Participant: {examSession.student_name}</p>
+            <h1 className="text-lg font-semibold">{problem.title}</h1>
+            <p className="text-xs text-muted-foreground">Code: {examCode} | Participant: {examSession.student_name}</p>
           </div>
-          
-          <div className="flex items-center space-x-4">
-            {/* Timer */}
+
+          <div className="flex items-center gap-3">
             {timeRemaining > 0 && (
-              <div className={`flex items-center space-x-2 px-3 py-1 rounded-lg ${
-                timeRemaining <= 300 ? 'bg-red-900' : timeRemaining <= 600 ? 'bg-yellow-900' : 'bg-green-900'
+              <div className={`rounded-md px-3 py-1 text-sm font-mono ${
+                timeRemaining <= 300 ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300' : timeRemaining <= 600 ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'
               }`}>
-                <Clock className={`h-5 w-5 ${
-                  timeRemaining <= 300 ? 'text-red-400' : timeRemaining <= 600 ? 'text-yellow-400' : 'text-green-400'
-                }`} />
-                <span className={`font-mono text-lg ${
-                  timeRemaining <= 300 ? 'text-red-400' : timeRemaining <= 600 ? 'text-yellow-400' : 'text-green-400'
-                }`}>
-                  {formatTime(timeRemaining)}
-                </span>
+                <span className="inline-flex items-center gap-1"><Clock className="h-4 w-4" /> {formatTime(timeRemaining)}</span>
               </div>
             )}
-            
-            {/* Participant Count */}
-            <div className="flex items-center space-x-2">
-              <Users className="h-5 w-5 text-blue-400" />
-              <span>{examStats.total_participants || 0} participants</span>
+            <div className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-sm text-muted-foreground">
+              <Users className="h-4 w-4" /> {examStats.total_participants || 0}
             </div>
-            
-            {/* Submission Status Indicator */}
             {hasSubmitted && (
-              <div className="flex items-center space-x-2 bg-green-900 px-3 py-1 rounded-lg">
-                <Shield className="h-4 w-4 text-green-400" />
-                <span className="text-green-200 text-sm">✅ Submitted</span>
+              <div className="inline-flex items-center gap-1 rounded-md bg-emerald-100 px-2 py-1 text-sm text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
+                <Shield className="h-4 w-4" /> Submitted
               </div>
             )}
           </div>
         </div>
-      </div>
+      </header>
 
-      <div className="max-w-7xl mx-auto p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Problem & Code Editor */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Problem Description */}
-          <div className="bg-gray-800 rounded-lg p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold">{problem.title}</h2>
-              {hasSubmitted && (
-                <div className="flex items-center space-x-1 text-green-400 text-sm">
-                  <Shield className="h-4 w-4" />
-                  <span>Solution Submitted</span>
+      <main className="h-[calc(100vh-73px)] p-3">
+        <div className="grid h-full grid-cols-1 gap-3 xl:grid-cols-5">
+          <section className="xl:col-span-2 flex min-h-0 flex-col overflow-hidden rounded-xl border border-border bg-card">
+            <div className="flex border-b border-border text-sm">
+              <button onClick={() => setLeftTab('description')} className={`px-4 py-2 ${leftTab === 'description' ? 'border-b-2 border-primary text-foreground' : 'text-muted-foreground'}`}>Description</button>
+              <button onClick={() => setLeftTab('examples')} className={`px-4 py-2 ${leftTab === 'examples' ? 'border-b-2 border-primary text-foreground' : 'text-muted-foreground'}`}>Examples</button>
+              <button onClick={() => setLeftTab('constraints')} className={`px-4 py-2 ${leftTab === 'constraints' ? 'border-b-2 border-primary text-foreground' : 'text-muted-foreground'}`}>Constraints</button>
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto p-4 text-sm text-muted-foreground">
+              {leftTab === 'description' && <p className="leading-7">{problem.description}</p>}
+              {leftTab === 'examples' && (
+                <div className="space-y-3">
+                  {problem.examples.map((example, index) => (
+                    <div key={index} className="rounded-lg border border-border bg-secondary/40 p-3">
+                      <p className="font-medium text-foreground">Example {index + 1}</p>
+                      <p className="mt-1"><span className="text-muted-foreground">Input:</span> <code className="text-primary">{example.input}</code></p>
+                      <p><span className="text-muted-foreground">Output:</span> <code className="text-primary">{example.expected_output}</code></p>
+                      {example.description ? <p className="mt-1 text-xs text-muted-foreground">{example.description}</p> : null}
+                    </div>
+                  ))}
                 </div>
               )}
+              {leftTab === 'constraints' && (
+                <ul className="space-y-2">
+                  {problem.constraints.map((constraint, index) => (
+                    <li key={index} className="rounded border border-border bg-secondary/40 px-3 py-2">{constraint}</li>
+                  ))}
+                </ul>
+              )}
             </div>
-            
-            <div className="prose prose-invert">
-              <p className="mb-4 text-gray-300">{problem.description}</p>
-              
-              <h4 className="text-lg font-semibold mb-2">Examples:</h4>
-              {problem.examples.map((example, index) => (
-                <div key={index} className="bg-gray-900 p-4 rounded mb-3">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <span className="text-blue-400">Input:</span>
-                      <code className="ml-2 text-green-400">"{example.input}"</code>
-                    </div>
-                    <div>
-                      <span className="text-blue-400">Output:</span>
-                      <code className="ml-2 text-green-400">"{example.expected_output}"</code>
-                    </div>
-                  </div>
-                  {example.description && (
-                    <div className="mt-2 text-gray-400 text-sm">{example.description}</div>
-                  )}
-                </div>
-              ))}
+          </section>
 
-              <h4 className="text-lg font-semibold mb-2">Constraints:</h4>
-              <ul className="list-disc list-inside mb-4 text-gray-300">
-                {problem.constraints.map((constraint, index) => (
-                  <li key={index}>{constraint}</li>
-                ))}
-              </ul>
-            </div>
-          </div>
-
-          {/* Code Editor */}
-          <div className="bg-gray-800 rounded-lg p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-bold">Your Solution</h3>
-              
-              {/* Language Selector */}
-              <div className="flex items-center space-x-2">
-                <Code className="h-4 w-4 text-gray-400" />
+          <section className="xl:col-span-3 flex min-h-0 flex-col overflow-hidden rounded-xl border border-border bg-card">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-2">
+              <div className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+                <Code className="h-4 w-4" />
                 <select
                   value={selectedLanguage}
                   onChange={(e) => handleLanguageChange(e.target.value)}
                   disabled={hasSubmitted}
-                  className="bg-gray-700 text-white px-3 py-1 rounded border border-gray-600 focus:ring-2 focus:ring-blue-500"
+                  className="rounded border border-border bg-secondary px-2 py-1 text-sm text-secondary-foreground"
                 >
                   {problem.languages.map(lang => (
-                    <option key={lang} value={lang}>
-                      {languageIcons[lang]} {lang.charAt(0).toUpperCase() + lang.slice(1)}
-                    </option>
+                    <option key={lang} value={lang}>{languageIcons[lang]} {lang.charAt(0).toUpperCase() + lang.slice(1)}</option>
                   ))}
                 </select>
+                <span className="text-xs text-muted-foreground">Function: {problem.function_name}</span>
               </div>
-            </div>
-            
-            <textarea
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              className="w-full h-64 bg-gray-900 text-green-400 font-mono p-4 rounded border border-gray-600 resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              disabled={hasSubmitted}
-              spellCheck={false}
-              placeholder={hasSubmitted ? 'Solution submitted!' : `Write your ${selectedLanguage} solution here...`}
-            />
-            
-            <div className="flex justify-between items-center mt-4">
-              <div className="text-sm text-gray-400">
-                Function: <code className="text-blue-400">{problem.function_name}</code>
-                {hasSubmitted && (
-                  <span className="ml-4 text-green-400">
-                    ✅ Solution submitted successfully!
-                  </span>
-                )}
-              </div>
-              
-              <div className="flex space-x-3">
+
+              <div className="flex items-center gap-2">
                 <button
                   onClick={runCode}
                   disabled={isRunning || hasSubmitted || !code.trim()}
-                  className="bg-green-600 hover:bg-green-700 disabled:bg-gray-600 px-4 py-2 rounded flex items-center space-x-2 transition-colors"
+                  className="inline-flex items-center gap-1 rounded bg-secondary px-3 py-1.5 text-sm text-secondary-foreground hover:bg-accent disabled:opacity-60"
                 >
-                  <Play className="h-4 w-4" />
-                  <span>{isRunning ? 'Running...' : 'Test Code'}</span>
+                  <Play className="h-4 w-4" /> {isRunning ? 'Running...' : 'Run'}
                 </button>
-                
                 <button
-                  onClick={submitSolution} 
+                  onClick={submitSolution}
                   disabled={isSubmitting || hasSubmitted || !code.trim()}
-                  className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 px-4 py-2 rounded flex items-center space-x-2 transition-colors"
+                  className="inline-flex items-center gap-1 rounded bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-60"
                 >
-                  <Send className="h-4 w-4" />
-                  <span>{isSubmitting ? 'Submitting...' : hasSubmitted ? 'Submitted ✅' : 'Submit Solution'}</span>
+                  <Send className="h-4 w-4" /> {isSubmitting ? 'Submitting...' : hasSubmitted ? 'Submitted' : 'Submit'}
                 </button>
               </div>
             </div>
 
-            {/* Output Display */}
-            {output && (
-              <div className="mt-6 bg-gray-900 p-4 rounded">
-                <h4 className="text-sm font-medium text-gray-400 mb-2">Output:</h4>
-                <pre className="text-green-400 text-sm whitespace-pre-wrap">{output}</pre>
-              </div>
-            )}
-          </div>
-
-          {/* Test Results Display */}
-          {testResults.length > 0 && (
-            <TestResultsDisplay results={testResults} />
-          )}
-        </div>
-
-        {/* Enhanced Leaderboard */}
-        <div className="bg-gray-800 rounded-lg p-6">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center space-x-2">
-              <Trophy className="h-6 w-6 text-yellow-400" />
-              <h3 className="text-xl font-bold">Live Leaderboard</h3>
+            <div className="min-h-0 flex-1 border-b border-border">
+              <textarea
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                className="h-full w-full resize-none bg-background p-4 font-mono text-sm text-foreground outline-none"
+                disabled={hasSubmitted}
+                spellCheck={false}
+                placeholder={hasSubmitted ? 'Solution submitted.' : `Write your ${selectedLanguage} solution here...`}
+              />
             </div>
-            
-            <button
-              onClick={manualRefresh}
-              className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded"
-              title="Refresh"
-            >
-              <RefreshCw className="h-4 w-4" />
-            </button>
-          </div>
 
-          {/* Stats */}
-          <div className="grid grid-cols-2 gap-4 mb-6">
-            <div className="bg-gray-900 p-3 rounded">
-              <div className="text-2xl font-bold text-blue-400">{examStats.completed_submissions || 0}</div>
-              <div className="text-xs text-gray-400">Submitted</div>
-            </div>
-            <div className="bg-gray-900 p-3 rounded">
-              <div className="text-2xl font-bold text-green-400">{Math.round(examStats.average_score || 0)}%</div>
-              <div className="text-xs text-gray-400">Avg Score</div>
-            </div>
-          </div>
-
-          {/* Leaderboard Display */}
-          <div className="space-y-2">
-            <h4 className="font-semibold text-gray-300 mb-3">🏆 Rankings</h4>
-            {leaderboard.length > 0 ? (
-              leaderboard.map((participant) => (
-                <div key={participant.name} className={`p-3 rounded-lg ${getRankColor(participant.rank)}`}>
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center space-x-3">
-                      <span className="font-bold text-lg">#{participant.rank}</span>
-                      <div>
-                        <div className={`font-medium ${participant.name === examSession.student_name ? 'underline font-bold' : ''}`}>
-                          {participant.name}
-                          {participant.name === examSession.student_name && ' (You) 🎯'}
-                        </div>
-                        <div className="text-xs opacity-75 flex items-center space-x-2">
-                          {participant.language && (
-                            <span>
-                              {languageIcons[participant.language]} {participant.language}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <span className="font-bold text-lg">{participant.score}%</span>
-                      <div className="text-xs opacity-75">
-                        Submitted ✅
-                      </div>
-                    </div>
-                  </div>
+            <div className="h-[40%] min-h-[240px]">
+              <div className="flex items-center justify-between border-b border-border px-2">
+                <div className="flex text-sm">
+                  <button onClick={() => setRightTab('result')} className={`px-3 py-2 ${rightTab === 'result' ? 'border-b-2 border-primary text-foreground' : 'text-muted-foreground'}`}>Test Result</button>
+                  <button onClick={() => setRightTab('leaderboard')} className={`px-3 py-2 ${rightTab === 'leaderboard' ? 'border-b-2 border-primary text-foreground' : 'text-muted-foreground'}`}>Leaderboard</button>
                 </div>
-              ))
-            ) : (
-              <div className="text-center text-gray-400 py-4">
-                No submissions yet
+                {rightTab === 'leaderboard' && (
+                  <button onClick={manualRefresh} className="rounded p-1 text-muted-foreground hover:bg-accent hover:text-accent-foreground" title="Refresh">
+                    <RefreshCw className="h-4 w-4" />
+                  </button>
+                )}
               </div>
-            )}
-          </div>
 
-          {/* Waiting Participants */}
-          {waitingParticipants.length > 0 && (
-            <div className="mt-6">
-              <h4 className="font-semibold text-gray-300 mb-3">⏳ Still Working</h4>
-              <div className="space-y-1">
-                {waitingParticipants.map((participant) => (
-                  <div key={participant.name} className="p-2 bg-gray-700 rounded text-sm flex items-center justify-between">
-                    <span>
-                      {participant.name}
-                      {participant.name === examSession.student_name && ' (You)'}
-                    </span>
-                    <span className="text-yellow-400 text-xs">Working...</span>
+              <div className="h-[calc(100%-41px)] overflow-y-auto p-4">
+                {rightTab === 'result' && (
+                  <div className="space-y-3">
+                    {output ? (
+                      <div className="rounded border border-border bg-secondary/40 p-3">
+                        <pre className="whitespace-pre-wrap text-sm text-foreground">{output}</pre>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">Run your code to see output.</p>
+                    )}
+                    {testResults.length > 0 ? <TestResultsDisplay results={testResults} /> : null}
                   </div>
-                ))}
+                )}
+
+                {rightTab === 'leaderboard' && (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="rounded border border-border bg-secondary/40 p-3">
+                        <p className="text-xl font-bold text-primary">{examStats.completed_submissions || 0}</p>
+                        <p className="text-xs text-muted-foreground">Submitted</p>
+                      </div>
+                      <div className="rounded border border-border bg-secondary/40 p-3">
+                        <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400">{Math.round(examStats.average_score || 0)}%</p>
+                        <p className="text-xs text-muted-foreground">Average Score</p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <h4 className="inline-flex items-center gap-2 text-sm font-semibold text-foreground"><Trophy className="h-4 w-4 text-yellow-500" /> Rankings</h4>
+                      {leaderboard.length > 0 ? leaderboard.map((participant) => (
+                        <div key={participant.name} className={`rounded p-3 ${getRankColor(participant.rank)}`}>
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className={`font-medium ${participant.name === examSession.student_name ? 'underline' : ''}`}>
+                                #{participant.rank} {participant.name}{participant.name === examSession.student_name ? ' (You)' : ''}
+                              </p>
+                              <p className="text-xs opacity-80">{participant.language || 'language'} • submitted</p>
+                            </div>
+                            <p className="font-semibold">{participant.score}%</p>
+                          </div>
+                        </div>
+                      )) : <p className="text-sm text-muted-foreground">No submissions yet.</p>}
+                    </div>
+
+                    {waitingParticipants.length > 0 && (
+                      <div>
+                        <h4 className="mb-2 text-sm font-semibold text-foreground">Still Working</h4>
+                        <div className="space-y-1">
+                          {waitingParticipants.map((participant) => (
+                            <div key={participant.name} className="flex items-center justify-between rounded bg-secondary px-3 py-2 text-sm text-secondary-foreground">
+                              <span>{participant.name}{participant.name === examSession.student_name ? ' (You)' : ''}</span>
+                              <span className="text-xs text-amber-600 dark:text-amber-300">Working...</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
-          )}
+          </section>
         </div>
-      </div>
+      </main>
     </div>
   )
 }

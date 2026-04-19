@@ -1,13 +1,21 @@
-import tensorflow as tf
 import pickle
 import json
 import numpy as np
 import random
 import os
-from tensorflow.keras.preprocessing.sequence import pad_sequences
 from datetime import datetime
 from bson import ObjectId
 import uuid
+
+# Optional TensorFlow import with fallback
+try:
+    import tensorflow as tf
+    from tensorflow.keras.preprocessing.sequence import pad_sequences
+    TENSORFLOW_AVAILABLE = True
+except ImportError:
+    tf = None
+    pad_sequences = None
+    TENSORFLOW_AVAILABLE = False
 
 class AdaptiveQuizMasterLLM:
     def __init__(self, models_path="./models/"):
@@ -18,13 +26,13 @@ class AdaptiveQuizMasterLLM:
         self.model_available = False
         
         try:
-            # Try to load model files
+            # Try to load model files only if TensorFlow is available
             model_file = f'{models_path}improved_cnn_model.h5'
             tokenizer_file = f'{models_path}tokenizer.pickle'
             label_encoder_file = f'{models_path}label_encoder.pickle'
             data_file = f'{models_path}processed_commonsenseqa_data.json'
             
-            if all(os.path.exists(f) for f in [model_file, tokenizer_file, label_encoder_file, data_file]):
+            if TENSORFLOW_AVAILABLE and all(os.path.exists(f) for f in [model_file, tokenizer_file, label_encoder_file, data_file]):
                 try:
                     self.model = tf.keras.models.load_model(model_file)
                     print("✅ CNN Model loaded successfully")

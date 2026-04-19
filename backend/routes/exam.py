@@ -5,6 +5,7 @@ import string
 from datetime import datetime, timedelta
 from pymongo import MongoClient
 import os
+from activity_logger import log_user_activity, resolve_user_identity
 
 bp = Blueprint('exam', __name__)
 
@@ -255,6 +256,21 @@ def join_exam():
         session['session_id'] = participant['session_id']
         
         print(f"✅ Participant {student_name} joined exam {exam_code}")
+
+        identity = resolve_user_identity(request, db)
+        log_user_activity(
+            db,
+            identity.get("user_id"),
+            "exam",
+            "Joined coding exam",
+            f"Joined exam '{exam.get('title', exam_code)}' as {student_name}",
+            {
+                "exam_code": exam_code,
+                "exam_title": exam.get("title"),
+                "student_name": student_name,
+                "session_id": participant.get("session_id"),
+            },
+        )
         
         return jsonify({
             "success": True,

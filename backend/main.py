@@ -5,7 +5,7 @@ import uuid
 import random
 import string
 from datetime import datetime, timedelta
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, make_response, g
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager, jwt_required, get_jwt_identity, create_access_token
 from dotenv import load_dotenv
@@ -21,6 +21,14 @@ from Crypto.Cipher import AES
 from Crypto.Random import get_random_bytes
 from Crypto.Util.Padding import pad, unpad
 import secrets
+import re
+import json
+import jwt as pyjwt
+
+try:
+    import psutil
+except Exception:
+    psutil = None
 
 # Load environment variables
 load_dotenv()
@@ -211,28 +219,311 @@ app.config.update(
 # ✅ Initialize JWT with your configuration
 jwt = JWTManager(app)
 
-# ✅ ENHANCED CORS configuration for professional dashboard
+# ✅ ENHANCED CORS configuration - Allow all localhost ports for development
 CORS(app, resources={r"/api/*": {
     "origins": [
         "http://localhost:3000", 
+        "http://localhost:3001",
+        "http://localhost:3002",
+        "http://localhost:3003",
+        "http://localhost:3004",
+        "http://localhost:3005",
+        "http://localhost:3006",
         "http://127.0.0.1:3000",
-        "http://localhost:3001",  # Development
-        "https://openlearnx.vercel.app"  # Production (if deployed)
+        "http://127.0.0.1:3001",
+        "http://127.0.0.1:3002",
+        "http://127.0.0.1:3003",
+        "http://127.0.0.1:3004",
+        "http://127.0.0.1:3005",
+        "http://127.0.0.1:3006",
+        "https://openlearnx.vercel.app"
     ],
-    "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH", "HEAD"],
     "allow_headers": [
         "Content-Type", 
         "Authorization", 
         "Accept", 
         "Origin", 
         "X-Requested-With",
-        "X-User-ID",  # Custom header for user identification
+        "X-User-ID",
         "X-Session-Token",
-        "X-Firebase-Token"  # Firebase authentication
+        "X-Firebase-Token"
     ],
+    "expose_headers": ["Authorization", "X-Total-Count", "X-Rate-Limit", "Content-Type"],
     "supports_credentials": True,
-    "expose_headers": ["Authorization", "X-Total-Count", "X-Rate-Limit"]
+    "max_age": 3600
 }})
+
+# ✅ Handle CORS preflight requests with explicit route
+@app.before_request
+def handle_preflight():
+    if request.method == "OPTIONS":
+        response = make_response()
+        response.headers.add("Access-Control-Allow-Origin", request.headers.get("Origin", "*"))
+        response.headers.add("Access-Control-Allow-Headers", "Content-Type,Authorization,Accept,Origin,X-Requested-With")
+        response.headers.add("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS,PATCH,HEAD")
+        response.headers.add("Access-Control-Max-Age", "3600")
+        response.headers.add("Access-Control-Allow-Credentials", "true")
+        return response, 200
+
+
+SUSPICIOUS_PAYLOAD_PATTERNS = [
+    re.compile(r"(<script|javascript:|onerror=|onload=)", re.IGNORECASE),
+    re.compile(r"(\$where|\$regex|\$ne|\$gt|\$lt|\$or)", re.IGNORECASE),
+    re.compile(r"(union\s+select|drop\s+table|insert\s+into|delete\s+from)", re.IGNORECASE),
+    re.compile(r"(\.\./|%2e%2e%2f|/etc/passwd)", re.IGNORECASE)
+]
+
+
+def _detect_suspicious_payload(payload_text):
+    if not payload_text:
+        return []
+    matches = []
+    for pattern in SUSPICIOUS_PAYLOAD_PATTERNS:
+        if pattern.search(payload_text):
+            matches.append(pattern.pattern)
+    return matches
+
+
+def _infer_event_type(path, method, status_code, suspicious=False):
+    if suspicious:
+        return "suspicious_payload"
+    if status_code == 403:
+        return "forbidden_access"
+    if "/api/auth/register" in path:
+        return "signup"
+    if "/api/auth/login" in path or "/api/auth/verify" in path or "/api/auth/wallet-login" in path:
+        return "signin"
+    if "/api/admin" in path:
+        return "admin_panel"
+    if "join" in path or "enroll" in path:
+        return "course_join"
+    if "attend" in path:
+        return "attendance"
+    if method == "GET":
+        return "page_visit"
+    return "api_activity"
+
+
+def _firewall_rule_matches(rule, ip, method, path):
+    rule_ip = (rule.get("ip") or "").strip()
+    rule_method = (rule.get("method") or "").strip().upper()
+    path_pattern = (rule.get("path_pattern") or "").strip()
+
+    if rule_ip and rule_ip != ip:
+        return False
+    if rule_method and rule_method != method.upper():
+        return False
+    if path_pattern and path_pattern not in path:
+        return False
+    return True
+
+
+@app.before_request
+def enforce_manual_firewall_rules():
+    """Apply admin-defined firewall rules only when manually configured."""
+    if request.method == "OPTIONS":
+        return None
+
+    # Keep firewall rule management reachable so admins can recover from bad rules.
+    if request.path.startswith("/api/admin/firewall"):
+        return None
+
+    try:
+        db = get_db()
+        if db is None:
+            return None
+
+        ip = request.headers.get("X-Forwarded-For", "").split(",")[0].strip() if request.headers.get("X-Forwarded-For") else (request.remote_addr or "unknown")
+        method = request.method
+        path = request.path
+
+        rules = list(db.firewall_rules.find({"enabled": True}).sort("created_at", 1))
+        for rule in rules:
+            if not _firewall_rule_matches(rule, ip, method, path):
+                continue
+
+            action = (rule.get("action") or "block").strip().lower()
+            if action == "allow":
+                return None
+
+            # Manual block rule matched.
+            db.security_logs.insert_one({
+                "timestamp": datetime.utcnow(),
+                "event_type": "firewall_block",
+                "action": f"{method} {path}",
+                "status_code": 403,
+                "severity": "warning",
+                "path": path,
+                "method": method,
+                "ip": ip,
+                "user_agent": request.headers.get("User-Agent", ""),
+                "metadata": {
+                    "rule_id": str(rule.get("_id")),
+                    "rule_name": rule.get("name", ""),
+                    "reason": "manual_firewall_rule"
+                }
+            })
+
+            return jsonify({"error": "Blocked by firewall rule"}), 403
+    except Exception as e:
+        logger.debug(f"Firewall check skipped: {e}")
+
+    return None
+
+
+@app.before_request
+def capture_request_start_and_payload():
+    g.request_start_time = time.time()
+    g.suspicious_matches = []
+    if request.method == "OPTIONS":
+        return None
+
+    try:
+        raw_payload = request.get_data(cache=True, as_text=True)[:4000]
+    except Exception:
+        raw_payload = ""
+
+    request_json = None
+    try:
+        request_json = request.get_json(silent=True)
+    except Exception:
+        request_json = None
+
+    request_form = {}
+    try:
+        request_form = {k: request.form.get(k) for k in request.form.keys()}
+    except Exception:
+        request_form = {}
+
+    request_headers = {}
+    try:
+        for key, value in request.headers.items():
+            lower = key.lower()
+            if lower in {"authorization", "cookie", "set-cookie"}:
+                request_headers[key] = "[redacted]"
+            else:
+                request_headers[key] = value
+    except Exception:
+        request_headers = {}
+
+    g.request_payload_preview = raw_payload
+    g.request_json_payload = request_json
+    g.request_form_payload = request_form
+    g.request_headers_snapshot = request_headers
+
+    g.suspicious_matches = _detect_suspicious_payload(raw_payload)
+
+
+@app.after_request
+def write_request_audit_log(response):
+    try:
+        db = get_db()
+        if db is None:
+            return response
+
+        start = getattr(g, "request_start_time", None)
+        duration_ms = int((time.time() - start) * 1000) if start else 0
+
+        ip = request.headers.get("X-Forwarded-For", "").split(",")[0].strip() if request.headers.get("X-Forwarded-For") else (request.remote_addr or "unknown")
+        suspicious_matches = getattr(g, "suspicious_matches", [])
+        suspicious = len(suspicious_matches) > 0
+        request_payload_preview = getattr(g, "request_payload_preview", "")
+        request_json_payload = getattr(g, "request_json_payload", None)
+        request_form_payload = getattr(g, "request_form_payload", {})
+        request_headers_snapshot = getattr(g, "request_headers_snapshot", {})
+
+        auth_user_id = None
+        auth_wallet_address = None
+        auth_email = None
+        try:
+            auth_header = request.headers.get("Authorization", "")
+            if auth_header.startswith("Bearer "):
+                token = auth_header.split(" ", 1)[1]
+                decoded = pyjwt.decode(
+                    token,
+                    options={"verify_signature": False},
+                    algorithms=["HS256", "RS256"],
+                )
+                auth_user_id = decoded.get("user_id") or decoded.get("sub") or decoded.get("uid")
+                auth_wallet_address = decoded.get("wallet_address")
+                auth_email = decoded.get("email")
+        except Exception:
+            auth_user_id = None
+
+        response_body_preview = ""
+        try:
+            response_body_preview = response.get_data(as_text=True)[:4000]
+        except Exception:
+            response_body_preview = ""
+
+        response_content_type = response.headers.get("Content-Type", "")
+        parsed_response_json = None
+        if response_body_preview and "json" in response_content_type.lower():
+            try:
+                parsed_response_json = json.loads(response_body_preview)
+            except Exception:
+                parsed_response_json = None
+
+        system_usage = {}
+        if psutil is not None:
+            try:
+                vm = psutil.virtual_memory()
+                system_usage = {
+                    "cpu_percent": psutil.cpu_percent(interval=None),
+                    "memory_percent": vm.percent,
+                    "memory_used_mb": round(vm.used / (1024 * 1024), 2),
+                    "memory_available_mb": round(vm.available / (1024 * 1024), 2),
+                }
+            except Exception:
+                system_usage = {}
+
+        event_type = _infer_event_type(request.path, request.method, response.status_code, suspicious=suspicious)
+        action = f"{request.method} {request.path}"
+
+        log_doc = {
+            "timestamp": datetime.utcnow(),
+            "event_type": event_type,
+            "action": action,
+            "status_code": int(response.status_code),
+            "severity": "warning" if suspicious or response.status_code >= 400 else "info",
+            "path": request.path,
+            "method": request.method,
+            "query": dict(request.args),
+            "ip": ip,
+            "user_agent": request.headers.get("User-Agent", ""),
+            "origin": request.headers.get("Origin", ""),
+            "duration_ms": duration_ms,
+            "metadata": {
+                "suspicious_matches": suspicious_matches,
+                "content_type": request.headers.get("Content-Type", ""),
+                "request_body": request_payload_preview,
+                "response_body": response_body_preview,
+                "request_details": {
+                    "query": dict(request.args),
+                    "json": request_json_payload,
+                    "form": request_form_payload,
+                    "headers": request_headers_snapshot,
+                    "content_length": request.content_length,
+                },
+                "response_details": {
+                    "content_type": response_content_type,
+                    "content_length": response.calculate_content_length(),
+                    "json": parsed_response_json,
+                },
+                "usage": system_usage,
+                "duration_ms": duration_ms,
+                "auth_user_id": auth_user_id,
+                "auth_wallet_address": auth_wallet_address,
+                "auth_email": auth_email,
+            }
+        }
+
+        db.security_logs.insert_one(log_doc)
+    except Exception as e:
+        logger.debug(f"Audit log write skipped: {e}")
+
+    return response
 
 # Enhanced logging with your configuration
 logging.basicConfig(

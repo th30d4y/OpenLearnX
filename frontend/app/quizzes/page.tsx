@@ -82,43 +82,43 @@ export default function QuizzesPage() {
 
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty.toLowerCase()) {
-      case 'easy': return 'text-green-400 bg-green-900'
-      case 'medium': return 'text-yellow-400 bg-yellow-900'
-      case 'hard': return 'text-red-400 bg-red-900'
-      default: return 'text-gray-400 bg-gray-700'
+      case 'easy': return 'text-emerald-800 bg-emerald-100 dark:text-emerald-200 dark:bg-emerald-700/60'
+      case 'medium': return 'text-amber-800 bg-amber-100 dark:text-amber-200 dark:bg-amber-700/60'
+      case 'hard': return 'text-rose-800 bg-rose-100 dark:text-rose-200 dark:bg-rose-700/60'
+      default: return 'text-slate-700 bg-slate-100 dark:text-slate-200 dark:bg-slate-600/60'
     }
   }
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'waiting': return 'text-yellow-400 bg-yellow-900'
-      case 'active': return 'text-green-400 bg-green-900'
-      case 'completed': return 'text-gray-400 bg-gray-700'
-      default: return 'text-gray-400 bg-gray-700'
+      case 'waiting': return 'text-amber-800 bg-amber-100 dark:text-amber-200 dark:bg-amber-700/60'
+      case 'active': return 'text-emerald-800 bg-emerald-100 dark:text-emerald-200 dark:bg-emerald-700/60'
+      case 'completed': return 'text-slate-700 bg-slate-100 dark:text-slate-200 dark:bg-slate-600/60'
+      default: return 'text-slate-700 bg-slate-100 dark:text-slate-200 dark:bg-slate-600/60'
     }
   }
 
   if (loading && activeTab === 'traditional' && quizzes.length === 0) {
     return (
-      <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-b from-[#dbe8ff] via-[#cfdfff] to-[#d8ccff] dark:from-[#1f3f8a] dark:via-[#2b3f95] dark:to-[#4e2c97] flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto mb-4"></div>
-          <p>Loading quizzes...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 dark:border-blue-200 mx-auto mb-4"></div>
+          <p className="text-slate-700 dark:text-blue-100">Loading quizzes...</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
+    <div className="min-h-screen bg-gradient-to-b from-[#dbe8ff] via-[#cfdfff] to-[#d8ccff] dark:from-[#1f3f8a] dark:via-[#2b3f95] dark:to-[#4e2c97] text-slate-900 dark:text-white">
       <div className="max-w-7xl mx-auto p-6">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold mb-4 flex items-center justify-center space-x-3">
+          <h1 className="text-4xl font-bold mb-4 flex items-center justify-center space-x-3 text-slate-900 dark:text-white">
             <Trophy className="h-10 w-10 text-yellow-400" />
             <span>🧠 OpenLearnX Quiz Platform</span>
           </h1>
-          <p className="text-gray-400 max-w-2xl mx-auto">
+          <p className="text-slate-600 dark:text-blue-100/90 max-w-2xl mx-auto text-base">
             Experience adaptive quizzes with AI-powered questions and real-time difficulty adjustment
           </p>
         </div>
@@ -135,14 +135,14 @@ export default function QuizzesPage() {
               onClick={() => setActiveTab(tab.id as any)}
               className={`px-6 py-3 rounded-lg flex items-center space-x-2 transition-colors ${
                 activeTab === tab.id 
-                  ? 'bg-blue-600 text-white' 
-                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                  ? 'bg-blue-500 text-white shadow-lg shadow-blue-900/40' 
+                  : 'bg-white/70 text-slate-700 hover:bg-white dark:bg-slate-700/60 dark:text-blue-100 dark:hover:bg-slate-600/70'
               }`}
             >
               <tab.icon className="h-5 w-5" />
               <div className="text-left">
-                <div className="font-semibold">{tab.label}</div>
-                <div className="text-xs opacity-75">{tab.description}</div>
+                <div className="font-semibold text-slate-900 dark:text-white">{tab.label}</div>
+                <div className="text-xs opacity-80 text-slate-500 dark:text-blue-100">{tab.description}</div>
               </div>
             </button>
           ))}
@@ -155,7 +155,7 @@ export default function QuizzesPage() {
             <div className="flex flex-col sm:flex-row gap-4 mb-8 justify-center items-center">
               <button
                 onClick={() => router.push('/quiz-host')}
-                className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 px-6 py-3 rounded-lg font-semibold flex items-center space-x-2 transition-colors"
+                className="bg-gradient-to-r from-violet-500 to-blue-500 hover:from-violet-600 hover:to-blue-600 px-6 py-3 rounded-lg font-semibold flex items-center space-x-2 transition-colors"
               >
                 <Crown className="h-5 w-5" />
                 <span>👑 Host a Quiz</span>
@@ -163,7 +163,7 @@ export default function QuizzesPage() {
               
               <button
                 onClick={() => router.push('/quiz-join')}
-                className="bg-green-600 hover:bg-green-700 px-6 py-3 rounded-lg font-semibold flex items-center space-x-2"
+                className="bg-emerald-500 hover:bg-emerald-600 px-6 py-3 rounded-lg font-semibold flex items-center space-x-2"
               >
                 <Users className="h-5 w-5" />
                 <span>🎯 Join Quiz</span>
@@ -179,7 +179,7 @@ export default function QuizzesPage() {
                 </h2>
                 <button
                   onClick={fetchPublicRooms}
-                  className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded flex items-center space-x-2"
+                  className="bg-blue-500 hover:bg-blue-600 px-4 py-2 rounded flex items-center space-x-2"
                 >
                   <span>🔄 Refresh</span>
                 </button>
@@ -187,19 +187,19 @@ export default function QuizzesPage() {
 
               {loading ? (
                 <div className="text-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                  <p>Loading rooms...</p>
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 dark:border-blue-200 mx-auto mb-4"></div>
+                  <p className="text-slate-700 dark:text-blue-100">Loading rooms...</p>
                 </div>
               ) : publicRooms.length === 0 ? (
-                <div className="text-center py-12 bg-gray-800 rounded-lg">
-                  <Globe className="h-16 w-16 text-gray-600 mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold mb-2">No Public Rooms Available</h3>
-                  <p className="text-gray-400 mb-6">
+                <div className="text-center py-12 bg-white/75 dark:bg-[#22314a] rounded-lg border border-blue-200 dark:border-blue-400/20">
+                  <Globe className="h-16 w-16 text-blue-500/60 dark:text-blue-200/60 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold mb-2 text-slate-900 dark:text-white">No Public Rooms Available</h3>
+                  <p className="text-slate-600 dark:text-blue-100/85 mb-6">
                     Be the first to create a public quiz room!
                   </p>
                   <button
                     onClick={() => router.push('/quiz-host')}
-                    className="bg-purple-600 hover:bg-purple-700 px-6 py-3 rounded-lg font-semibold"
+                    className="bg-violet-500 hover:bg-violet-600 px-6 py-3 rounded-lg font-semibold"
                   >
                     🚀 Create Room
                   </button>
@@ -209,7 +209,7 @@ export default function QuizzesPage() {
                   {publicRooms.map((room) => (
                     <div
                       key={room.room_id}
-                      className="bg-gray-800 rounded-lg p-6 hover:bg-gray-750 transition-colors border border-gray-700"
+                      className="bg-white/75 dark:bg-[#22314a] rounded-lg p-6 hover:bg-white dark:hover:bg-[#2a3d59] transition-colors border border-blue-200 dark:border-blue-400/20"
                     >
                       {/* Room Header */}
                       <div className="flex items-start justify-between mb-4">
@@ -218,7 +218,7 @@ export default function QuizzesPage() {
                             <Globe className="h-5 w-5 text-green-400" />
                             <span>{room.title}</span>
                           </h3>
-                          <p className="text-gray-400 text-sm">Host: {room.host_name}</p>
+                          <p className="text-slate-600 dark:text-blue-100/80 text-sm">Host: {room.host_name}</p>
                         </div>
                         <span className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor(room.status)}`}>
                           {room.status}
@@ -227,13 +227,13 @@ export default function QuizzesPage() {
 
                       {/* Room Stats */}
                       <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
-                        <div className="bg-gray-700 p-3 rounded text-center">
+                        <div className="bg-blue-50 dark:bg-[#1a2740] p-3 rounded text-center">
                           <div className="font-bold text-blue-400">{room.participants_count}</div>
-                          <div className="text-gray-400">Participants</div>
+                          <div className="text-slate-600 dark:text-blue-100/70">Participants</div>
                         </div>
-                        <div className="bg-gray-700 p-3 rounded text-center">
+                        <div className="bg-blue-50 dark:bg-[#1a2740] p-3 rounded text-center">
                           <div className="font-bold text-purple-400">{room.questions_count}</div>
-                          <div className="text-gray-400">Questions</div>
+                          <div className="text-slate-600 dark:text-blue-100/70">Questions</div>
                         </div>
                       </div>
 
@@ -246,7 +246,7 @@ export default function QuizzesPage() {
 
                       {/* Room Code */}
                       <div className="text-center mb-4">
-                        <span className="bg-gray-700 px-3 py-1 rounded font-mono text-blue-400">
+                        <span className="bg-blue-50 dark:bg-[#1a2740] px-3 py-1 rounded font-mono text-blue-500 dark:text-blue-300">
                           Code: {room.room_code}
                         </span>
                       </div>
@@ -254,7 +254,7 @@ export default function QuizzesPage() {
                       {/* Join Button */}
                       <button
                         onClick={() => router.push(`/quiz-join?room=${room.room_code}`)}
-                        className="w-full bg-green-600 hover:bg-green-700 p-3 rounded font-semibold flex items-center justify-center space-x-2"
+                        className="w-full bg-emerald-500 hover:bg-emerald-600 p-3 rounded font-semibold flex items-center justify-center space-x-2"
                       >
                         <Play className="h-4 w-4" />
                         <span>Join Room</span>
@@ -273,31 +273,31 @@ export default function QuizzesPage() {
             <div className="max-w-2xl mx-auto mb-8">
               <Brain className="h-16 w-16 text-purple-400 mx-auto mb-4" />
               <h2 className="text-3xl font-bold mb-4">🧠 Adaptive AI Quiz</h2>
-              <p className="text-gray-400 mb-6">
+              <p className="text-slate-600 dark:text-blue-100/85 mb-6">
                 Experience an intelligent quiz that adapts to your skill level in real-time using our trained CNN model.
               </p>
               
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <div className="bg-gray-800 p-4 rounded-lg">
+                <div className="bg-white/75 dark:bg-[#22314a] p-4 rounded-lg border border-blue-200 dark:border-blue-400/20">
                   <Target className="h-8 w-8 text-blue-400 mx-auto mb-2" />
                   <h3 className="font-semibold mb-1">Adaptive Difficulty</h3>
-                  <p className="text-sm text-gray-400">
+                  <p className="text-sm text-slate-600 dark:text-blue-100/80">
                     Questions adjust based on your performance
                   </p>
                 </div>
                 
-                <div className="bg-gray-800 p-4 rounded-lg">
+                <div className="bg-white/75 dark:bg-[#22314a] p-4 rounded-lg border border-blue-200 dark:border-blue-400/20">
                   <Brain className="h-8 w-8 text-purple-400 mx-auto mb-2" />
                   <h3 className="font-semibold mb-1">AI Predictions</h3>
-                  <p className="text-sm text-gray-400">
+                  <p className="text-sm text-slate-600 dark:text-blue-100/80">
                     See how our AI model would answer
                   </p>
                 </div>
                 
-                <div className="bg-gray-800 p-4 rounded-lg">
+                <div className="bg-white/75 dark:bg-[#22314a] p-4 rounded-lg border border-blue-200 dark:border-blue-400/20">
                   <Sparkles className="h-8 w-8 text-green-400 mx-auto mb-2" />
                   <h3 className="font-semibold mb-1">Smart Analytics</h3>
-                  <p className="text-sm text-gray-400">
+                  <p className="text-sm text-slate-600 dark:text-blue-100/80">
                     Track performance across difficulty levels
                   </p>
                 </div>
@@ -305,7 +305,7 @@ export default function QuizzesPage() {
 
               <button
                 onClick={() => router.push('/adaptive-quiz')}
-                className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 px-8 py-4 rounded-lg font-semibold flex items-center justify-center space-x-2 mx-auto"
+                className="bg-gradient-to-r from-violet-500 to-blue-500 hover:from-violet-600 hover:to-blue-600 px-8 py-4 rounded-lg font-semibold flex items-center justify-center space-x-2 mx-auto"
               >
                 <Sparkles className="h-5 w-5" />
                 <span>🚀 Start Adaptive Quiz</span>
@@ -322,7 +322,7 @@ export default function QuizzesPage() {
               {aiAvailable && (
                 <button
                   onClick={() => router.push('/quizzes/generate')}
-                  className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 px-6 py-3 rounded-lg font-semibold flex items-center space-x-2 transition-colors"
+                  className="bg-gradient-to-r from-violet-500 to-blue-500 hover:from-violet-600 hover:to-blue-600 px-6 py-3 rounded-lg font-semibold flex items-center space-x-2 transition-colors"
                 >
                   <Brain className="h-5 w-5" />
                   <Sparkles className="h-4 w-4" />
@@ -332,7 +332,7 @@ export default function QuizzesPage() {
               
               <button
                 onClick={() => router.push('/quizzes/create')}
-                className="bg-green-600 hover:bg-green-700 px-6 py-3 rounded-lg font-semibold flex items-center space-x-2"
+                className="bg-emerald-500 hover:bg-emerald-600 px-6 py-3 rounded-lg font-semibold flex items-center space-x-2"
               >
                 <Plus className="h-5 w-5" />
                 <span>Create Manual Quiz</span>
@@ -341,12 +341,12 @@ export default function QuizzesPage() {
 
             {/* AI Status Banner */}
             {aiAvailable && (
-              <div className="bg-gradient-to-r from-purple-900 to-blue-900 border border-purple-600 p-4 rounded-lg mb-8">
+              <div className="bg-white/75 dark:bg-[#22314a] border border-blue-200 dark:border-blue-400/20 p-4 rounded-lg mb-8">
                 <div className="flex items-center space-x-3">
-                  <Brain className="h-6 w-6 text-purple-400" />
+                  <Brain className="h-6 w-6 text-purple-300" />
                   <div>
-                    <h3 className="font-semibold">🤖 AI Service Active</h3>
-                    <p className="text-sm text-gray-300">
+                    <h3 className="font-semibold text-slate-900 dark:text-white">🤖 AI Service Active</h3>
+                    <p className="text-sm text-slate-600 dark:text-blue-100/80">
                       Our trained CNN model is ready to generate intelligent quizzes and provide feedback
                     </p>
                   </div>
@@ -357,15 +357,15 @@ export default function QuizzesPage() {
             {/* Traditional Quizzes Grid */}
             {quizzes.length === 0 ? (
               <div className="text-center py-12">
-                <Brain className="h-16 w-16 text-gray-600 mx-auto mb-4" />
+                <Brain className="h-16 w-16 text-blue-500/60 dark:text-blue-200/60 mx-auto mb-4" />
                 <h3 className="text-xl font-semibold mb-2">No Traditional Quizzes Yet</h3>
-                <p className="text-gray-400 mb-6">
+                <p className="text-slate-600 dark:text-blue-100/80 mb-6">
                   Create your first quiz or generate one using AI
                 </p>
                 {aiAvailable && (
                   <button
                     onClick={() => router.push('/quizzes/generate')}
-                    className="bg-purple-600 hover:bg-purple-700 px-6 py-3 rounded-lg font-semibold"
+                    className="bg-violet-500 hover:bg-violet-600 px-6 py-3 rounded-lg font-semibold"
                   >
                     🚀 Generate AI Quiz
                   </button>
@@ -376,7 +376,7 @@ export default function QuizzesPage() {
                 {quizzes.map((quiz) => (
                   <div
                     key={quiz._id}
-                    className="bg-gray-800 rounded-lg p-6 hover:bg-gray-750 transition-colors cursor-pointer"
+                    className="bg-white/75 dark:bg-[#22314a] rounded-lg p-6 hover:bg-white dark:hover:bg-[#2a3d59] transition-colors cursor-pointer border border-blue-200 dark:border-blue-400/20"
                     onClick={() => router.push(`/quizzes/${quiz.id}`)}
                   >
                     {/* Quiz Header */}
@@ -393,12 +393,12 @@ export default function QuizzesPage() {
                     </div>
 
                     {/* Description */}
-                    <p className="text-gray-400 text-sm mb-4 line-clamp-2">
+                    <p className="text-slate-600 dark:text-gray-300 text-sm mb-4 line-clamp-2">
                       {quiz.description}
                     </p>
 
                     {/* Stats */}
-                    <div className="flex items-center justify-between text-sm text-gray-500">
+                    <div className="flex items-center justify-between text-sm text-slate-600 dark:text-blue-100/70">
                       <div className="flex items-center space-x-4">
                         <span className="flex items-center space-x-1">
                           <Users className="h-4 w-4" />
@@ -411,7 +411,7 @@ export default function QuizzesPage() {
                       </div>
                       
                       {quiz.generated_by === 'AI' && (
-                        <div className="flex items-center space-x-1 text-purple-400">
+                        <div className="flex items-center space-x-1 text-purple-300">
                           <Sparkles className="h-3 w-3" />
                           <span className="text-xs">AI Generated</span>
                         </div>
@@ -419,8 +419,8 @@ export default function QuizzesPage() {
                     </div>
 
                     {/* Date */}
-                    <div className="mt-3 pt-3 border-t border-gray-700">
-                      <span className="text-xs text-gray-500">
+                    <div className="mt-3 pt-3 border-t border-blue-200 dark:border-blue-400/20">
+                      <span className="text-xs text-slate-500 dark:text-blue-100/70">
                         Created {new Date(quiz.created_at).toLocaleDateString()}
                       </span>
                     </div>

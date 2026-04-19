@@ -13,15 +13,15 @@ import { Loader2, CheckCircle2 } from "lucide-react"
 import { api } from "@/lib/api" // Import api
 
 export function CodingProblemList() {
-  const { user, firebaseUser, isLoadingAuth, authMethod, token } = useAuth() // Check token for access
+  const { user, isLoadingAuth, authMethod, token } = useAuth() // Check token for access
   const router = useRouter()
   const [problems, setProblems] = useState<CodingProblem[]>([])
   const [isLoadingProblems, setIsLoadingProblems] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!isLoadingAuth && !user && !firebaseUser) {
-      // Allow either MetaMask or Firebase user
+    if (!isLoadingAuth && !user) {
+      // Allow MetaMask or email auth
       toast.error("Please login to view coding problems.")
       router.push("/")
       return
@@ -44,11 +44,11 @@ export function CodingProblemList() {
       }
     }
 
-    if (user || firebaseUser) {
-      // Only fetch if either user type is logged in
+    if (user) {
+      // Only fetch if user is logged in
       fetchProblems()
     }
-  }, [user, firebaseUser, isLoadingAuth, router, token])
+  }, [user, isLoadingAuth, router, token])
 
   const getDifficultyColor = (difficulty: CodingProblem["difficulty"]) => {
     switch (difficulty) {

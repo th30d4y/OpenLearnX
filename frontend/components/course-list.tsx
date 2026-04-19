@@ -13,15 +13,15 @@ import { Loader2 } from "lucide-react"
 import api from "@/lib/api" // Corrected import: default import
 
 export function CourseList() {
-  const { user, firebaseUser, isLoadingAuth, authMethod, token } = useAuth() // Check token for access
+  const { user, isLoadingAuth, authMethod, token } = useAuth() // Check token for access
   const router = useRouter()
   const [courses, setCourses] = useState<Course[]>([])
   const [isLoadingCourses, setIsLoadingCourses] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!isLoadingAuth && !user && !firebaseUser) {
-      // Allow either MetaMask or Firebase user
+    if (!isLoadingAuth && !user) {
+      // Allow either MetaMask or email auth
       toast.error("Please login to view courses.")
       router.push("/")
       return
@@ -49,11 +49,11 @@ export function CourseList() {
       }
     }
 
-    if (user || firebaseUser) {
-      // Fetch if either user type is logged in
+    if (user) {
+      // Fetch if user is logged in
       fetchCourses()
     }
-  }, [user, firebaseUser, isLoadingAuth, router, token])
+  }, [user, isLoadingAuth, router, token])
 
   if (isLoadingAuth || isLoadingCourses) {
     return (
@@ -97,7 +97,7 @@ export function CourseList() {
         {courses.map((course) => (
           <Card
             key={course.id}
-            className="bg-white shadow-md rounded-lg overflow-hidden dark:bg-gray-800 dark:text-gray-100"
+            className="bg-white shadow-md rounded-lg overflow-hidden dark:bg-[#22314a] dark:text-gray-100 dark:border-blue-300/20"
           >
             <CardHeader>
               <CardTitle className="text-xl font-semibold">{course.title}</CardTitle>

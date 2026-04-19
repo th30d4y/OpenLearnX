@@ -45,38 +45,60 @@
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
   .dark {
-    --background: 0 0% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 0 0% 3.9%;
+    --background: 223 49% 18%;
+    --foreground: 210 40% 98%;
+    --card: 218 36% 22%;
     --card-foreground: 0 0% 98%;
-    --popover: 0 0% 3.9%;
+    --popover: 220 35% 20%;
     --popover-foreground: 0 0% 98%;
     --primary: 0 0% 98%;
     --primary-foreground: 0 0% 9%;
-    --secondary: 0 0% 14.9%;
+    --secondary: 220 32% 28%;
     --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 14.9%;
+    --muted: 220 28% 24%;
     --muted-foreground: 0 0% 63.9%;
-    --accent: 0 0% 14.9%;
+    --accent: 220 32% 30%;
     --accent-foreground: 0 0% 98%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 14.9%;
-    --input: 0 0% 14.9%;
+    --border: 220 30% 34%;
+    --input: 220 30% 34%;
     --ring: 0 0% 83.1%;
     --chart-1: 220 70% 50%;
     --chart-2: 160 60% 45%;
     --chart-3: 30 80% 55%;
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
-    --sidebar-background: 240 5.9% 10%;
+    --sidebar-background: 224 42% 16%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent: 222 33% 24%;
     --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-border: 220 30% 34%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer utilities {
+  .dark .dark\:bg-gray-950,
+  .dark .dark\:bg-gray-900,
+  .dark .dark\:bg-gray-800,
+  .dark .bg-gray-900,
+  .dark .bg-gray-800,
+  .dark .bg-black,
+  .dark .bg-black\/70,
+  .dark .bg-black\/60,
+  .dark .bg-black\/50,
+  .dark .bg-black\/30 {
+    background-color: #22314a !important;
+  }
+
+  .dark .dark\:border-gray-800,
+  .dark .dark\:border-gray-700,
+  .dark .border-gray-700,
+  .dark .border-gray-600 {
+    border-color: rgba(96, 165, 250, 0.24) !important;
   }
 }
 
@@ -84,7 +106,12 @@
   * {
     @apply border-border;
   }
+  html {
+    font-size: 16px;
+  }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+    font-size: clamp(15px, 0.92rem + 0.12vw, 16px);
+    line-height: 1.5;
   }
 }

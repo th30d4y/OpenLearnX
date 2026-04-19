@@ -3,6 +3,7 @@ from datetime import datetime
 import uuid
 import random
 import string
+from activity_logger import log_user_activity, resolve_user_identity
 
 bp = Blueprint('quizzes', __name__)
 
@@ -233,6 +234,24 @@ def join_room():
 
         print(f"✅ User joined room: {username} -> {room_code}")
 
+        identity = resolve_user_identity(request, db)
+        resolved_user_id = identity.get("user_id") or data.get("user_id") or data.get("wallet_address")
+        if isinstance(resolved_user_id, str):
+            resolved_user_id = resolved_user_id.strip().lower() if resolved_user_id.startswith("0x") else resolved_user_id.strip()
+        log_user_activity(
+            db,
+            resolved_user_id,
+            "quiz",
+            "Joined quiz room",
+            f"Joined quiz room '{room.get('title', room_code)}' as {username}",
+            {
+                "room_code": room_code,
+                "room_title": room.get("title"),
+                "username": username,
+                "session_id": participant_session.get("session_id"),
+            },
+        )
+
         return jsonify({
             "success": True,
             "message": f"Successfully joined quiz room '{room.get('title')}'",
@@ -423,6 +442,50 @@ def submit_answer(session_id):
                 "updated_at": datetime.now()
             }}
         )
+
+        identity = resolve_user_identity(request, db)
+        resolved_user_id = identity.get("user_id") or data.get("user_id") or data.get("wallet_address")
+        if isinstance(resolved_user_id, str):
+            resolved_user_id = resolved_user_id.strip().lower() if resolved_user_id.startswith("0x") else resolved_user_id.strip()
+        if resolved_user_id:
+            db.user_quizzes.update_one(
+                {
+                    "user_id": resolved_user_id,
+                    "session_id": session_id,
+                    "question_id": question_data.get("question_id"),
+                },
+                {
+                    "$set": {
+                        "user_id": resolved_user_id,
+                        "session_id": session_id,
+                        "room_code": room.get("room_code"),
+                        "room_title": room.get("title"),
+                        "question_id": question_data.get("question_id"),
+                        "score": participant.get("score", 0),
+                        "completed_at": datetime.now(),
+                        "is_correct": is_correct,
+                        "difficulty": current_difficulty,
+                        "username": participant.get("username"),
+                    }
+                },
+                upsert=True,
+            )
+
+            log_user_activity(
+                db,
+                resolved_user_id,
+                "quiz",
+                "Answered quiz question",
+                f"Answered a {current_difficulty} question in '{room.get('title', 'Quiz Room')}'",
+                {
+                    "session_id": session_id,
+                    "room_code": room.get("room_code"),
+                    "room_title": room.get("title"),
+                    "is_correct": is_correct,
+                    "difficulty": current_difficulty,
+                },
+                points_earned=question_data.get('points', 10) if is_correct else 0,
+            )
         
         # Get AI prediction for comparison (if available)
         ai_feedback = None
@@ -478,6 +541,68 @@ def submit_answer(session_id):
 # ===================================================================
 # ✅ AI QUESTION GENERATION - IMPROVED VERSION
 # ===================================================================
+
+@bp.route('/generate-ai', methods=['POST', 'OPTIONS'])
+def generate_ai_quiz():
+    """Generate a traditional quiz directly using AI"""
+    if request.method == "OPTIONS":
+        response = jsonify({'status': 'ok'})
+        response.headers.add("Access-Control-Allow-Origin", "*")
+        response.headers.add("Access-Control-Allow-Headers", "Content-Type,Authorization")
+        response.headers.add("Access-Control-Allow-Methods", "POST,OPTIONS")
+        return response
+
+    try:
+        data = request.get_json()
+        topic = data.get('topic', 'General')
+        difficulty = data.get('difficulty', 'medium')
+        num_questions = int(data.get('num_questions', 5))
+
+        print(f"🤖 AI Quiz Generation: topic={topic}, difficulty={difficulty}, questions={num_questions}")
+
+        ai_service = get_ai_service()
+        if not ai_service:
+            return jsonify({
+                "success": False,
+                "error": "AI service not available"
+            }), 503
+
+        # Generate questions using AI service
+        generated_data = ai_service.generate_quiz(
+            topic=topic,
+            difficulty=difficulty,
+            num_questions=num_questions
+        )
+
+        # Save to database
+        db = get_db()
+        quiz_result = db.quizzes.insert_one({
+            "id": str(uuid.uuid4()),
+            "title": generated_data.get('title', f"AI Quiz - {topic}"),
+            "description": generated_data.get('description', ''),
+            "difficulty": difficulty,
+            "questions": generated_data.get('questions', []),
+            "created_at": datetime.now().isoformat(),
+            "total_points": len(generated_data.get('questions', [])) * 10,
+            "generated_by": "AI",
+            "topic": topic
+        })
+
+        # Get the saved quiz
+        saved_quiz = db.quizzes.find_one({"_id": quiz_result.inserted_id})
+        saved_quiz['_id'] = str(saved_quiz['_id'])
+
+        print(f"✅ Quiz generated with {len(saved_quiz.get('questions', []))} questions")
+
+        return jsonify({
+            "success": True,
+            "quiz": saved_quiz,
+            "message": f"Generated {len(saved_quiz.get('questions', []))} AI questions on topic: {topic}"
+        }), 201
+
+    except Exception as e:
+        print(f"❌ AI generation error: {str(e)}")
+        return jsonify({"success": False, "error": str(e)}), 500
 
 @bp.route('/room/<room_code>/generate-ai-questions', methods=['POST', 'OPTIONS'])
 def generate_ai_questions(room_code):
@@ -1038,5 +1163,104 @@ def get_quiz_by_id(quiz_id):
             "quiz": quiz
         })
 
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@bp.route('/<quiz_id>/submit', methods=['POST', 'OPTIONS'])
+def submit_traditional_quiz(quiz_id):
+    """Submit traditional quiz answers, store result, and log user activity."""
+    if request.method == "OPTIONS":
+        response = jsonify({'status': 'ok'})
+        response.headers.add("Access-Control-Allow-Origin", "*")
+        response.headers.add("Access-Control-Allow-Headers", "Content-Type,Authorization")
+        response.headers.add("Access-Control-Allow-Methods", "POST,OPTIONS")
+        return response
+
+    try:
+        db = get_db()
+        data = request.get_json() or {}
+        answers = data.get('answers') or {}
+        participant_name = (data.get('participant_name') or 'User').strip()
+
+        quiz = db.quizzes.find_one({"id": quiz_id})
+        if not quiz:
+            return jsonify({"success": False, "error": "Quiz not found"}), 404
+
+        questions = quiz.get('questions', [])
+        total_questions = len(questions)
+        correct_answers = 0
+        total_points = 0
+        ai_feedback = []
+
+        for idx, question in enumerate(questions):
+            question_id = question.get('id') or question.get('question_id') or f"q_{idx}"
+            expected = str(question.get('correct_answer', '')).strip().lower()
+            user_answer = str(answers.get(question_id, '')).strip()
+            is_correct = user_answer.lower() == expected if expected else False
+            points = int(question.get('points', 10) or 10)
+
+            if is_correct:
+                correct_answers += 1
+                total_points += points
+
+            ai_feedback.append({
+                "question": question.get('question_text', question.get('question', f"Question {idx + 1}")),
+                "user_answer": user_answer,
+                "is_correct": is_correct,
+                "correct_answer": question.get('correct_answer', ''),
+                "ai_feedback": {
+                    "feedback": "Correct" if is_correct else "Review this concept and try again"
+                }
+            })
+
+        score = round((correct_answers / total_questions) * 100, 1) if total_questions > 0 else 0
+
+        identity = resolve_user_identity(request, db)
+        resolved_user_id = identity.get("user_id") or data.get("user_id") or data.get("wallet_address")
+        if isinstance(resolved_user_id, str):
+            resolved_user_id = resolved_user_id.strip().lower() if resolved_user_id.startswith("0x") else resolved_user_id.strip()
+
+        if resolved_user_id:
+            db.user_quizzes.insert_one({
+                "user_id": resolved_user_id,
+                "quiz_id": quiz_id,
+                "title": quiz.get('title', 'Quiz Submission'),
+                "topic": quiz.get('topic', 'General'),
+                "participant_name": participant_name,
+                "score": score,
+                "correct_answers": correct_answers,
+                "total_questions": total_questions,
+                "points": total_points,
+                "completed_at": datetime.now(),
+                "answers": answers,
+            })
+
+            log_user_activity(
+                db,
+                resolved_user_id,
+                "quiz",
+                "Completed quiz",
+                f"Completed quiz '{quiz.get('title', quiz_id)}' with score {score}%",
+                {
+                    "quiz_id": quiz_id,
+                    "quiz_title": quiz.get('title', 'Quiz'),
+                    "score": score,
+                    "correct_answers": correct_answers,
+                    "total_questions": total_questions,
+                },
+                points_earned=total_points,
+            )
+
+        return jsonify({
+            "success": True,
+            "results": {
+                "score": score,
+                "correct_answers": correct_answers,
+                "total_questions": total_questions,
+                "total_points": total_points,
+                "ai_feedback": ai_feedback,
+            }
+        })
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500

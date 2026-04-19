@@ -20,7 +20,7 @@ import type { TestStartRequest, TestStartResponse, TestAnswerRequest, TestAnswer
 type QuizState = "subject_selection" | "in_progress" | "showing_feedback" | "completed"
 
 export function QuizRunner({ quizId }: { quizId?: string }) {
-  const { user, firebaseUser, isLoadingAuth, authMethod, token } = useAuth() // Use firebaseUser and authMethod
+  const { user, isLoadingAuth, authMethod, token } = useAuth() // Use authMethod and token
   const router = useRouter()
 
   const [quizState, setQuizState] = useState<QuizState>("subject_selection")
@@ -36,11 +36,11 @@ export function QuizRunner({ quizId }: { quizId?: string }) {
   const availableSubjects = ["Math", "Science", "History", "Literature"] // Example subjects
 
   useEffect(() => {
-    if (!isLoadingAuth && !user && !firebaseUser) {
+    if (!isLoadingAuth && !user) {
       toast.error("Please login to take a quiz.")
       router.push("/") // Redirect to home if not authenticated
     }
-  }, [user, firebaseUser, isLoadingAuth, router])
+  }, [user, isLoadingAuth, router])
 
   const startQuiz = async () => {
     if (!selectedSubject) {
@@ -65,9 +65,9 @@ export function QuizRunner({ quizId }: { quizId?: string }) {
     /*
     // --- ORIGINAL API CALL (UNCOMMENT WHEN BACKEND IS READY) ---
     */
-    if (authMethod === "firebase" && !token) {
-      toast.error("Quiz progress and persistence require MetaMask authentication.")
-      return // Prevent API call for Firebase users without JWT
+    if (!token) {
+      toast.error("Authentication token missing. Please log in again.")
+      return // Prevent API call without JWT
     }
 
     setIsStartingQuiz(true)
@@ -130,9 +130,9 @@ export function QuizRunner({ quizId }: { quizId?: string }) {
     /*
     // --- ORIGINAL API CALL (UNCOMMENT WHEN BACKEND IS READY) ---
     */
-    if (authMethod === "firebase" && !token) {
-      toast.error("Quiz progress and persistence require MetaMask authentication.")
-      return // Prevent API call for Firebase users without JWT
+    if (!token) {
+      toast.error("Authentication token missing. Please log in again.")
+      return // Prevent API call without JWT
     }
 
     setIsSubmittingAnswer(true)
@@ -182,7 +182,7 @@ export function QuizRunner({ quizId }: { quizId?: string }) {
     setFeedback(null)
   }
 
-  if (isLoadingAuth || (!user && !firebaseUser)) {
+  if (isLoadingAuth || !user) {
     return (
       <div className="flex justify-center items-center min-h-[calc(100vh-64px)]">
         <Loader2 className="h-8 w-8 animate-spin text-primary-purple" />
@@ -220,11 +220,6 @@ export function QuizRunner({ quizId }: { quizId?: string }) {
               {isStartingQuiz && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Start Quiz
             </Button>
-            {authMethod === "firebase" && !token && (
-              <p className="text-sm text-center text-warning dark:text-warning/80 mt-4">
-                Note: Quiz progress will not be saved without MetaMask authentication.
-              </p>
-            )}
           </CardContent>
         </Card>
       )}

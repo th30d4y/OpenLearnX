@@ -8,18 +8,26 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { Menu, Sun, Moon } from "lucide-react"
 import { useTheme } from "next-themes"
 import { useState, useEffect } from "react"
+import { usePathname } from "next/navigation"
 
 export function Navbar() {
-  const { user, firebaseUser, authMethod } = useAuth() // Use authMethod to determine display
-  const { theme, setTheme } = useTheme()
+  const { user, authMethod } = useAuth() // Use authMethod to determine display
+  const { resolvedTheme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
+  const pathname = usePathname()
 
   useEffect(() => {
     setMounted(true)
   }, [])
 
+  if (pathname.startsWith("/admin")) {
+    return null
+  }
+
+  const isDark = resolvedTheme === "dark"
+
   return (
-    <header className="sticky top-0 z-40 w-full border-b bg-white/80 backdrop-blur-md dark:bg-gray-950/80">
+    <header className="sticky top-0 z-40 w-full border-b bg-white/80 backdrop-blur-md dark:bg-[#102a52]/90">
       <div className="container flex h-16 items-center justify-between">
         <Link href="/" className="text-2xl font-bold text-primary-purple">
           OpenLearnX
@@ -59,10 +67,10 @@ export function Navbar() {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            onClick={() => setTheme(isDark ? "light" : "dark")}
             className="ml-2"
           >
-            {mounted && (theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />)}
+            {mounted && (isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />)}
             {!mounted && <div className="h-5 w-5" />} {/* Render a placeholder div to maintain layout */}
             <span className="sr-only">Toggle theme</span>
           </Button>
@@ -71,10 +79,10 @@ export function Navbar() {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            onClick={() => setTheme(isDark ? "light" : "dark")}
             className="mr-2"
           >
-            {mounted && (theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />)}
+            {mounted && (isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />)}
             {!mounted && <div className="h-5 w-5" />} {/* Render a placeholder div to maintain layout */}
             <span className="sr-only">Toggle theme</span>
           </Button>
@@ -85,7 +93,7 @@ export function Navbar() {
                 <span className="sr-only">Toggle navigation</span>
               </Button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-[250px] sm:w-[300px] p-4 dark:bg-gray-900">
+            <SheetContent side="right" className="w-[250px] sm:w-[300px] p-4 dark:bg-[#1b3760]">
               <nav className="flex flex-col gap-4">
                 <Link
                   href="/"

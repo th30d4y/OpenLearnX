@@ -311,18 +311,18 @@ export default function QuizHostPanel() {
 
   if (!currentRoom) {
     return (
-      <div className="min-h-screen bg-gray-900 text-white">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:bg-gradient-to-br dark:from-gray-900 dark:via-blue-900 dark:to-purple-900 text-gray-900 dark:text-white">
         <div className="max-w-4xl mx-auto p-6">
           <div className="text-center mb-8">
-            <Crown className="h-16 w-16 text-yellow-400 mx-auto mb-4" />
-            <h1 className="text-4xl font-bold mb-4">👑 Quiz Host Panel</h1>
-            <p className="text-gray-400">
+            <Crown className="h-16 w-16 text-yellow-500 mx-auto mb-4" />
+            <h1 className="text-4xl font-bold mb-4 text-gray-900 dark:text-white">👑 Quiz Host Panel</h1>
+            <p className="text-gray-600 dark:text-gray-300">
               Create and manage adaptive quizzes with AI-powered questions
             </p>
           </div>
 
-          <div className="bg-gray-800 p-6 rounded-lg">
-            <h2 className="text-xl font-bold mb-4">Create New Quiz Room</h2>
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700 shadow">
+            <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">Create New Quiz Room</h2>
             
             <div className="space-y-4">
               <input
@@ -330,7 +330,7 @@ export default function QuizHostPanel() {
                 placeholder="Your name (Host)"
                 value={roomForm.host_name}
                 onChange={(e) => setRoomForm(prev => ({...prev, host_name: e.target.value}))}
-                className="w-full p-3 bg-gray-700 rounded border border-gray-600 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                className="w-full p-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 rounded border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:outline-none"
               />
               
               <input
@@ -338,17 +338,17 @@ export default function QuizHostPanel() {
                 placeholder="Quiz room title"
                 value={roomForm.room_title}
                 onChange={(e) => setRoomForm(prev => ({...prev, room_title: e.target.value}))}
-                className="w-full p-3 bg-gray-700 rounded border border-gray-600 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                className="w-full p-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 rounded border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:outline-none"
               />
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="flex items-center space-x-2">
+                  <label className="flex items-center space-x-2 text-gray-900 dark:text-white">
                     <input
                       type="checkbox"
                       checked={roomForm.is_private}
                       onChange={(e) => setRoomForm(prev => ({...prev, is_private: e.target.checked}))}
-                      className="rounded"
+                      className="rounded accent-blue-600 dark:accent-blue-500"
                     />
                     <span>Private Room (requires code)</span>
                   </label>
@@ -359,7 +359,7 @@ export default function QuizHostPanel() {
                   placeholder="Max participants"
                   value={roomForm.max_participants}
                   onChange={(e) => setRoomForm(prev => ({...prev, max_participants: parseInt(e.target.value) || 50}))}
-                  className="p-3 bg-gray-700 rounded border border-gray-600 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  className="p-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:outline-none"
                   min="1"
                   max="100"
                 />
@@ -369,7 +369,7 @@ export default function QuizHostPanel() {
                   placeholder="Duration (minutes)"
                   value={roomForm.duration_minutes}
                   onChange={(e) => setRoomForm(prev => ({...prev, duration_minutes: parseInt(e.target.value) || 30}))}
-                  className="p-3 bg-gray-700 rounded border border-gray-600 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  className="p-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:outline-none"
                   min="5"
                   max="180"
                 />
@@ -378,7 +378,7 @@ export default function QuizHostPanel() {
               <button
                 onClick={createRoom}
                 disabled={!roomForm.host_name || !roomForm.room_title}
-                className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 disabled:from-gray-600 disabled:to-gray-600 p-4 rounded-lg font-semibold"
+                className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 dark:from-purple-700 dark:to-blue-700 dark:hover:from-purple-800 dark:hover:to-blue-800 disabled:from-gray-400 disabled:to-gray-400 dark:disabled:from-gray-600 dark:disabled:to-gray-600 p-4 rounded-lg font-semibold text-white"
               >
                 🚀 Create Quiz Room
               </button>
@@ -390,7 +390,7 @@ export default function QuizHostPanel() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:bg-gradient-to-br dark:from-gray-900 dark:via-blue-900 dark:to-purple-900 text-gray-900 dark:text-white">
       <div className="max-w-7xl mx-auto p-6">
         {/* Header */}
         <div className="bg-gray-800 p-4 rounded-lg mb-6">

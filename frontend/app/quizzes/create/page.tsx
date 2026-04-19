@@ -87,22 +87,22 @@ export default function CreateQuizPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:bg-gradient-to-br dark:from-gray-900 dark:via-blue-900 dark:to-purple-900 text-gray-900 dark:text-white">
       <div className="max-w-4xl mx-auto p-6">
         {/* Header */}
         <div className="flex items-center space-x-4 mb-8">
           <button
             onClick={() => router.push('/quizzes')}
-            className="bg-gray-700 hover:bg-gray-600 p-2 rounded"
+            className="bg-gray-300 dark:bg-gray-700 hover:bg-gray-400 dark:hover:bg-gray-600 p-2 rounded text-gray-900 dark:text-white"
           >
             <ArrowLeft className="h-5 w-5" />
           </button>
-          <h1 className="text-3xl font-bold">📝 Create New Quiz</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">📝 Create New Quiz</h1>
         </div>
 
         {/* Quiz Details */}
-        <div className="bg-gray-800 p-6 rounded-lg mb-6">
-          <h2 className="text-xl font-bold mb-4">Quiz Information</h2>
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg mb-6 border border-gray-200 dark:border-gray-700 shadow">
+          <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">Quiz Information</h2>
           
           <div className="space-y-4">
             <input
@@ -110,21 +110,21 @@ export default function CreateQuizPage() {
               placeholder="Quiz title"
               value={quiz.title}
               onChange={(e) => setQuiz(prev => ({...prev, title: e.target.value}))}
-              className="w-full p-3 bg-gray-700 rounded border border-gray-600 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              className="w-full p-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 rounded border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:outline-none"
             />
             
             <textarea
               placeholder="Quiz description"
               value={quiz.description}
               onChange={(e) => setQuiz(prev => ({...prev, description: e.target.value}))}
-              className="w-full p-3 bg-gray-700 rounded border border-gray-600 focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none"
+              className="w-full p-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 rounded border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none"
               rows={3}
             />
             
             <select
               value={quiz.difficulty}
               onChange={(e) => setQuiz(prev => ({...prev, difficulty: e.target.value}))}
-              className="w-full p-3 bg-gray-700 rounded border border-gray-600 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              className="w-full p-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:outline-none"
             >
               <option value="easy">🟢 Easy</option>
               <option value="medium">🟡 Medium</option>
@@ -134,20 +134,20 @@ export default function CreateQuizPage() {
         </div>
 
         {/* Add Question */}
-        <div className="bg-gray-800 p-6 rounded-lg mb-6">
-          <h2 className="text-xl font-bold mb-4">Add Question</h2>
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg mb-6 border border-gray-200 dark:border-gray-700 shadow">
+          <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">Add Question</h2>
           
           <div className="space-y-4">
             <textarea
               placeholder="Question text"
               value={currentQuestion.question_text}
               onChange={(e) => setCurrentQuestion(prev => ({...prev, question_text: e.target.value}))}
-              className="w-full p-3 bg-gray-700 rounded border border-gray-600 focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none"
+              className="w-full p-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 rounded border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none"
               rows={3}
             />
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">Options:</label>
+              <label className="text-sm font-medium text-gray-900 dark:text-white">Options:</label>
               {currentQuestion.options.map((option, index) => (
                 <input
                   key={index}

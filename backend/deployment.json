@@ -1,8 +1,8 @@
 {
-  "contract_address": "0xC2FE2F49B3a1384aEdFAae127F054FAf216eF684",
-  "transaction_hash": "0xfe5a433dae316bd2d60b7190c21866a1fde30777f08d9d37e403ed642433fa28",
+  "contract_address": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+  "transaction_hash": "973fa79fea65613ef2ccbb35d72ee0cabee2cf3a5bc834a9dc439fef544ace7d",
   "deployer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
-  "network": "local",
+  "network": "anvil",
   "abi": [
     {
       "type": "constructor",
@@ -684,7 +684,6 @@
       "anonymous": false
     }
   ],
-  "gas_used": 3387337,
-  "block_number": 22994809,
-  "status": 1
+  "gas_used": 3391283,
+  "block_number": 1
 }

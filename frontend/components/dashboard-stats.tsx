@@ -69,6 +69,7 @@ interface ActivityData {
   title: string
   description: string
   completed_at: string
+  timestamp_utc?: string
   points_earned: number
   blockchain_verified?: boolean
 }
@@ -185,14 +186,18 @@ export function DashboardStatsOverview() {
     fetchPureMongoDBData()
   }
 
-  const formatTimeAgo = (dateString: string) => {
-    const diff = Date.now() - new Date(dateString).getTime()
-    const hours = Math.floor(diff / (1000 * 60 * 60))
-    const days = Math.floor(hours / 24)
-    
-    if (days > 0) return `${days}d ago`
-    if (hours > 0) return `${hours}h ago`
-    return 'Just now'
+  const formatUtcTimestamp = (dateString: string) => {
+    const date = new Date(dateString)
+    if (Number.isNaN(date.getTime())) return "Invalid time"
+
+    const y = date.getUTCFullYear()
+    const m = String(date.getUTCMonth() + 1).padStart(2, "0")
+    const d = String(date.getUTCDate()).padStart(2, "0")
+    const hh = String(date.getUTCHours()).padStart(2, "0")
+    const mm = String(date.getUTCMinutes()).padStart(2, "0")
+    const ss = String(date.getUTCSeconds()).padStart(2, "0")
+
+    return `${y}-${m}-${d} ${hh}:${mm}:${ss} UTC`
   }
 
   const getRarityColor = (rarity: string) => {
@@ -566,7 +571,7 @@ export function DashboardStatsOverview() {
                     <p className="text-xs text-gray-600 dark:text-gray-400">{item.description}</p>
                     <div className="flex items-center justify-between">
                       <span className="text-xs text-gray-500">
-                        {formatTimeAgo(item.completed_at)}
+                        {item.timestamp_utc || formatUtcTimestamp(item.completed_at)}
                       </span>
                       <span className="text-xs font-medium text-green-600">
                         +{item.points_earned} XP

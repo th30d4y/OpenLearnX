@@ -17,7 +17,7 @@ interface CodingProblemViewProps {
 }
 
 export function CodingProblemView({ problemId }: CodingProblemViewProps) {
-  const { user, firebaseUser, isLoadingAuth, authMethod, token } = useAuth() // Check token for access
+  const { user, isLoadingAuth, authMethod, token } = useAuth() // Check token for access
   const router = useRouter()
   const [problem, setProblem] = useState<CodingProblem | null>(null)
   const [code, setCode] = useState<string>("")
@@ -31,8 +31,8 @@ export function CodingProblemView({ problemId }: CodingProblemViewProps) {
   const availableLanguages = ["python", "javascript", "java"] // Example languages
 
   useEffect(() => {
-    if (!isLoadingAuth && !user && !firebaseUser) {
-      // Allow either MetaMask or Firebase user
+    if (!isLoadingAuth && !user) {
+      // Allow either MetaMask or email auth
       toast.error("Please login to view coding problems.")
       router.push("/")
       return
@@ -64,11 +64,11 @@ export function CodingProblemView({ problemId }: CodingProblemViewProps) {
       }
     }
 
-    if (user || firebaseUser) {
-      // Only fetch if either user type is logged in
+    if (user) {
+      // Only fetch if user is logged in
       fetchProblem()
     }
-  }, [user, firebaseUser, isLoadingAuth, router, problemId, language, token])
+  }, [user, isLoadingAuth, router, problemId, language, token])
 
   const handleRunCode = async () => {
     if (!problem || !code || !token) {

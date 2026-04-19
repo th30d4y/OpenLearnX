@@ -1,1190 +1,312 @@
-'use client'
-import React, { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { Plus, Edit, Trash2, Eye, RefreshCw, BookOpen, List, X } from 'lucide-react'
+"use client"
 
-interface Course {
-  id: string
-  title: string
-  subject: string
-  description: string
-  difficulty: string
-  mentor: string
-  video_url: string
-  students: number
-  status: 'published' | 'draft'
-  created_at: string
+import { useEffect, useState } from "react"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { ArrowRight, ShieldCheck } from "lucide-react"
+
+type DashboardStats = {
+  total_courses: number
+  total_lessons: number
+  total_modules?: number
+  total_users?: number
+  total_logs?: number
+  active_students: number
+  completion_rate: number
 }
 
-interface Module {
+type LogItem = {
   id: string
-  course_id: string
-  title: string
-  description: string
-  order: number
-  created_at?: string
+  timestamp: string
+  event_type: string
+  action: string
+  status_code: number
+  ip: string
+  path: string
 }
 
-interface Lesson {
-  id: string
-  module_id: string
-  title: string
-  description: string
-  video_url: string
-  order: number
-  created_at?: string
+type ChartPoint = {
+  label: string
+  value: number
 }
 
-export default function AdminDashboard() {
-  const [isClient, setIsClient] = useState(false)
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [authChecked, setAuthChecked] = useState(false)
-  const [courses, setCourses] = useState<Course[]>([])
-  const [loading, setLoading] = useState(true)
-  const [showAddForm, setShowAddForm] = useState(false)
-  const [editingCourse, setEditingCourse] = useState<Course | null>(null)
-  
-  // Module/Lesson Management State
-  const [showModulesModal, setShowModulesModal] = useState(false)
-  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null)
-  const [modules, setModules] = useState<Module[]>([])
-  const [lessons, setLessons] = useState<Lesson[]>([])
-  const [modulesLoading, setModulesLoading] = useState(false)
-  const [lessonsLoading, setLessonsLoading] = useState(false)
-  const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  
-  const [stats, setStats] = useState({
+type DashboardCharts = {
+  events: ChartPoint[]
+  status_codes: ChartPoint[]
+  methods: ChartPoint[]
+}
+
+const API_BASE = "http://127.0.0.1:5000"
+
+export default function AdminDashboardPage() {
+  const router = useRouter()
+  const [ready, setReady] = useState(false)
+  const [stats, setStats] = useState<DashboardStats>({
     total_courses: 0,
     total_lessons: 0,
+    total_modules: 0,
+    total_users: 0,
+    total_logs: 0,
     active_students: 0,
-    completion_rate: 0
+    completion_rate: 0,
   })
-  const router = useRouter()
+  const [recentLogs, setRecentLogs] = useState<LogItem[]>([])
+  const [recentActions, setRecentActions] = useState<LogItem[]>([])
+  const [alertsCount, setAlertsCount] = useState(0)
+  const [charts, setCharts] = useState<DashboardCharts>({ events: [], status_codes: [], methods: [] })
 
-  // Authentication logic
-  // Helper function to get admin token from localStorage
-  const getAdminToken = (): string | null => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('admin_token')
-    }
-    return null
+  const getToken = () => localStorage.getItem("admin_token")
+
+  const headers = () => {
+    const token = getToken()
+    return token
+      ? { "Content-Type": "application/json", Authorization: `Bearer ${token}` }
+      : { "Content-Type": "application/json" }
   }
 
-  // Helper function to get authorization headers
-  const getAuthHeaders = (): Record<string, string> => {
-    const token = getAdminToken()
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json'
+  const verifyAuth = async () => {
+    const token = getToken()
+    if (!token) {
+      router.push("/admin/login")
+      return false
     }
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`
+
+    const resp = await fetch(`${API_BASE}/api/admin/test`, { headers: headers() })
+    if (!resp.ok) {
+      localStorage.removeItem("admin_token")
+      router.push("/admin/login")
+      return false
     }
-    return headers
+
+    return true
+  }
+
+  const fetchDashboardData = async () => {
+    const [statsResp, logsResp, actionsResp, alertsResp, chartsResp] = await Promise.all([
+      fetch(`${API_BASE}/api/admin/dashboard`, { headers: headers() }),
+      fetch(`${API_BASE}/api/admin/logs?limit=8`, { headers: headers() }),
+      fetch(`${API_BASE}/api/admin/recent-actions?limit=8`, { headers: headers() }),
+      fetch(`${API_BASE}/api/admin/alerts?limit=50`, { headers: headers() }),
+      fetch(`${API_BASE}/api/admin/analytics/activity`, { headers: headers() }),
+    ])
+
+    if (statsResp.ok) {
+      const data = await statsResp.json()
+      setStats({
+        total_courses: Number(data.total_courses || 0),
+        total_lessons: Number(data.total_lessons || 0),
+        total_modules: Number(data.total_modules || 0),
+        total_users: Number(data.total_users || 0),
+        total_logs: Number(data.total_logs || 0),
+        active_students: Number(data.active_students || 0),
+        completion_rate: Number(data.completion_rate || 0),
+      })
+    }
+
+    if (logsResp.ok) {
+      const data = await logsResp.json()
+      setRecentLogs(Array.isArray(data.logs) ? data.logs : [])
+    }
+
+    if (actionsResp.ok) {
+      const data = await actionsResp.json()
+      setRecentActions(Array.isArray(data.actions) ? data.actions : [])
+    }
+
+    if (alertsResp.ok) {
+      const data = await alertsResp.json()
+      setAlertsCount(Number(data.count || 0))
+    }
+
+    if (chartsResp.ok) {
+      const data = await chartsResp.json()
+      if (data.charts) {
+        setCharts({
+          events: Array.isArray(data.charts.events) ? data.charts.events : [],
+          status_codes: Array.isArray(data.charts.status_codes) ? data.charts.status_codes : [],
+          methods: Array.isArray(data.charts.methods) ? data.charts.methods : [],
+        })
+      }
+    }
   }
 
   useEffect(() => {
-    setIsClient(true)
-    
-    const checkAuth = async () => {
-      try {
-        await new Promise(resolve => setTimeout(resolve, 500))
-        
-        const token = getAdminToken()
-        
-        if (!token) {
-          router.push('/admin/login')
-          return
-        }
-        
-        // Verify token with API - no hardcoded secret check
-        try {
-          const response = await fetch('http://127.0.0.1:5000/api/admin/courses', {
-            headers: { 'Authorization': `Bearer ${token}` }
-          })
-          
-          if (response.ok) {
-            setIsAuthenticated(true)
-            fetchData()
-          } else {
-            localStorage.removeItem('admin_token')
-            router.push('/admin/login')
-          }
-        } catch (apiError) {
-          // If API is unavailable, don't allow access without verification
-          localStorage.removeItem('admin_token')
-          router.push('/admin/login')
-        }
-      } catch (error) {
-        router.push('/admin/login')
-      } finally {
-        setAuthChecked(true)
-      }
+    const init = async () => {
+      const ok = await verifyAuth()
+      if (!ok) return
+      setReady(true)
+      await fetchDashboardData()
     }
-    
-    checkAuth()
-  }, [router])
+    init()
+  }, [])
 
-  const fetchData = async () => {
-    await Promise.all([fetchCourses(), fetchStats()])
-  }
-
-  const fetchCourses = async () => {
-    try {
-      const response = await fetch('http://127.0.0.1:5000/api/admin/courses', {
-        headers: getAuthHeaders()
-      })
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
-      
-      const data = await response.json()
-      
-      if (Array.isArray(data)) {
-        setCourses(data)
-      } else {
-        setCourses([])
-      }
-    } catch (error) {
-      setCourses([])
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const fetchStats = async () => {
-    try {
-      const response = await fetch('http://127.0.0.1:5000/api/admin/dashboard', {
-        headers: getAuthHeaders()
-      })
-      if (response.ok) {
-        const data = await response.json()
-        setStats(data)
-      }
-    } catch (error) {
-      // Silent fail for stats
-    }
-  }
-
-  // ✅ FIXED: Module fetching - the key fix here
-  const fetchModules = async (courseId: string) => {
-    setModulesLoading(true)
-    setErrorMessage(null)
-    
-    try {
-      console.log('🔍 Fetching modules for course:', courseId) // Debug log
-      
-      const response = await fetch(`http://127.0.0.1:5000/api/admin/courses/${courseId}/modules`, {
-        headers: getAuthHeaders()
-      })
-      
-      console.log('🔍 Modules response status:', response.status) // Debug log
-      
-      if (response.ok) {
-        const data = await response.json()
-        console.log('🔍 Modules response data:', data) // Debug log
-        
-        // ✅ FIXED: Proper handling of modules response
-        let modulesList: Module[] = []
-        
-        if (data.modules && Array.isArray(data.modules)) {
-          modulesList = data.modules
-        } else if (Array.isArray(data)) {
-          modulesList = data
-        } else if (data.success && data.data && Array.isArray(data.data)) {
-          modulesList = data.data
-        }
-        
-        console.log('🔍 Setting modules:', modulesList) // Debug log
-        setModules(modulesList)
-      } else {
-        console.error('❌ Failed to fetch modules:', response.status)
-        setModules([])
-        setErrorMessage(`Failed to load modules: ${response.status}`)
-      }
-    } catch (error) {
-      console.error('❌ Network error fetching modules:', error)
-      setModules([])
-      setErrorMessage('Network error loading modules')
-    } finally {
-      setModulesLoading(false)
-    }
-  }
-
-  // ✅ FIXED: Lesson fetching - the key fix here
-  const fetchLessons = async (moduleId: string) => {
-    setLessonsLoading(true)
-    setErrorMessage(null)
-    
-    try {
-      console.log('🔍 Fetching lessons for module:', moduleId) // Debug log
-      
-      const response = await fetch(`http://127.0.0.1:5000/api/admin/modules/${moduleId}/lessons`, {
-        headers: getAuthHeaders()
-      })
-      
-      console.log('🔍 Lessons response status:', response.status) // Debug log
-      
-      if (response.ok) {
-        const data = await response.json()
-        console.log('🔍 Lessons response data:', data) // Debug log
-        
-        // ✅ FIXED: Proper handling of lessons response
-        let lessonsList: Lesson[] = []
-        
-        if (data.lessons && Array.isArray(data.lessons)) {
-          lessonsList = data.lessons
-        } else if (Array.isArray(data)) {
-          lessonsList = data
-        } else if (data.success && data.data && Array.isArray(data.data)) {
-          lessonsList = data.data
-        }
-        
-        console.log('🔍 Setting lessons:', lessonsList) // Debug log
-        setLessons(lessonsList)
-      } else {
-        console.error('❌ Failed to fetch lessons:', response.status)
-        setLessons([])
-        setErrorMessage(`Failed to load lessons: ${response.status}`)
-      }
-    } catch (error) {
-      console.error('❌ Network error fetching lessons:', error)
-      setLessons([])
-      setErrorMessage('Network error loading lessons')
-    } finally {
-      setLessonsLoading(false)
-    }
-  }
-
-  // Course CRUD operations
-  const handleCreateCourse = async (formData: any) => {
-    try {
-      const response = await fetch('http://127.0.0.1:5000/api/admin/courses', {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify(formData)
-      })
-      
-      if (response.ok) {
-        await fetchData()
-        setShowAddForm(false)
-        alert('Course created successfully!')
-      } else {
-        const error = await response.json()
-        alert(`Error: ${error.error || 'Failed to create course'}`)
-      }
-    } catch (error) {
-      alert('Failed to create course')
-    }
-  }
-
-  const handleUpdateCourse = async (courseId: string, formData: any) => {
-    try {
-      const response = await fetch(`http://127.0.0.1:5000/api/admin/courses/${courseId}`, {
-        method: 'PUT',
-        headers: getAuthHeaders(),
-        body: JSON.stringify(formData)
-      })
-      
-      if (response.ok) {
-        await fetchData()
-        setEditingCourse(null)
-        alert('Course updated successfully!')
-      } else {
-        alert('Failed to update course')
-      }
-    } catch (error) {
-      alert('Failed to update course')
-    }
-  }
-
-  const handleDeleteCourse = async (courseId: string) => {
-    if (confirm('Are you sure you want to delete this course?')) {
-      try {
-        const response = await fetch(`http://127.0.0.1:5000/api/admin/courses/${courseId}`, {
-          method: 'DELETE',
-          headers: getAuthHeaders()
-        })
-        
-        if (response.ok) {
-          await fetchData()
-          alert('Course deleted successfully!')
-        } else {
-          alert('Failed to delete course')
-        }
-      } catch (error) {
-        alert('Failed to delete course')
-      }
-    }
-  }
-
-  // Module/Lesson Management
-  const openModulesManager = async (course: Course) => {
-    console.log('🔍 Opening modules manager for course:', course.id)
-    setSelectedCourse(course)
-    setShowModulesModal(true)
-    setModules([])
-    setLessons([])
-    setErrorMessage(null)
-    await fetchModules(course.id)
-  }
-
-  const handleCreateModule = async (formData: any) => {
-    try {
-      console.log('🔍 Creating module with data:', formData)
-      
-      const response = await fetch(`http://127.0.0.1:5000/api/admin/courses/${selectedCourse?.id}/modules`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify(formData)
-      })
-      
-      if (response.ok) {
-        await fetchModules(selectedCourse!.id)
-        alert('Module created successfully!')
-      } else {
-        const error = await response.json()
-        alert(`Error: ${error.error || 'Failed to create module'}`)
-      }
-    } catch (error) {
-      alert('Failed to create module')
-    }
-  }
-
-  const handleCreateLesson = async (moduleId: string, formData: any) => {
-    try {
-      console.log('🔍 Creating lesson for module:', moduleId, 'with data:', formData)
-      
-      const response = await fetch(`http://127.0.0.1:5000/api/admin/modules/${moduleId}/lessons`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify(formData)
-      })
-      
-      if (response.ok) {
-        await fetchLessons(moduleId)
-        alert('Lesson created successfully!')
-      } else {
-        const error = await response.json()
-        alert(`Error: ${error.error || 'Failed to create lesson'}`)
-      }
-    } catch (error) {
-      alert('Failed to create lesson')
-    }
-  }
-
-  const handleLogout = () => {
-    localStorage.removeItem('admin_token')
-    router.push('/')
-  }
-
-  if (!isClient || !authChecked) {
+  if (!ready) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-2 text-gray-600">Checking authentication...</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-2 text-gray-600">Redirecting to login...</p>
-        </div>
+      <div className="rounded-xl border border-gray-200 bg-white p-8 text-center dark:border-gray-800 dark:bg-gray-900">
+        <p className="text-gray-600 dark:text-gray-300">Loading admin dashboard...</p>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-4">
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">OL</span>
-              </div>
-              <h1 className="text-xl font-bold text-gray-900">OpenLearnX Admin Panel</h1>
-              <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">
-                DYNAMIC
-              </span>
-            </div>
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={fetchData}
-                className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md"
-                title="Refresh Data"
-              >
-                <RefreshCw className="h-4 w-4" />
-              </button>
-              <span className="text-gray-600">Welcome, Admin! 👋</span>
-              <button
-                onClick={handleLogout}
-                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded text-sm"
-              >
-                Logout
-              </button>
-            </div>
+    <div className="space-y-6">
+      <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Admin Dashboard</h1>
+        <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+          Real-time operational metrics sourced from database collections.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-7">
+        <StatCard label="Total Courses" value={stats.total_courses} color="text-blue-600" />
+        <StatCard label="Total Modules" value={stats.total_modules || 0} color="text-indigo-600" />
+        <StatCard label="Total Lessons" value={stats.total_lessons} color="text-violet-600" />
+        <StatCard label="Total Users" value={stats.total_users || 0} color="text-cyan-600" />
+        <StatCard label="Traffic (Logs)" value={stats.total_logs || 0} color="text-fuchsia-600" />
+        <StatCard label="Active Students" value={stats.active_students} color="text-emerald-600" />
+        <StatCard label="Security Alerts" value={alertsCount} color="text-rose-600" />
+        <StatCard label="Completion Rate" value={`${stats.completion_rate}%`} color="text-amber-600" />
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+        <ChartCard title="Top Events" data={charts.events.slice(0, 6)} />
+        <ChartCard title="HTTP Status" data={charts.status_codes.slice(0, 6)} />
+        <ChartCard title="Request Methods" data={charts.methods.slice(0, 6)} />
+      </div>
+
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+        <div className="xl:col-span-2 rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
+          <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4 dark:border-gray-800">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Recent Security and Activity Logs</h2>
+            <Link href="/admin/logs" className="text-sm font-medium text-blue-600 hover:text-blue-700">
+              Open Logs
+            </Link>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-800">
+              <thead className="bg-gray-50 dark:bg-gray-800/50">
+                <tr>
+                  <th className="px-4 py-2 text-left text-xs font-medium uppercase text-gray-500">Time</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium uppercase text-gray-500">Event</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium uppercase text-gray-500">Action</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium uppercase text-gray-500">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                {recentLogs.map((log) => (
+                  <tr key={log.id}>
+                    <td className="px-4 py-2 text-xs text-gray-600 dark:text-gray-300">{new Date(log.timestamp).toLocaleString()}</td>
+                    <td className="px-4 py-2 text-xs font-medium text-gray-800 dark:text-gray-100">{log.event_type}</td>
+                    <td className="px-4 py-2 text-xs text-gray-700 dark:text-gray-300">{log.action}</td>
+                    <td className="px-4 py-2 text-xs">
+                      <span className={`rounded px-2 py-1 ${log.status_code >= 400 ? "bg-red-100 text-red-700" : "bg-green-100 text-green-700"}`}>
+                        {log.status_code}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+          <div className="mb-4 flex items-center gap-2 text-gray-900 dark:text-white">
+            <ShieldCheck className="h-5 w-5 text-blue-600" />
+            <h3 className="font-semibold">Quick Actions</h3>
+          </div>
+          <div className="space-y-3">
+            <QuickLink href="/admin/courses" title="Manage Courses" subtitle="Create, update and organize curriculum" />
+            <QuickLink href="/admin/users" title="Browse Users" subtitle="View complete user records from database" />
+            <QuickLink href="/admin/logs" title="Inspect Logs" subtitle="Filter auth, security and activity events" />
+            <QuickLink href="/admin/database" title="Explore Database" subtitle="Browse all collections and documents" />
+            <QuickLink href="/admin/reports" title="Reports and Analytics" subtitle="Usage, security and exports (CSV/JSON)" />
+            <QuickLink href="/admin/firewall" title="Firewall Rules" subtitle="Manually add/remove blocking rules" />
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div className="px-4 py-6 sm:px-0">
-          {/* Error Display */}
-          {errorMessage && (
-            <div className="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
-              <span className="block sm:inline">{errorMessage}</span>
-              <button
-                onClick={() => setErrorMessage(null)}
-                className="absolute top-0 bottom-0 right-0 px-4 py-3"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-          )}
-
-          {/* Action Buttons */}
-          <div className="flex justify-between items-center mb-6">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900">Course Management</h2>
-              <p className="text-gray-600">Manage courses, modules, and lessons</p>
-            </div>
-            <div className="flex space-x-3">
-              <button
-                onClick={() => setShowAddForm(true)}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2"
-              >
-                <Plus className="h-4 w-4" />
-                <span>Add New Course</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <div className="bg-white p-6 rounded-lg shadow">
-              <h3 className="text-sm font-medium text-gray-500">Total Courses</h3>
-              <p className="text-2xl font-bold text-blue-600">{stats.total_courses}</p>
-            </div>
-            <div className="bg-white p-6 rounded-lg shadow">
-              <h3 className="text-sm font-medium text-gray-500">Active Students</h3>
-              <p className="text-2xl font-bold text-green-600">{stats.active_students}</p>
-            </div>
-            <div className="bg-white p-6 rounded-lg shadow">
-              <h3 className="text-sm font-medium text-gray-500">Total Lessons</h3>
-              <p className="text-2xl font-bold text-purple-600">{stats.total_lessons}</p>
-            </div>
-            <div className="bg-white p-6 rounded-lg shadow">
-              <h3 className="text-sm font-medium text-gray-500">Completion Rate</h3>
-              <p className="text-2xl font-bold text-orange-600">{stats.completion_rate}%</p>
-            </div>
-          </div>
-
-          {/* Course Table */}
-          <div className="bg-white rounded-lg shadow overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">All Courses</h3>
-            </div>
-            
-            {loading ? (
-              <div className="p-8 text-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                <p className="mt-2 text-gray-600">Loading courses...</p>
-              </div>
-            ) : courses.length === 0 ? (
-              <div className="p-8 text-center">
-                <p className="text-gray-500 mb-4">No courses found.</p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Course
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Mentor
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Students
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {courses.map((course) => (
-                      <tr key={course.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div>
-                            <div className="text-sm font-medium text-gray-900">
-                              {course.title}
-                            </div>
-                            <div className="text-sm text-gray-500">
-                              {course.subject} • {course.difficulty}
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {course.mentor}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {course.students?.toLocaleString() || 0}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          <div className="flex space-x-2">
-                            <button 
-                              onClick={() => window.open(`/courses/${course.id}`, '_blank')}
-                              className="text-blue-600 hover:text-blue-900"
-                              title="View Course"
-                            >
-                              <Eye className="h-4 w-4" />
-                            </button>
-                            <button 
-                              onClick={() => setEditingCourse(course)}
-                              className="text-green-600 hover:text-green-900"
-                              title="Edit Course"
-                            >
-                              <Edit className="h-4 w-4" />
-                            </button>
-                            <button 
-                              onClick={() => handleDeleteCourse(course.id)}
-                              className="text-red-600 hover:text-red-900"
-                              title="Delete Course"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                            <button 
-                              onClick={() => openModulesManager(course)}
-                              className="text-purple-600 hover:text-purple-900"
-                              title="Manage Modules & Lessons"
-                            >
-                              <BookOpen className="h-4 w-4" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
+      <div className="rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
+        <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4 dark:border-gray-800">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Recent Actions</h2>
+          <Link href="/admin/logs" className="text-sm font-medium text-blue-600 hover:text-blue-700">
+            Open Full Logs
+          </Link>
         </div>
-      </div>
-
-      {/* Course Form Modal */}
-      {showAddForm && (
-        <CourseFormModal
-          title="Add New Course"
-          onClose={() => setShowAddForm(false)}
-          onSubmit={handleCreateCourse}
-        />
-      )}
-
-      {editingCourse && (
-        <CourseFormModal
-          title="Edit Course"
-          course={editingCourse}
-          onClose={() => setEditingCourse(null)}
-          onSubmit={(data) => handleUpdateCourse(editingCourse.id, data)}
-        />
-      )}
-
-      {/* ✅ FIXED: Modules & Lessons Modal */}
-      {showModulesModal && selectedCourse && (
-        <ModulesLessonsModal
-          course={selectedCourse}
-          modules={modules}
-          lessons={lessons}
-          modulesLoading={modulesLoading}
-          lessonsLoading={lessonsLoading}
-          onClose={() => {
-            setShowModulesModal(false)
-            setSelectedCourse(null)
-            setModules([])
-            setLessons([])
-            setErrorMessage(null)
-          }}
-          onCreateModule={handleCreateModule}
-          onCreateLesson={handleCreateLesson}
-          onFetchLessons={fetchLessons}
-          onRefreshModules={() => fetchModules(selectedCourse.id)}
-        />
-      )}
-    </div>
-  )
-}
-
-// ✅ FIXED: Enhanced Modules & Lessons Modal with better debugging
-function ModulesLessonsModal({ 
-  course, 
-  modules, 
-  lessons,
-  modulesLoading,
-  lessonsLoading,
-  onClose, 
-  onCreateModule,
-  onCreateLesson,
-  onFetchLessons,
-  onRefreshModules
-}: { 
-  course: Course
-  modules: Module[]
-  lessons: Lesson[]
-  modulesLoading: boolean
-  lessonsLoading: boolean
-  onClose: () => void
-  onCreateModule: (data: any) => void
-  onCreateLesson: (moduleId: string, data: any) => void
-  onFetchLessons: (moduleId: string) => void
-  onRefreshModules: () => void
-}) {
-  const [activeTab, setActiveTab] = useState<'modules' | 'lessons'>('modules')
-  const [showModuleForm, setShowModuleForm] = useState(false)
-  const [showLessonForm, setShowLessonForm] = useState(false)
-  const [selectedModuleId, setSelectedModuleId] = useState<string | null>(null)
-  const [moduleFormData, setModuleFormData] = useState({ title: '', description: '', order: 1 })
-  const [lessonFormData, setLessonFormData] = useState({ title: '', description: '', video_url: '', order: 1 })
-
-  const handleModuleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    onCreateModule(moduleFormData)
-    setModuleFormData({ title: '', description: '', order: 1 })
-    setShowModuleForm(false)
-  }
-
-  const handleLessonSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    console.log('🔍 Creating lesson for module ID:', selectedModuleId) // Debug log
-    console.log('🔍 Lesson form data:', lessonFormData) // Debug log
-    if (selectedModuleId) {
-      onCreateLesson(selectedModuleId, lessonFormData)
-      setLessonFormData({ title: '', description: '', video_url: '', order: 1 })
-      setShowLessonForm(false)
-    }
-  }
-
-  // ✅ FIXED: Enhanced module selection with better debugging
-  const handleSelectModule = (moduleId: string) => {
-    console.log('🔍 Selecting module with ID:', moduleId) // Debug log
-    console.log('🔍 Available modules:', modules) // Debug log
-    setSelectedModuleId(moduleId)
-    onFetchLessons(moduleId)
-    setActiveTab('lessons')
-  }
-
-  return (
-    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-5xl m-4 max-h-[90vh] overflow-y-auto">
-        <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-          <div className="flex items-center space-x-4">
-            <h3 className="text-lg font-semibold text-gray-900">
-              Manage: {course.title}
-            </h3>
-            <button
-              onClick={onRefreshModules}
-              className="p-1 text-gray-500 hover:text-gray-700 rounded"
-              title="Refresh Modules"
-            >
-              <RefreshCw className="w-4 h-4" />
-            </button>
-          </div>
-          <button 
-            onClick={onClose} 
-            className="text-gray-400 hover:text-gray-600"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-        
-        <div className="p-6">
-          {/* Tab Navigation */}
-          <div className="flex border-b border-gray-200 mb-6">
-            <button
-              className={`py-2 px-4 ${activeTab === 'modules' ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-500'}`}
-              onClick={() => setActiveTab('modules')}
-            >
-              Modules ({modules.length})
-            </button>
-            <button
-              className={`py-2 px-4 ml-4 ${activeTab === 'lessons' ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-500'}`}
-              onClick={() => setActiveTab('lessons')}
-            >
-              Lessons ({lessons.length})
-            </button>
-          </div>
-
-          {/* ✅ DEBUG INFO - Remove after fixing */}
-          <div className="mb-4 p-3 bg-gray-100 rounded text-xs">
-            <p><strong>Debug Info:</strong></p>
-            <p>Selected Module ID: {selectedModuleId || 'None'}</p>
-            <p>Modules Count: {modules.length}</p>
-            <p>Lessons Count: {lessons.length}</p>
-            <p>Active Tab: {activeTab}</p>
-          </div>
-
-          {/* Modules Tab */}
-          {activeTab === 'modules' && (
-            <div>
-              <div className="flex justify-between items-center mb-4">
-                <h4 className="text-lg font-semibold">Course Modules</h4>
-                <button
-                  onClick={() => setShowModuleForm(true)}
-                  className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 flex items-center space-x-2"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>Add Module</span>
-                </button>
-              </div>
-
-              {modulesLoading ? (
-                <div className="text-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
-                  <p className="text-gray-600">Loading modules...</p>
-                </div>
-              ) : modules.length === 0 ? (
-                <div className="text-center py-8">
-                  <p className="text-gray-500 mb-4">No modules found for this course.</p>
-                  <p className="text-sm text-gray-400">Click "Add Module" to create your first module.</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {modules.map((module, index) => (
-                    <div key={module.id || index} className="border rounded-lg p-4 hover:bg-gray-50">
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <h5 className="font-semibold text-gray-900">{module.title}</h5>
-                          <p className="text-gray-600 text-sm mt-1">{module.description}</p>
-                          <p className="text-xs text-gray-400 mt-1">Order: {module.order} | ID: {module.id}</p>
-                        </div>
-                        <div className="flex space-x-2">
-                          <button
-                            onClick={() => handleSelectModule(module.id)}
-                            className="text-blue-600 hover:text-blue-800 text-sm p-1"
-                            title="View Lessons"
-                          >
-                            <List className="w-4 h-4" />
-                          </button>
-                          <button 
-                            className="text-green-600 hover:text-green-800 text-sm p-1"
-                            title="Edit Module"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </button>
-                          <button 
-                            className="text-red-600 hover:text-red-800 text-sm p-1"
-                            title="Delete Module"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Module Form */}
-              {showModuleForm && (
-                <div className="mt-6 border-t pt-6">
-                  <h5 className="font-semibold mb-4">Add New Module</h5>
-                  <form onSubmit={handleModuleSubmit} className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Module Title *
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={moduleFormData.title}
-                        onChange={(e) => setModuleFormData({...moduleFormData, title: e.target.value})}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="e.g., Introduction to Python"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Description
-                      </label>
-                      <textarea
-                        value={moduleFormData.description}
-                        onChange={(e) => setModuleFormData({...moduleFormData, description: e.target.value})}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        rows={3}
-                        placeholder="Module description..."
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Order
-                      </label>
-                      <input
-                        type="number"
-                        min={1}
-                        value={moduleFormData.order}
-                        onChange={(e) => setModuleFormData({...moduleFormData, order: parseInt(e.target.value) || 1})}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-                    <div className="flex space-x-3">
-                      <button
-                        type="submit"
-                        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-                      >
-                        Create Module
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setShowModuleForm(false)}
-                        className="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </form>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Lessons Tab */}
-          {activeTab === 'lessons' && (
-            <div>
-              <div className="flex justify-between items-center mb-4">
-                <h4 className="text-lg font-semibold">
-                  Lessons {selectedModuleId ? `(${modules.find(m => m.id === selectedModuleId)?.title})` : ''}
-                </h4>
-                <button
-                  onClick={() => setShowLessonForm(true)}
-                  disabled={!selectedModuleId}
-                  className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>Add Lesson</span>
-                </button>
-              </div>
-
-              {!selectedModuleId ? (
-                <div className="text-center py-8">
-                  <p className="text-gray-500">Select a module from the Modules tab to view/add lessons</p>
-                </div>
-              ) : lessonsLoading ? (
-                <div className="text-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto mb-2"></div>
-                  <p className="text-gray-600">Loading lessons...</p>
-                </div>
-              ) : lessons.length === 0 ? (
-                <div className="text-center py-8">
-                  <p className="text-gray-500 mb-4">No lessons found for this module.</p>
-                  <p className="text-sm text-gray-400">Click "Add Lesson" to create your first lesson.</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {lessons.map((lesson, index) => (
-                    <div key={lesson.id || index} className="border rounded-lg p-4 hover:bg-gray-50">
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <h5 className="font-semibold text-gray-900">{lesson.title}</h5>
-                          <p className="text-gray-600 text-sm mt-1">{lesson.description}</p>
-                          <div className="flex items-center space-x-4 mt-2">
-                            <p className="text-xs text-gray-400">Order: {lesson.order}</p>
-                            <p className="text-xs text-gray-400">ID: {lesson.id}</p>
-                            {lesson.video_url && (
-                              <a 
-                                href={lesson.video_url} 
-                                target="_blank" 
-                                rel="noopener noreferrer" 
-                                className="text-blue-600 text-xs hover:underline"
-                              >
-                                📹 Video Link
-                              </a>
-                            )}
-                          </div>
-                        </div>
-                        <div className="flex space-x-2">
-                          <button 
-                            className="text-green-600 hover:text-green-800 text-sm p-1"
-                            title="Edit Lesson"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </button>
-                          <button 
-                            className="text-red-600 hover:text-red-800 text-sm p-1"
-                            title="Delete Lesson"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Lesson Form */}
-              {showLessonForm && selectedModuleId && (
-                <div className="mt-6 border-t pt-6">
-                  <h5 className="font-semibold mb-4">Add New Lesson</h5>
-                  <form onSubmit={handleLessonSubmit} className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Lesson Title *
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={lessonFormData.title}
-                        onChange={(e) => setLessonFormData({...lessonFormData, title: e.target.value})}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-                        placeholder="e.g., Variables and Data Types"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Description
-                      </label>
-                      <textarea
-                        value={lessonFormData.description}
-                        onChange={(e) => setLessonFormData({...lessonFormData, description: e.target.value})}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-                        rows={3}
-                        placeholder="Lesson description..."
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Video URL
-                      </label>
-                      <input
-                        type="url"
-                        value={lessonFormData.video_url}
-                        onChange={(e) => setLessonFormData({...lessonFormData, video_url: e.target.value})}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-                        placeholder="https://youtu.be/..."
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Order
-                      </label>
-                      <input
-                        type="number"
-                        min={1}
-                        value={lessonFormData.order}
-                        onChange={(e) => setLessonFormData({...lessonFormData, order: parseInt(e.target.value) || 1})}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-                      />
-                    </div>
-                    <div className="flex space-x-3">
-                      <button
-                        type="submit"
-                        className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700"
-                      >
-                        Create Lesson
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setShowLessonForm(false)}
-                        className="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </form>
-                </div>
-              )}
-            </div>
-          )}
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-800">
+            <thead className="bg-gray-50 dark:bg-gray-800/50">
+              <tr>
+                <th className="px-4 py-2 text-left text-xs font-medium uppercase text-gray-500">Time</th>
+                <th className="px-4 py-2 text-left text-xs font-medium uppercase text-gray-500">Event</th>
+                <th className="px-4 py-2 text-left text-xs font-medium uppercase text-gray-500">Action</th>
+                <th className="px-4 py-2 text-left text-xs font-medium uppercase text-gray-500">IP</th>
+                <th className="px-4 py-2 text-left text-xs font-medium uppercase text-gray-500">Status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+              {recentActions.map((item) => (
+                <tr key={item.id}>
+                  <td className="px-4 py-2 text-xs text-gray-700 dark:text-gray-300">{new Date(item.timestamp).toLocaleString()}</td>
+                  <td className="px-4 py-2 text-xs font-medium text-gray-900 dark:text-white">{item.event_type}</td>
+                  <td className="px-4 py-2 text-xs text-gray-700 dark:text-gray-300">{item.action}</td>
+                  <td className="px-4 py-2 text-xs text-gray-700 dark:text-gray-300">{item.ip}</td>
+                  <td className="px-4 py-2 text-xs text-gray-700 dark:text-gray-300">{item.status_code}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
   )
 }
 
-// Course Form Modal (unchanged)
-function CourseFormModal({ 
-  title, 
-  course, 
-  onClose, 
-  onSubmit 
-}: { 
-  title: string
-  course?: Course
-  onClose: () => void
-  onSubmit: (data: any) => void 
-}) {
-  const [formData, setFormData] = useState({
-    title: course?.title || '',
-    subject: course?.subject || 'Programming',
-    description: course?.description || '',
-    difficulty: course?.difficulty || 'Beginner',
-    mentor: course?.mentor || 'Admin',
-    video_url: course?.video_url || ''
-  })
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    onSubmit(formData)
-  }
-
-  const getEmbedUrl = (videoUrl: string) => {
-    if (!videoUrl) return null
-    
-    let videoId = ''
-    if (videoUrl.includes('youtu.be/')) {
-      videoId = videoUrl.split('youtu.be/')[1]?.split('?')[0]
-    } else if (videoUrl.includes('youtube.com/watch?v=')) {
-      videoId = videoUrl.split('v=')[1]?.split('&')[0]
-    } else if (videoUrl.includes('youtube.com/embed/')) {
-      return videoUrl
-    }
-    
-    return videoId ? `https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1` : null
-  }
-
+function StatCard({ label, value, color }: { label: string; value: number | string; color: string }) {
   return (
-    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl m-4 max-h-screen overflow-y-auto">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
-        </div>
-        
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Course Title *
-            </label>
-            <input
-              type="text"
-              required
-              value={formData.title}
-              onChange={(e) => setFormData({...formData, title: e.target.value})}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="e.g., Advanced React Development"
-            />
-          </div>
+    <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+      <p className="text-xs font-medium uppercase tracking-wide text-gray-500">{label}</p>
+      <p className={`mt-2 text-2xl font-semibold ${color}`}>{value}</p>
+    </div>
+  )
+}
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Subject *
-              </label>
-              <select
-                value={formData.subject}
-                onChange={(e) => setFormData({...formData, subject: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="Programming">Programming</option>
-                <option value="Cybersecurity">Cybersecurity</option>
-                <option value="Web Development">Web Development</option>
-                <option value="Data Science">Data Science</option>
-                <option value="Mobile Development">Mobile Development</option>
-                <option value="DevOps">DevOps</option>
-              </select>
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Difficulty *
-              </label>
-              <select
-                value={formData.difficulty}
-                onChange={(e) => setFormData({...formData, difficulty: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="Beginner">Beginner</option>
-                <option value="Intermediate">Intermediate</option>
-                <option value="Advanced">Advanced</option>
-                <option value="Expert">Expert</option>
-                <option value="Beginner to Advanced">Beginner to Advanced</option>
-              </select>
-            </div>
-          </div>
+function QuickLink({ href, title, subtitle }: { href: string; title: string; subtitle: string }) {
+  return (
+    <Link
+      href={href}
+      className="group flex items-center justify-between rounded-lg border border-gray-200 p-3 hover:border-blue-300 hover:bg-blue-50 dark:border-gray-700 dark:hover:border-blue-700 dark:hover:bg-blue-950/30"
+    >
+      <div>
+        <p className="text-sm font-medium text-gray-900 dark:text-white">{title}</p>
+        <p className="text-xs text-gray-600 dark:text-gray-400">{subtitle}</p>
+      </div>
+      <ArrowRight className="h-4 w-4 text-gray-500 group-hover:text-blue-600" />
+    </Link>
+  )
+}
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Mentor *
-            </label>
-            <input
-              type="text"
-              required
-              value={formData.mentor}
-              onChange={(e) => setFormData({...formData, mentor: e.target.value})}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Instructor name"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Description *
-            </label>
-            <textarea
-              required
-              rows={3}
-              value={formData.description}
-              onChange={(e) => setFormData({...formData, description: e.target.value})}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Course description..."
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              YouTube Video URL
-            </label>
-            <input
-              type="url"
-              value={formData.video_url}
-              onChange={(e) => setFormData({...formData, video_url: e.target.value})}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="https://youtu.be/..."
-            />
-          </div>
-
-          {/* Video Preview */}
-          {formData.video_url && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Video Preview
-              </label>
-              <div className="aspect-video rounded-lg overflow-hidden bg-gray-100">
-                <iframe
-                  src={getEmbedUrl(formData.video_url) || ''}
-                  title="Video Preview"
-                  className="w-full h-full"
-                  allowFullScreen
-                />
+function ChartCard({ title, data }: { title: string; data: ChartPoint[] }) {
+  const max = Math.max(...data.map((x) => x.value), 1)
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+      <h3 className="text-sm font-semibold text-gray-900 dark:text-white">{title}</h3>
+      <div className="mt-4 space-y-3">
+        {data.length === 0 ? (
+          <p className="text-xs text-gray-500">No data</p>
+        ) : (
+          data.map((item) => (
+            <div key={item.label}>
+              <div className="mb-1 flex items-center justify-between text-xs">
+                <span className="text-gray-700 dark:text-gray-300">{item.label}</span>
+                <span className="font-medium text-gray-900 dark:text-white">{item.value}</span>
+              </div>
+              <div className="h-2 rounded bg-gray-100 dark:bg-gray-700">
+                <div className="h-2 rounded bg-blue-600" style={{ width: `${(item.value / max) * 100}%` }} />
               </div>
             </div>
-          )}
-
-          <div className="flex justify-end space-x-3 pt-4 border-t">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-            >
-              {course ? 'Update Course' : 'Create Course'}
-            </button>
-          </div>
-        </form>
+          ))
+        )}
       </div>
     </div>
   )

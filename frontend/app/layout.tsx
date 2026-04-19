@@ -6,6 +6,7 @@ import { Toaster } from "react-hot-toast"
 import { AuthProvider } from "@/context/auth-context"
 import { Navbar } from "@/components/ui/navbar"
 import { ThemeProvider } from "@/components/theme-provider"
+import { AccountStatusGuard } from "@/components/account-status-guard"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -26,8 +27,9 @@ export default function RootLayout({
       <body className={inter.className}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           <AuthProvider>
-            <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:via-blue-900 dark:to-purple-900">
+            <div className="min-h-screen bg-background text-foreground">
               <Navbar />
+              <AccountStatusGuard />
               <main className="transition-all duration-300">{children}</main>
               <Toaster 
                 position="top-right" 
