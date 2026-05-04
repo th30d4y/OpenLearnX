@@ -1,5 +1,5 @@
 # Multi-stage Dockerfile for OpenLearnX Platform
-FROM node:18-alpine AS frontend-builder
+FROM node:25-alpine AS frontend-builder
 
 # Build Frontend
 WORKDIR /app/frontend
