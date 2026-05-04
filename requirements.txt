@@ -17,7 +17,7 @@ seaborn>=0.12.0,<0.13.0
 # Data Handling
 pickle5>=0.0.11
 json5>=0.9.0
-tqdm>=4.67.1
+tqdm>=4.67.3
 
 # Optional: If you want to download data from Kaggle
 kaggle>=1.7.4
