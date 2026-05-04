@@ -51,7 +51,7 @@
     "ethers": "^6.15.0",
     "firebase": "^12.0.0",
     "geist": "^1.4.0",
-    "input-otp": "^1.4.1",
+    "input-otp": "^1.4.2",
     "lucide-react": "^0.454.0",
     "next": "^16.1.6",
     "next-themes": "^0.4.6",
