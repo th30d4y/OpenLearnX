@@ -32,7 +32,7 @@ jupyter>=1.0.0,<2.0.0
 ipython>=8.0.1,<9.0.0
 
 # Additional TensorFlow dependencies
-h5py>=3.11.0
+h5py>=3.16.0
 protobuf>=6.33.5,<7.0.0
 absl-py>=1.4.0
 astunparse>=1.6.3
