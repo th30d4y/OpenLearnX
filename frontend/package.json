@@ -58,7 +58,7 @@
     "react-hook-form": "^7.75.0",
     "react-hot-toast": "^2.5.0",
     "react-markdown": "^10.1.0",
-    "react-resizable-panels": "^2.1.7",
+    "react-resizable-panels": "^4.11.0",
     "recharts": "^2.15.0",
     "sonner": "^1.7.1",
     "tailwind-merge": "^2.5.5",
