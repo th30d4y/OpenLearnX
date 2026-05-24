@@ -2,18 +2,28 @@
 
 ### Reporting Vulnerabilities
 
-If you discover any security vulnerabilities, we encourage you to report them responsibly.
+If you discover any security vulnerabilities, please report them responsibly.
 
-Please send detailed information about the vulnerability to:
-**[w4nn4d133@gmail.com](mailto:w4nn4d133@gmail.com)**
+Send detailed vulnerability reports to:
+
+Email: w4nn4d133@gmail.com
+
+OpenPGP Fingerprint:
+`DEBE5591C54E947279C14A6BF53D272DA9ADAF98`
+
+Public Key:
+https://keys.openpgp.org/vks/v1/by-fingerprint/DEBE5591C54E947279C14A6BF53D272DA9ADAF98
 
 Alternatively, you may submit your report through our official advisory channel (if available).
 
 ### Guidelines for Reporting
 
-* Provide a clear description of the vulnerability
-* Include steps to reproduce the issue
-* Attach proof-of-concept (PoC) if possible
-* Mention the potential impact
+Please include:
 
-We appreciate responsible disclosure and will work to address valid issues promptly.
+- A clear description of the vulnerability
+- Steps to reproduce the issue
+- Proof-of-Concept (PoC), if possible
+- The potential security impact
+- Affected versions/components
+
+We appreciate responsible disclosure and will work to validate and address legitimate security issues promptly.
