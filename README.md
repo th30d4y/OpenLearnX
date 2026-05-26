@@ -1,4 +1,6 @@
 # OpenLearnX
+[![Self-Hosted Git](https://img.shields.io/badge/Self--Hosted-Gitea-green?style=flat-square\&logo=gitea\&logoColor=white)](https://git.w4nn4d13.tech/0x5t4l1n/OpenLearnX)
+
 
 **OpenLearnX** is an open-source, decentralized learning and assessment platform that combines adaptive AI-driven quizzes, real-time code execution, and blockchain-based NFT certificates to create a transparent, verifiable, and personalized educational experience.
 
