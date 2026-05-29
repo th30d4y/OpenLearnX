@@ -46,7 +46,7 @@
     "date-fns": "^4.1.0",
     "embla-carousel-react": "^8.6.0",
     "ethers": "^6.16.0",
-    "firebase": "^12.13.0",
+    "firebase": "^12.14.0",
     "geist": "^1.7.0",
     "input-otp": "^1.4.1",
     "lucide-react": "^0.454.0",
