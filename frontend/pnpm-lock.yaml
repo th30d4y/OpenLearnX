@@ -123,8 +123,8 @@ importers:
         specifier: ^12.14.0
         version: 12.14.0
       geist:
-        specifier: ^1.7.0
-        version: 1.7.0(next@16.2.7(react-dom@19.2.7(react@19.2.7))(react@19.2.7))
+        specifier: ^1.7.2
+        version: 1.7.2(next@16.2.7(react-dom@19.2.7(react@19.2.7))(react@19.2.7))
       input-otp:
         specifier: ^1.4.1
         version: 1.4.2(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
@@ -2103,8 +2103,8 @@ packages:
   function-bind@1.1.2:
     resolution: {integrity: sha512-7XHNxH7qX9xG5mIwxkhumTox/MIRNcOgDrxWsMt2pAr23WHp6MrRlN7FBSFpCpr+oVO0F744iUgR82nJMfG2SA==}
 
-  geist@1.7.0:
-    resolution: {integrity: sha512-ZaoiZwkSf0DwwB1ncdLKp+ggAldqxl5L1+SXaNIBGkPAqcu+xjVJLxlf3/S8vLt9UHx1xu5fz3lbzKCj5iOVdQ==}
+  geist@1.7.2:
+    resolution: {integrity: sha512-Gu5lDFa3pLRyoBlBPf0QIFHVdWAnpco7fS1bJm41jyLPFoguBgiubseUN2oLXMgqZ7uxAxDoXcHMhCY/fOTTgg==}
     peerDependencies:
       next: '>=13.2.0'
 
@@ -4988,7 +4988,7 @@ snapshots:
 
   function-bind@1.1.2: {}
 
-  geist@1.7.0(next@16.2.7(react-dom@19.2.7(react@19.2.7))(react@19.2.7)):
+  geist@1.7.2(next@16.2.7(react-dom@19.2.7(react@19.2.7))(react@19.2.7)):
     dependencies:
       next: 16.2.7(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
 
