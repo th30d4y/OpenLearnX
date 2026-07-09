@@ -11,7 +11,7 @@ ckzg==2.1.7
 click==8.4.2
 cytoolz==1.1.0
 dnspython==2.8.0
-docker==7.1.0
+docker==7.2.0
 eth-account==0.13.7
 eth-hash==0.8.0
 eth-keyfile==0.9.1
