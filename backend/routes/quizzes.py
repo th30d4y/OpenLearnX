@@ -602,7 +602,7 @@ def generate_ai_quiz():
 
     except Exception as e:
         print(f"❌ AI generation error: {str(e)}")
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"success": False, "error": "An internal error has occurred."}), 500
 
 @bp.route('/room/<room_code>/generate-ai-questions', methods=['POST', 'OPTIONS'])
 def generate_ai_questions(room_code):
@@ -734,7 +734,7 @@ def generate_ai_questions(room_code):
 
     except Exception as e:
         print(f"❌ AI generation error: {str(e)}")
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"success": False, "error": "An internal error has occurred."}), 500
 
 # ===================================================================
 # ✅ DEBUG ENDPOINT FOR TROUBLESHOOTING
