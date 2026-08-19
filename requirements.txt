@@ -42,7 +42,7 @@ pydantic_core==2.48.0
 PyJWT==2.13.0
 pymongo==4.17.0
 python-dateutil==2.9.0.post0
-python-dotenv==1.2.2
+python-dotenv==1.2.3
 pyunormalize==17.0.0
 regex==2026.7.19
 requests==2.34.2
