@@ -14,7 +14,7 @@ dnspython==2.8.0
 docker==7.2.0
 eth-account==0.13.7
 eth-hash==0.8.0
-eth-keyfile==0.9.1
+eth-keyfile==0.10.0
 eth-keys==0.8.0
 eth-rlp==2.2.0
 eth-typing==6.0.0
