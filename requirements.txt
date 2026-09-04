@@ -57,7 +57,7 @@ types-requests==2.33.0.20260712
 typing-inspection==0.4.4
 typing_extensions==4.16.0
 urllib3==2.7.0
-web3==7.16.0
+web3==8.0.0
 websockets==17.0.1
 Werkzeug==3.1.8
 wheel==0.47.0
