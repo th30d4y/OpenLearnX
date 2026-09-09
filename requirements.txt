@@ -53,7 +53,7 @@ setuptools==84.0.0
 six==1.17.0
 threadpoolctl==3.6.0
 toolz==1.1.0
-types-requests==2.33.0.20260712
+types-requests==2.33.0.20260906
 typing-inspection==0.4.4
 typing_extensions==4.16.0
 urllib3==2.7.0
