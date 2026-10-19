@@ -40,7 +40,7 @@ export function TestResultsPanel({ results, isLoading }: TestResultsPanelProps) 
       <CardContent className="space-y-4 text-sm">
         <div className="flex items-center gap-2 text-gray-700 dark:text-gray-200">
           <Clock className="h-4 w-4" />
-          <span>Runtime: {results.runtime.toFixed(2)} ms</span>
+          {results.runtime != null && <span>Runtime: {results.runtime.toFixed(2)} ms</span>}
         </div>
         {results.output && (
           <div>

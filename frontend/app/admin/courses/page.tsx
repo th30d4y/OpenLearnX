@@ -49,9 +49,10 @@ export default function AdminCoursesPage() {
   const getToken = () => localStorage.getItem("admin_token")
   const headers = () => {
     const token = getToken()
-    return token
-      ? { "Content-Type": "application/json", Authorization: `Bearer ${token}` }
-      : { "Content-Type": "application/json" }
+    return {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    } as Record<string, string>
   }
 
   const ensureAuth = async () => {
@@ -357,9 +358,10 @@ function CourseContentModal({
 
   const adminHeaders = () => {
     const token = localStorage.getItem("admin_token")
-    return token
-      ? { "Content-Type": "application/json", Authorization: `Bearer ${token}` }
-      : { "Content-Type": "application/json" }
+    return {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    } as Record<string, string>
   }
 
   const loadModules = async () => {

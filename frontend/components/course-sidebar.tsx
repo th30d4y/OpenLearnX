@@ -14,13 +14,13 @@ interface CourseSidebarProps {
 export function CourseSidebar({ courseId, modules, activeLessonId }: CourseSidebarProps) {
   return (
     <div className="w-full md:w-64 lg:w-80 flex-shrink-0 border-r bg-gray-50 dark:bg-gray-900 p-4 overflow-y-auto">
-      <h2 className="text-lg font-bold text-primary-purple mb-4">Course Content</h2>
+      <h2 className="text-lg font-bold text-primary mb-4">Course Content</h2>
       <nav className="space-y-4">
         {modules.map((module) => (
           <div key={module.id}>
             <h3 className="text-md font-semibold text-gray-800 dark:text-gray-100 mb-2">{module.title}</h3>
             <ul className="space-y-1">
-              {module.lessons.map((lesson) => (
+              {(module.lessons ?? []).map((lesson) => (
                 <li key={lesson.id}>
                   <Link
                     href={`/courses/${courseId}/lesson/${lesson.id}`}

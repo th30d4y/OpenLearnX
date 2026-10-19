@@ -10,7 +10,7 @@ import { TestResultsPanel } from "./test-results-panel"
 import { SolutionTabs } from "./solution-tabs"
 import { Button } from "@/components/ui/button"
 import { Loader2 } from "lucide-react"
-import { api } from "@/lib/api" // Import api
+import api from "@/lib/api"
 
 interface CodingProblemViewProps {
   problemId: string
@@ -48,12 +48,15 @@ export function CodingProblemView({ problemId }: CodingProblemViewProps) {
           },
         })
         setProblem(response.data)
-        if (response.data.initial_code[language]) {
-          setCode(response.data.initial_code[language])
-        } else if (Object.keys(response.data.initial_code).length > 0) {
-          const firstLang = Object.keys(response.data.initial_code)[0]
-          setLanguage(firstLang)
-          setCode(response.data.initial_code[firstLang])
+        const initialCode = response.data.initial_code
+        if (initialCode) {
+          if (initialCode[language]) {
+            setCode(initialCode[language])
+          } else if (Object.keys(initialCode).length > 0) {
+            const firstLang = Object.keys(initialCode)[0]
+            setLanguage(firstLang)
+            setCode(initialCode[firstLang])
+          }
         }
       } catch (err: any) {
         console.error("Failed to fetch coding problem:", err)
@@ -168,17 +171,8 @@ export function CodingProblemView({ problemId }: CodingProblemViewProps) {
   return (
     <div className="container mx-auto py-8 px-4 grid grid-cols-1 lg:grid-cols-2 gap-8 min-h-[calc(100vh-64px)]">
       <div className="space-y-6">
-        {authMethod === "firebase" && !token && (
-          <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 rounded-md dark:bg-yellow-900 dark:border-yellow-600 dark:text-yellow-200">
-            <p className="font-bold">Limited Access</p>
-            <p>
-              You are logged in with email. Full functionality, including code execution and submission, requires
-              connecting your MetaMask wallet.
-            </p>
-          </div>
-        )}
         <h1 className="text-3xl font-bold text-primary-purple">{problem.title}</h1>
-        <SolutionTabs problemDescription={problem.description} testCases={problem.test_cases} />
+        <SolutionTabs problemDescription={problem.description} testCases={problem.test_cases ?? []} />
       </div>
       <div className="space-y-6">
         <CodeEditor

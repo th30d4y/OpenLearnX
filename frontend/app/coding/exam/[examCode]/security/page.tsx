@@ -51,11 +51,7 @@ export default function SecurityCheckPage() {
     blockDevTools()
 
     return () => {
-      // Cleanup event listeners
-      document.removeEventListener('contextmenu', handleRightClick)
-      document.removeEventListener('keydown', handleKeyDown)
-      window.removeEventListener('blur', handleWindowBlur)
-      window.removeEventListener('focus', handleWindowFocus)
+      // Event listener cleanup is handled within each setup function's own scope
     }
   }, [])
 
@@ -64,12 +60,13 @@ export default function SecurityCheckPage() {
     try {
       const canvas = document.createElement('canvas')
       const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl')
-      
+
       if (gl) {
-        const debugInfo = gl.getExtension('WEBGL_debug_renderer_info')
+        const webgl = gl as WebGLRenderingContext
+        const debugInfo = webgl.getExtension('WEBGL_debug_renderer_info')
         if (debugInfo) {
-          const renderer = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL).toLowerCase()
-          const vendor = gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL).toLowerCase()
+          const renderer = (webgl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) as string).toLowerCase()
+          const vendor = (webgl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL) as string).toLowerCase()
           
           const vmIndicators = [
             'virtualbox', 'vmware', 'parallels', 'qemu', 
@@ -92,7 +89,7 @@ export default function SecurityCheckPage() {
         navigator.hardwareConcurrency < 2 ||
         screen.width < 1024 ||
         screen.height < 768 ||
-        navigator.deviceMemory && navigator.deviceMemory < 2
+        (navigator as any).deviceMemory && (navigator as any).deviceMemory < 2
       ) {
         setWarningMessage('⚠️ Your system may not meet the minimum requirements')
       }

@@ -49,9 +49,9 @@ interface Lesson {
 export default function LessonDetailPage() {
   const params = useParams()
   const router = useRouter()
-  const courseId = params?.courseId ?? ''
-  const lessonId = params?.lessonId ?? ''
-  const { user, isLoading: isAuthLoading } = useAuth()
+  const courseId = (Array.isArray(params?.courseId) ? params.courseId[0] : params?.courseId) ?? ''
+  const lessonId = (Array.isArray(params?.lessonId) ? params.lessonId[0] : params?.lessonId) ?? ''
+  const { user, isLoadingAuth: isAuthLoading } = useAuth()
 
   const [course, setCourse] = useState<Course | null>(null)
   const [modules, setModules] = useState<Module[]>([])
@@ -215,19 +215,15 @@ export default function LessonDetailPage() {
 
   return (
     <div className="flex flex-col md:flex-row min-h-screen bg-gray-50">
-      <CourseSidebar 
-        courseId={course.id} 
+      <CourseSidebar
+        courseId={course.id}
         modules={modules}
-        lessons={lessons}
         activeLessonId={lessonId}
-        currentLesson={currentLesson}
       />
       <main className="flex-grow p-8 max-w-4xl mx-auto w-full">
-        <LessonViewer 
-          courseId={course.id} 
+        <LessonViewer
+          courseId={course.id}
           lessonId={lessonId}
-          lesson={currentLesson}
-          course={course}
         />
       </main>
     </div>

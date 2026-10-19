@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { Loader2, CheckCircle2 } from "lucide-react"
-import { api } from "@/lib/api" // Import api
+import api from "@/lib/api"
 
 export function CodingProblemList() {
   const { user, isLoadingAuth, authMethod, token } = useAuth() // Check token for access
@@ -91,15 +91,6 @@ export function CodingProblemList() {
 
   return (
     <div className="container mx-auto py-8 px-4">
-      {authMethod === "firebase" && !token && (
-        <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-6 rounded-md dark:bg-yellow-900 dark:border-yellow-600 dark:text-yellow-200">
-          <p className="font-bold">Limited Access</p>
-          <p>
-            You are logged in with email. Full functionality, including progress tracking and data persistence, requires
-            connecting your MetaMask wallet.
-          </p>
-        </div>
-      )}
       <h1 className="text-3xl font-bold text-primary-purple mb-8 text-center">Coding Practice</h1>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {problems.map((problem) => (

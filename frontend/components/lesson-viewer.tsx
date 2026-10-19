@@ -242,18 +242,6 @@ export function LessonViewer({ courseId, lessonId }: LessonViewerProps) {
         </CardHeader>
       </Card>
 
-      {/* Authentication Warning */}
-      {authMethod === "firebase" && !token && (
-        <Card className="bg-yellow-50 border-l-4 border-yellow-500 dark:bg-yellow-900">
-          <CardContent className="pt-6">
-            <p className="font-bold text-yellow-700 dark:text-yellow-200">Limited Access</p>
-            <p className="text-yellow-700 dark:text-yellow-200">
-              You are logged in with email. Full functionality, including progress tracking and data persistence,
-              requires connecting your MetaMask wallet.
-            </p>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Video Player */}
       {lesson.type === "video" && lesson.embed_url && (
