@@ -88,14 +88,18 @@ export function CourseList() {
             key={course.id}
             className="group flex flex-col rounded-xl border border-border bg-card transition-shadow hover:shadow-md"
           >
-            {/* Top color strip */}
-            <div className="h-1.5 rounded-t-xl bg-primary opacity-70" />
-
             <div className="flex flex-col flex-1 p-5 gap-4">
               <div className="flex-1">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">
-                  {course.subject}
-                </p>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-md">
+                    {course.subject}
+                  </span>
+                  {course.completed && (
+                    <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                      Completed
+                    </span>
+                  )}
+                </div>
                 <h2 className="font-semibold text-card-foreground leading-snug line-clamp-2">
                   {course.title}
                 </h2>
