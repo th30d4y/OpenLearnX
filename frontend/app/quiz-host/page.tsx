@@ -1,7 +1,7 @@
 'use client'
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Users, Plus, Trash2, Play, Square, Brain, Crown, Target } from 'lucide-react'
+import { Users, Plus, Trash2, Play, Square, Brain, Crown, Target, Copy, Check, ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -45,6 +45,14 @@ export default function QuizHostPanel() {
   const [activeTab, setActiveTab] = useState<'questions' | 'participants' | 'live'>('questions')
   const [showAddQuestion, setShowAddQuestion] = useState(false)
   const [showAIGenerate, setShowAIGenerate] = useState(false)
+  const [codeCopied, setCodeCopied] = useState(false)
+
+  const copyCode = () => {
+    if (!currentRoom) return
+    navigator.clipboard.writeText(currentRoom.room_code)
+    setCodeCopied(true)
+    setTimeout(() => setCodeCopied(false), 2000)
+  }
 
   const [roomForm, setRoomForm] = useState({
     host_name: '',
@@ -268,36 +276,46 @@ export default function QuizHostPanel() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="max-w-7xl mx-auto px-4 py-6">
-        {/* Room header */}
-        <div className="rounded-xl border border-border bg-card p-4 mb-5">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h1 className="text-xl font-bold text-card-foreground flex items-center gap-2">
-                <Crown className="h-5 w-5 text-amber-500" />
-                {currentRoom.title}
-              </h1>
-              <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground mt-1">
-                <span>Code: <span className="font-mono font-semibold text-primary">{currentRoom.room_code}</span></span>
-                <span className={`px-2 py-0.5 rounded text-xs font-medium capitalize ${statusBadge(roomStatus)}`}>{roomStatus}</span>
-                <span>{currentRoom.participants?.length || 0}/{currentRoom.max_participants} participants</span>
-                <span>{currentRoom.questions?.length || 0} questions</span>
-              </div>
+      {/* Session bar */}
+      <div className="border-b border-border bg-card/50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3 min-w-0">
+            <button onClick={() => router.push('/quizzes')} className="text-muted-foreground hover:text-foreground shrink-0">
+              <ArrowLeft className="h-4 w-4" />
+            </button>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-foreground truncate">{currentRoom.title}</p>
             </div>
-            <div className="flex gap-2">
-              {roomStatus === 'waiting' && (
-                <Button onClick={startQuiz} disabled={(currentRoom.questions?.length || 0) === 0} className="gap-2" size="sm">
-                  <Play className="h-4 w-4" /> Start Quiz
-                </Button>
-              )}
-              {roomStatus === 'active' && (
-                <Button onClick={endQuiz} variant="destructive" className="gap-2" size="sm">
-                  <Square className="h-4 w-4" /> End Quiz
-                </Button>
-              )}
+            <div className="flex items-center gap-1.5 shrink-0">
+              <span className="font-mono text-sm font-semibold text-foreground">{currentRoom.room_code}</span>
+              <button onClick={copyCode} className="text-muted-foreground hover:text-foreground transition-colors" title="Copy code">
+                {codeCopied ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
+              </button>
+            </div>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <span className={`h-2 w-2 rounded-full ${roomStatus === 'active' ? 'bg-emerald-500' : roomStatus === 'waiting' ? 'bg-amber-500' : 'bg-muted-foreground'}`} />
+              <span className="text-xs text-muted-foreground capitalize">{roomStatus}</span>
             </div>
           </div>
+          <div className="flex items-center gap-3 shrink-0">
+            <span className="text-xs text-muted-foreground hidden sm:inline">
+              {currentRoom.participants?.length || 0}/{currentRoom.max_participants} · {currentRoom.questions?.length || 0} questions
+            </span>
+            {roomStatus === 'waiting' && (
+              <Button onClick={startQuiz} disabled={(currentRoom.questions?.length || 0) === 0} className="gap-1.5" size="sm">
+                <Play className="h-3.5 w-3.5" /> Start Quiz
+              </Button>
+            )}
+            {roomStatus === 'active' && (
+              <Button onClick={endQuiz} variant="destructive" className="gap-1.5" size="sm">
+                <Square className="h-3.5 w-3.5" /> End Quiz
+              </Button>
+            )}
+          </div>
         </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 py-6">
 
         {/* Tabs */}
         <div className="flex gap-1 border border-border rounded-lg p-1 w-fit mb-5 bg-muted/30">

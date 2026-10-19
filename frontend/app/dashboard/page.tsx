@@ -55,10 +55,10 @@ export default function DashboardPage() {
   const roleLabel = normalizedRole === 'admin' ? 'Admin' : normalizedRole === 'instructor' ? 'Instructor' : 'Student'
   const roleBadgeClass =
     normalizedRole === 'admin'
-      ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-200'
+      ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300'
       : normalizedRole === 'instructor'
-        ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-200'
-        : 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-200'
+        ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300'
+        : 'bg-primary/10 text-primary'
   const [isEditingProfile, setIsEditingProfile] = useState(false)
   const [isLoadingStats, setIsLoadingStats] = useState(true)
   const [isEditingSocial, setIsEditingSocial] = useState(false)
@@ -157,12 +157,12 @@ export default function DashboardPage() {
 
   const activityIconConfig = (activityType: string) => {
     const t = String(activityType || "").toLowerCase()
-    if (t.includes("course")) return { icon: BookOpen, bgColor: "bg-green-100", textColor: "text-green-600" }
-    if (t.includes("quiz")) return { icon: Award, bgColor: "bg-blue-100", textColor: "text-blue-600" }
-    if (t.includes("streak")) return { icon: Flame, bgColor: "bg-orange-100", textColor: "text-orange-600" }
-    if (t.includes("rank")) return { icon: TrendingUp, bgColor: "bg-purple-100", textColor: "text-purple-600" }
-    if (t.includes("account") || t.includes("auth")) return { icon: Settings, bgColor: "bg-indigo-100", textColor: "text-indigo-600" }
-    return { icon: Activity, bgColor: "bg-slate-100", textColor: "text-slate-600" }
+    if (t.includes("course")) return { icon: BookOpen, bgColor: "bg-emerald-100 dark:bg-emerald-900/30", textColor: "text-emerald-600 dark:text-emerald-400" }
+    if (t.includes("quiz")) return { icon: Award, bgColor: "bg-primary/10", textColor: "text-primary" }
+    if (t.includes("streak")) return { icon: Flame, bgColor: "bg-orange-100 dark:bg-orange-900/30", textColor: "text-orange-600 dark:text-orange-400" }
+    if (t.includes("rank")) return { icon: TrendingUp, bgColor: "bg-purple-100 dark:bg-purple-900/30", textColor: "text-purple-600 dark:text-purple-400" }
+    if (t.includes("account") || t.includes("auth")) return { icon: Settings, bgColor: "bg-muted", textColor: "text-muted-foreground" }
+    return { icon: Activity, bgColor: "bg-muted", textColor: "text-muted-foreground" }
   }
 
   const isPlaceholderActivity = (item: ActivityData) => {
@@ -376,7 +376,7 @@ export default function DashboardPage() {
                   <div className="mt-3 flex items-center space-x-2">
                     <Wallet className="w-4 h-4 text-orange-300" />
                     <span className="text-sm text-primary-foreground/80">
-                      Connected: {user.wallet_address.slice(0, 6)}...{user.wallet_address.slice(-4)}
+                      Connected: {user.wallet_address?.slice(0, 6)}...{user.wallet_address?.slice(-4)}
                     </span>
                     <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${roleBadgeClass}`}>
                       {roleLabel}
@@ -412,78 +412,75 @@ export default function DashboardPage() {
                 <div key={i} className="bg-card rounded-2xl shadow-sm border border-border p-6 animate-pulse">
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
-                      <div className="h-4 bg-gray-200 rounded w-24 mb-3"></div>
-                      <div className="h-8 bg-gray-200 rounded w-32"></div>
+                      <div className="h-4 bg-muted rounded w-24 mb-3"></div>
+                      <div className="h-8 bg-muted rounded w-32"></div>
                     </div>
-                    <div className="w-16 h-16 bg-gray-200 rounded-xl"></div>
+                    <div className="w-16 h-16 bg-muted rounded-xl"></div>
                   </div>
                 </div>
               ))}
             </>
           ) : (
             <>
-              <div className="bg-card rounded-2xl shadow-sm border border-border p-6 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+              <div className="bg-card rounded-2xl border border-border p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Total XP</p>
-                <p className="text-3xl font-bold text-foreground mt-1">{stats.totalXP.toLocaleString()}</p>
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Total XP</p>
+                    <p className="text-3xl font-bold text-foreground mt-1">{stats.totalXP.toLocaleString()}</p>
+                  </div>
+                  <div className="p-3 bg-muted rounded-xl">
+                    <Trophy className="w-6 h-6 text-muted-foreground" />
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground mt-4">
+                  {stats.hoursLearned > 0 ? `${stats.hoursLearned}h learned` : 'Start learning to earn XP'}
+                </p>
               </div>
-              <div className="p-4 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-xl shadow-lg">
-                <Trophy className="w-8 h-8 text-white" />
-              </div>
-            </div>
-            <div className="flex items-center mt-4">
-              <TrendingUp className="w-4 h-4 text-green-500 mr-2" />
-              <span className="text-sm text-green-600 font-medium">+12% from last week</span>
-            </div>
-          </div>
 
-          <div className="bg-card rounded-2xl shadow-sm border border-border p-6 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Courses</p>
-                <p className="text-3xl font-bold text-foreground mt-1">{stats.coursesCompleted}</p>
+              <div className="bg-card rounded-2xl border border-border p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Courses</p>
+                    <p className="text-3xl font-bold text-foreground mt-1">{stats.coursesCompleted}</p>
+                  </div>
+                  <div className="p-3 bg-muted rounded-xl">
+                    <BookOpen className="w-6 h-6 text-muted-foreground" />
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground mt-4">completed</p>
               </div>
-              <div className="p-4 bg-gradient-to-r from-green-500 to-teal-500 rounded-xl shadow-lg">
-                <BookOpen className="w-8 h-8 text-white" />
-              </div>
-            </div>
-            <div className="flex items-center mt-4">
-              <Activity className="w-4 h-4 text-blue-500 mr-2" />
-              <span className="text-sm text-blue-600 font-medium">3 in progress</span>
-            </div>
-          </div>
 
-          <div className="bg-card rounded-2xl shadow-sm border border-border p-6 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Streak</p>
-                <p className="text-3xl font-bold text-foreground mt-1">{stats.currentStreak} days</p>
+              <div className="bg-card rounded-2xl border border-border p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Streak</p>
+                    <p className="text-3xl font-bold text-foreground mt-1">{stats.currentStreak} <span className="text-lg font-normal text-muted-foreground">days</span></p>
+                  </div>
+                  <div className="p-3 bg-muted rounded-xl">
+                    <Flame className="w-6 h-6 text-muted-foreground" />
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground mt-4">
+                  Best: {stats.bestStreak} days
+                </p>
               </div>
-              <div className="p-4 bg-gradient-to-r from-orange-500 to-red-500 rounded-xl shadow-lg">
-                <Flame className="w-8 h-8 text-white" />
-              </div>
-            </div>
-            <div className="flex items-center mt-4">
-              <span className="text-sm text-orange-600 font-medium">Keep your streak going</span>
-            </div>
-          </div>
 
-          <div className="bg-card rounded-2xl shadow-sm border border-border p-6 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Global Rank</p>
-                <p className="text-3xl font-bold text-foreground mt-1">#{stats.rank}</p>
+              <div className="bg-card rounded-2xl border border-border p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Global Rank</p>
+                    <p className="text-3xl font-bold text-foreground mt-1">
+                      {stats.rank > 0 ? `#${stats.rank}` : '—'}
+                    </p>
+                  </div>
+                  <div className="p-3 bg-muted rounded-xl">
+                    <BarChart3 className="w-6 h-6 text-muted-foreground" />
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground mt-4">
+                  {stats.rank > 0 ? 'global leaderboard' : 'Not ranked yet'}
+                </p>
               </div>
-              <div className="p-4 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl shadow-lg">
-                <BarChart3 className="w-8 h-8 text-white" />
-              </div>
-            </div>
-            <div className="flex items-center mt-4">
-              <Award className="w-4 h-4 text-purple-500 mr-2" />
-              <span className="text-sm text-purple-600 font-medium">Top 5% learner</span>
-            </div>
-          </div>
             </>
           )}
         </div>
@@ -494,11 +491,11 @@ export default function DashboardPage() {
           <div className="lg:col-span-1">
             <div id="profile-card" className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
               {/* Profile Tabs */}
-              <div className="flex border-b border-gray-200 dark:border-border">
+              <div className="flex border-b border-border">
                 <button
                   onClick={() => { setIsEditingProfile(false); setIsEditingSocial(false); }}
                   className={`flex-1 py-3 px-4 text-sm font-semibold transition-all ${
-                    !isEditingSocial ? 'text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 bg-indigo-50 dark:bg-muted' : 'text-muted-foreground hover:text-gray-900 dark:hover:text-gray-200'
+                    !isEditingSocial ? 'text-primary border-b-2 border-primary bg-primary/5' : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
                   Profile
@@ -506,7 +503,7 @@ export default function DashboardPage() {
                 <button
                   onClick={() => setIsEditingSocial(true)}
                   className={`flex-1 py-3 px-4 text-sm font-semibold transition-all ${
-                    isEditingSocial ? 'text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 bg-indigo-50 dark:bg-muted' : 'text-muted-foreground hover:text-gray-900 dark:hover:text-gray-200'
+                    isEditingSocial ? 'text-primary border-b-2 border-primary bg-primary/5' : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
                   Social Links
@@ -522,11 +519,11 @@ export default function DashboardPage() {
                         <img
                           src={profileData.avatar}
                           alt="Avatar"
-                          className="w-24 h-24 rounded-full mx-auto mb-4 border-4 border-indigo-100 object-cover"
+                          className="w-24 h-24 rounded-full mx-auto mb-4 border-4 border-border object-cover"
                         />
                       ) : (
-                        <div className="w-24 h-24 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
-                          <User className="w-12 h-12 text-white" />
+                        <div className="w-24 h-24 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
+                          <User className="w-12 h-12 text-primary-foreground" />
                         </div>
                       )}
 
@@ -537,7 +534,7 @@ export default function DashboardPage() {
                             value={profileData.name}
                             onChange={(e) => setProfileData({...profileData, name: e.target.value})}
                             placeholder="Your name"
-                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-muted text-foreground placeholder-gray-500 dark:placeholder-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-center"
+                            className="w-full px-3 py-2 border border-input bg-background text-foreground placeholder:text-muted-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-center"
                           />
                           
                           {/* Image Upload Input */}
@@ -552,42 +549,42 @@ export default function DashboardPage() {
                             />
                             <label
                               htmlFor="avatar-upload"
-                              className={`w-full flex items-center justify-center space-x-2 px-3 py-2 border-2 border-dashed border-indigo-300 dark:border-indigo-500 rounded-lg hover:bg-indigo-50 dark:hover:bg-gray-700 cursor-pointer transition-colors ${
+                              className={`w-full flex items-center justify-center space-x-2 px-3 py-2 border-2 border-dashed border-border rounded-lg hover:bg-muted cursor-pointer transition-colors ${
                                 isUploadingImage ? 'opacity-50 cursor-not-allowed' : ''
                               }`}
                             >
                               {isUploadingImage ? (
                                 <>
-                                  <Loader2 className="w-4 h-4 animate-spin text-indigo-600" />
-                                  <span className="text-sm text-indigo-600 dark:text-indigo-400">Uploading...</span>
+                                  <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                                  <span className="text-sm text-primary">Uploading...</span>
                                 </>
                               ) : (
                                 <>
-                                  <Upload className="w-4 h-4 text-indigo-600" />
-                                  <span className="text-sm text-indigo-600 dark:text-indigo-400">Upload PNG/JPG</span>
+                                  <Upload className="w-4 h-4 text-primary" />
+                                  <span className="text-sm text-primary">Upload PNG/JPG</span>
                                 </>
                               )}
                             </label>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 text-center mt-1">Max 5MB (PNG or JPG only)</p>
+                            <p className="text-xs text-muted-foreground text-center mt-1">Max 5MB (PNG or JPG only)</p>
                           </div>
 
                           <textarea
                             value={profileData.bio}
                             onChange={(e) => setProfileData({...profileData, bio: e.target.value})}
                             placeholder="Your bio"
-                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-muted text-foreground placeholder-gray-500 dark:placeholder-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-center h-20 resize-none"
+                            className="w-full px-3 py-2 border border-input bg-background text-foreground placeholder:text-muted-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-center h-20 resize-none"
                           />
                           <div className="flex gap-2">
                             <button
                               onClick={handleProfileUpdate}
-                              className="flex-1 flex items-center justify-center space-x-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-700 dark:hover:bg-indigo-800 text-white rounded-lg transition-colors"
+                              className="flex-1 flex items-center justify-center space-x-2 px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-colors"
                             >
                               <Save className="w-4 h-4" />
                               <span>Save</span>
                             </button>
                             <button
                               onClick={() => setIsEditingProfile(false)}
-                              className="flex-1 flex items-center justify-center space-x-2 px-4 py-2 bg-gray-200 dark:bg-muted text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                              className="flex-1 flex items-center justify-center space-x-2 px-4 py-2 bg-muted text-muted-foreground rounded-lg hover:bg-muted/70 transition-colors"
                             >
                               <X className="w-4 h-4" />
                               <span>Cancel</span>
@@ -602,12 +599,12 @@ export default function DashboardPage() {
                             </h4>
                             <button
                               onClick={() => setIsEditingProfile(true)}
-                              className="p-1 text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-gray-700 rounded-lg transition-all duration-200"
+                              className="p-1 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
                             >
                               <Edit3 className="w-4 h-4" />
                             </button>
                           </div>
-                          <p className="text-gray-600 dark:text-gray-300 text-sm mt-2">
+                          <p className="text-muted-foreground text-sm mt-2">
                             {profileData.bio || "Add a bio to tell others about yourself"}
                           </p>
                         </div>
@@ -615,7 +612,7 @@ export default function DashboardPage() {
                     </div>
 
                     <div className="space-y-4">
-                      <div className="flex items-center justify-between p-4 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-gray-700 dark:to-gray-800 rounded-xl border border-indigo-100 dark:border-gray-600">
+                      <div className="flex items-center justify-between p-4 bg-muted/50 rounded-xl border border-border">
                         <div className="flex items-center space-x-3">
                           {authMethod === "metamask" ? (
                             <Wallet className="w-6 h-6 text-orange-600" />
@@ -636,15 +633,15 @@ export default function DashboardPage() {
                       </div>
 
                       <div className="grid grid-cols-2 gap-4">
-                        <div className="text-center p-4 bg-blue-50 dark:bg-muted rounded-xl">
-                          <Calendar className="w-6 h-6 text-blue-600 dark:text-blue-400 mx-auto mb-2" />
-                          <p className="text-2xl font-bold text-blue-900 dark:text-blue-300">{stats.hoursLearned}</p>
-                          <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">Hours Learned</p>
+                        <div className="text-center p-4 bg-muted rounded-xl">
+                          <Calendar className="w-5 h-5 text-muted-foreground mx-auto mb-2" />
+                          <p className="text-2xl font-bold text-foreground">{stats.hoursLearned}</p>
+                          <p className="text-xs text-muted-foreground font-medium">Hours</p>
                         </div>
-                        <div className="text-center p-4 bg-green-50 dark:bg-muted rounded-xl">
-                          <Award className="w-6 h-6 text-green-600 dark:text-green-400 mx-auto mb-2" />
-                          <p className="text-2xl font-bold text-green-900 dark:text-green-300">{stats.certificatesEarned}</p>
-                          <p className="text-xs text-green-600 dark:text-green-400 font-medium">Certificates</p>
+                        <div className="text-center p-4 bg-muted rounded-xl">
+                          <Award className="w-5 h-5 text-muted-foreground mx-auto mb-2" />
+                          <p className="text-2xl font-bold text-foreground">{stats.certificatesEarned}</p>
+                          <p className="text-xs text-muted-foreground font-medium">Certificates</p>
                         </div>
                       </div>
                     </div>
@@ -666,7 +663,7 @@ export default function DashboardPage() {
                             value={socialData.github}
                             onChange={(e) => setSocialData({...socialData, github: e.target.value})}
                             placeholder="username or profile URL"
-                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-muted text-foreground placeholder-gray-500 dark:placeholder-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                            className="w-full px-3 py-2 border border-input bg-background text-foreground placeholder:text-muted-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-sm"
                           />
                         </div>
 
@@ -680,7 +677,7 @@ export default function DashboardPage() {
                             value={socialData.linkedin}
                             onChange={(e) => setSocialData({...socialData, linkedin: e.target.value})}
                             placeholder="username or profile URL"
-                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-muted text-foreground placeholder-gray-500 dark:placeholder-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                            className="w-full px-3 py-2 border border-input bg-background text-foreground placeholder:text-muted-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-sm"
                           />
                         </div>
 
@@ -694,7 +691,7 @@ export default function DashboardPage() {
                             value={socialData.twitter}
                             onChange={(e) => setSocialData({...socialData, twitter: e.target.value})}
                             placeholder="@username or profile URL"
-                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-muted text-foreground placeholder-gray-500 dark:placeholder-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                            className="w-full px-3 py-2 border border-input bg-background text-foreground placeholder:text-muted-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-sm"
                           />
                         </div>
 
@@ -703,7 +700,7 @@ export default function DashboardPage() {
                             handleSocialUpdate()
                             setIsEditingSocial(false)
                           }}
-                          className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-700 dark:hover:bg-indigo-800 text-white rounded-lg transition-colors mt-6"
+                          className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-colors mt-6"
                         >
                           <Save className="w-4 h-4" />
                           <span>Save Links</span>
@@ -723,7 +720,7 @@ export default function DashboardPage() {
                             >
                               <ExternalLink className="w-5 h-5 text-muted-foreground" />
                               <span className="text-sm text-muted-foreground flex-1 truncate">{socialData.github}</span>
-                              <Link2 className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+                              <Link2 className="w-4 h-4 text-muted-foreground" />
                             </a>
                           )}
                           {socialData.linkedin && (
@@ -735,7 +732,7 @@ export default function DashboardPage() {
                             >
                               <ExternalLink className="w-5 h-5 text-blue-500" />
                               <span className="text-sm text-muted-foreground flex-1 truncate">{socialData.linkedin}</span>
-                              <Link2 className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+                              <Link2 className="w-4 h-4 text-muted-foreground" />
                             </a>
                           )}
                           {socialData.twitter && (
@@ -747,16 +744,16 @@ export default function DashboardPage() {
                             >
                               <Link2 className="w-5 h-5 text-sky-400" />
                               <span className="text-sm text-muted-foreground flex-1 truncate">{socialData.twitter}</span>
-                              <Link2 className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+                              <Link2 className="w-4 h-4 text-muted-foreground" />
                             </a>
                           )}
                         </div>
                         {!socialData.github && !socialData.linkedin && !socialData.twitter && (
-                          <div className="text-center py-8 px-4 bg-gray-50 dark:bg-muted rounded-xl border border-border">
-                            <p className="text-sm text-gray-600 dark:text-gray-300">No social links added yet</p>
+                          <div className="text-center py-8 px-4 bg-muted/50 rounded-xl border border-border">
+                            <p className="text-sm text-muted-foreground">No social links added yet</p>
                             <button
                               onClick={() => setIsEditingSocial(true)}
-                              className="mt-3 text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 font-semibold"
+                              className="mt-3 text-sm text-primary hover:text-primary/80 font-semibold"
                             >
                               Add your first link
                             </button>
@@ -764,7 +761,7 @@ export default function DashboardPage() {
                         )}
                         <button
                           onClick={() => setIsEditingSocial(true)}
-                          className="w-full mt-4 flex items-center justify-center space-x-2 px-4 py-2 bg-gray-100 dark:bg-muted text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                          className="w-full mt-4 flex items-center justify-center space-x-2 px-4 py-2 bg-muted text-muted-foreground rounded-lg hover:bg-muted/70 transition-colors"
                         >
                           <Edit3 className="w-4 h-4" />
                           <span>Edit Links</span>
@@ -790,52 +787,25 @@ export default function DashboardPage() {
                 </div>
               </div>
               
-              {/* GitHub-style contribution graph */}
-              <div className="mt-6 pt-4 border-t border-gray-200 dark:border-border">
-                <p className="text-xs font-semibold text-muted-foreground mb-3">Last 12 weeks</p>
-                <div className="grid grid-cols-12 gap-1">
-                  {[...Array(84)].map((_, i) => {
-                    // Calculate activity based on current streak
-                    let activity = 0
-                    if (stats.currentStreak > 0) {
-                      // Days in current streak show full activity
-                      if (i >= 84 - stats.currentStreak) {
-                        activity = 0.85 + Math.random() * 0.15
-                      } else {
-                        // Past days show decreasing activity
-                        activity = Math.random() * 0.4
-                      }
-                    } else {
-                      // No streak - show light activity
-                      activity = Math.random() * 0.3
-                    }
-                    
-                    let bgColor = 'bg-gray-100 dark:bg-muted'
-                    if (activity > 0.75) bgColor = 'bg-green-600'
-                    else if (activity > 0.5) bgColor = 'bg-green-400'
-                    else if (activity > 0.25) bgColor = 'bg-green-200'
-                    else if (activity > 0) bgColor = 'bg-green-100'
-                    
-                    return (
+              {/* Streak visualization */}
+              {stats.currentStreak > 0 && (
+                <div className="mt-6 pt-4 border-t border-border">
+                  <p className="text-xs font-semibold text-muted-foreground mb-3">Current streak</p>
+                  <div className="flex flex-wrap gap-1">
+                    {[...Array(Math.min(stats.currentStreak, 30))].map((_, i) => (
                       <div
                         key={i}
-                        className={`w-3 h-3 rounded-sm ${bgColor} cursor-pointer hover:ring-2 hover:ring-offset-1 dark:hover:ring-offset-gray-800 hover:ring-green-600 transition-all`}
-                        title={`Week ${Math.floor(i / 7) + 1}`}
+                        className="w-3 h-3 rounded-sm bg-emerald-500"
+                        title={`Day ${i + 1}`}
                       />
-                    )
-                  })}
-                </div>
-                <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground">
-                  <span>Less</span>
-                  <div className="flex gap-1">
-                    <div className="w-3 h-3 bg-gray-100 dark:bg-muted rounded-sm"></div>
-                    <div className="w-3 h-3 bg-green-100 dark:bg-green-900 rounded-sm"></div>
-                    <div className="w-3 h-3 bg-green-400 dark:bg-green-600 rounded-sm"></div>
-                    <div className="w-3 h-3 bg-green-600 dark:bg-green-500 rounded-sm"></div>
+                    ))}
+                    {stats.currentStreak > 30 && (
+                      <span className="text-xs text-muted-foreground ml-1">+{stats.currentStreak - 30} more</span>
+                    )}
                   </div>
-                  <span>More</span>
+                  <p className="text-xs text-muted-foreground mt-2">{stats.currentStreak} consecutive days</p>
                 </div>
-              </div>
+              )}
             </div>
           </div>
 
@@ -846,7 +816,7 @@ export default function DashboardPage() {
                 <h3 className="text-xl font-bold text-foreground">Recent Activity</h3>
                 <button
                   onClick={() => setShowAllActivities((prev) => !prev)}
-                  className="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 font-semibold hover:bg-indigo-50 dark:hover:bg-gray-700 px-3 py-1 rounded-lg transition-all duration-200"
+                  className="text-sm text-primary hover:text-primary/80 font-semibold hover:bg-muted px-3 py-1 rounded-lg transition-colors"
                 >
                   {showAllActivities ? "Show less" : "View all →"}
                 </button>
@@ -857,20 +827,20 @@ export default function DashboardPage() {
                   const iconConfig = activityIconConfig(activity.type)
                   const Icon = iconConfig.icon
                   return (
-                  <div key={activity.id} className="flex items-center space-x-4 p-4 hover:bg-muted/60 rounded-xl transition-all duration-200 border border-gray-100 dark:border-border hover:border-gray-200 dark:hover:border-gray-600 hover:shadow-md">
+                  <div key={activity.id} className="flex items-center space-x-4 p-4 hover:bg-muted/40 rounded-xl transition-colors border border-border">
                     <div className={`p-3 rounded-xl ${iconConfig.bgColor} shadow-sm`}>
                       <Icon className={`w-5 h-5 ${iconConfig.textColor}`} />
                     </div>
                     <div className="flex-1">
                       <p className="text-sm font-semibold text-foreground">{activity.title}</p>
-                      <p className="text-xs text-gray-600 dark:text-gray-300 mt-1">{activity.description}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{activity.timestamp_utc || activity.completed_at}</p>
+                      <p className="text-xs text-muted-foreground mt-1">{activity.description}</p>
+                      <p className="text-xs text-muted-foreground mt-1">{activity.timestamp_utc || activity.completed_at}</p>
                     </div>
-                    <div className="w-2 h-2 bg-gray-300 dark:bg-gray-600 rounded-full"></div>
+                    <div className="w-2 h-2 bg-muted-foreground/30 rounded-full"></div>
                   </div>
                 )})}
                 {realActivities.length === 0 && (
-                  <div className="text-sm text-gray-500 dark:text-gray-400">No recent activity yet.</div>
+                  <div className="text-sm text-muted-foreground">No recent activity yet.</div>
                 )}
               </div>
             </div>
@@ -881,34 +851,34 @@ export default function DashboardPage() {
             <div className="bg-card rounded-2xl shadow-sm border border-border p-6">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-xl font-bold text-foreground">Your Certificates</h3>
-                <span className="text-sm text-gray-500 dark:text-gray-400">
+                <span className="text-sm text-muted-foreground">
                   {certificates.length} total
                 </span>
               </div>
 
               {certificates.length === 0 ? (
-                <div className="text-sm text-gray-500 dark:text-gray-400">No certificates yet.</div>
+                <div className="text-sm text-muted-foreground">No certificates yet.</div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {certificates.map((cert) => (
                     <a
                       key={cert.certificate_id}
                       href={cert.public_url || cert.unique_url || `/certificate/${cert.certificate_id}`}
-                      className="group rounded-xl border border-gray-200 dark:border-border p-4 hover:shadow-md hover:border-indigo-300 dark:hover:border-indigo-500 transition-all"
+                      className="group rounded-xl border border-border p-4 hover:bg-muted/30 transition-colors"
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div>
-                          <p className="text-sm font-semibold text-foreground group-hover:text-indigo-600">
+                          <p className="text-sm font-semibold text-foreground group-hover:text-primary">
                             {cert.course_title || "Course Certificate"}
                           </p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          <p className="text-xs text-muted-foreground mt-1">
                             Instructor: {cert.instructor_name || cert.mentor_name || "OpenLearnX"}
                           </p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          <p className="text-xs text-muted-foreground mt-1">
                             Completed: {new Date(cert.completion_date).toLocaleDateString()}
                           </p>
                         </div>
-                        <div className="text-xs font-mono text-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 px-2 py-1 rounded">
+                        <div className="text-xs font-mono text-primary bg-primary/10 px-2 py-1 rounded">
                           {cert.certificate_id}
                         </div>
                       </div>

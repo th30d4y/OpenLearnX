@@ -121,42 +121,63 @@ export default function AdaptiveQuizPage() {
   // Start screen
   if (!quizStarted) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <div className="w-full max-w-2xl">
-          <div className="text-center mb-8">
-            <div className="inline-flex h-14 w-14 items-center justify-center rounded-xl bg-primary mb-4">
-              <Brain className="h-7 w-7 text-primary-foreground" />
+      <div className="min-h-screen bg-background">
+        <div className="max-w-2xl mx-auto px-4 py-12 space-y-8">
+          {/* Hero */}
+          <div className="flex items-start gap-4">
+            <div className="h-12 w-12 rounded-xl bg-primary flex items-center justify-center shrink-0">
+              <Brain className="h-6 w-6 text-primary-foreground" />
             </div>
-            <h1 className="text-3xl font-bold text-foreground">Adaptive AI Quiz</h1>
-            <p className="mt-2 text-muted-foreground max-w-lg mx-auto">
-              An intelligent quiz that adapts to your skill level in real-time using our trained CNN model.
-            </p>
+            <div>
+              <h1 className="text-2xl font-semibold tracking-tight text-foreground">Adaptive AI Quiz</h1>
+              <p className="text-muted-foreground mt-1 leading-relaxed text-sm">
+                A quiz that adjusts difficulty based on your answers using a trained CNN model.
+                Start at medium, move up when you're on a streak, back down when you miss.
+              </p>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-            {[
-              { icon: Target, label: 'Adaptive Difficulty', desc: 'Questions adjust based on your performance' },
-              { icon: Brain, label: 'AI Predictions', desc: 'See how our AI model would answer' },
-              { icon: TrendingUp, label: 'Smart Analytics', desc: 'Track performance across difficulty levels' },
-            ].map(({ icon: Icon, label, desc }) => (
-              <div key={label} className="rounded-xl border border-border bg-card p-4 space-y-2">
-                <Icon className="h-5 w-5 text-primary" />
-                <p className="font-medium text-card-foreground text-sm">{label}</p>
-                <p className="text-xs text-muted-foreground">{desc}</p>
-              </div>
-            ))}
+          {/* How it works */}
+          <div className="rounded-xl border border-border bg-card p-5 space-y-4">
+            <h2 className="text-sm font-semibold text-card-foreground tracking-tight">How it works</h2>
+            <div className="space-y-3">
+              {[
+                { step: 'Start', detail: 'Every session begins at medium difficulty to find your level.' },
+                { step: 'Adapt', detail: '2 correct in a row → harder. Wrong answer → easier. The model tracks your trajectory.' },
+                { step: 'Review', detail: 'After 10 questions you see accuracy per difficulty, your final level, and progression path.' },
+              ].map(({ step, detail }) => (
+                <div key={step} className="flex gap-3 items-start">
+                  <span className="text-xs font-semibold text-primary bg-primary/10 rounded px-1.5 py-0.5 shrink-0 mt-0.5 min-w-[3rem] text-center">{step}</span>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{detail}</p>
+                </div>
+              ))}
+            </div>
           </div>
 
-          <div className="text-center">
-            <Button onClick={startQuiz} disabled={loading} size="lg" className="gap-2">
-              {loading ? (
-                <div className="h-4 w-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
-              ) : (
-                <Brain className="h-4 w-4" />
-              )}
-              Start Adaptive Quiz
-            </Button>
+          {/* Difficulty path */}
+          <div className="rounded-xl border border-border bg-card p-5">
+            <h2 className="text-sm font-semibold text-card-foreground tracking-tight mb-3">Difficulty progression</h2>
+            <div className="flex items-center gap-2">
+              {['Easy', 'Medium', 'Hard'].map((level, i) => (
+                <React.Fragment key={level}>
+                  <div className={`flex-1 rounded-lg border py-2.5 text-center transition-colors ${i === 1 ? 'border-primary bg-primary/5' : 'border-border'}`}>
+                    <p className="text-xs font-medium text-foreground">{level}</p>
+                  </div>
+                  {i < 2 && <TrendingUp className="h-3.5 w-3.5 text-muted-foreground shrink-0" />}
+                </React.Fragment>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">Begins at Medium — your path adapts every 2 answers</p>
           </div>
+
+          <Button onClick={startQuiz} disabled={loading} size="lg" className="gap-2">
+            {loading ? (
+              <div className="h-4 w-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <Brain className="h-4 w-4" />
+            )}
+            Start Quiz
+          </Button>
         </div>
       </div>
     )

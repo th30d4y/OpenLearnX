@@ -109,6 +109,10 @@
     @apply bg-background text-foreground;
     font-size: clamp(14px, 0.875rem + 0.1vw, 16px);
     line-height: 1.6;
+    font-feature-settings: "kern" 1, "liga" 1;
+  }
+  h1, h2, h3, h4 {
+    letter-spacing: -0.025em;
   }
 }
 
@@ -132,4 +136,16 @@
 @keyframes slideUp {
   from { opacity: 0; transform: translateY(16px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes skeleton {
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
+}
+
+@layer utilities {
+  .animate-skeleton {
+    animation: skeleton 1.5s ease-in-out infinite;
+  }
 }
