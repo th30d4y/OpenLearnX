@@ -270,15 +270,15 @@ export default function SecurityCheckPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
+    <div className="min-h-screen bg-background text-foreground">
       {/* Header */}
-      <div className="bg-gray-800 border-b border-gray-700 p-4">
+      <div className="bg-card border-b border-border p-4">
         <div className="max-w-4xl mx-auto">
           <h1 className="text-2xl font-bold flex items-center space-x-2">
             <Shield className="h-6 w-6 text-red-400" />
             <span>Exam Security Check</span>
           </h1>
-          <p className="text-gray-400">Exam Code: {examCode}</p>
+          <p className="text-muted-foreground">Exam Code: {examCode}</p>
         </div>
       </div>
 
@@ -291,17 +291,17 @@ export default function SecurityCheckPage() {
 
       <div className="max-w-4xl mx-auto p-8">
         {/* Security Requirements */}
-        <div className="bg-gray-800 rounded-lg p-6 mb-8">
+        <div className="bg-card rounded-xl border border-border p-6 mb-8">
           <h2 className="text-xl font-bold mb-6">Security Requirements</h2>
           
           <div className="space-y-4">
             {/* Fullscreen Check */}
-            <div className="flex items-center justify-between p-4 bg-gray-700 rounded-lg">
+            <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
               <div className="flex items-center space-x-3">
                 <Maximize className="h-5 w-5 text-blue-400" />
                 <div>
                   <h3 className="font-medium">Fullscreen Mode</h3>
-                  <p className="text-sm text-gray-400">Required for exam security</p>
+                  <p className="text-sm text-muted-foreground">Required for exam security</p>
                 </div>
               </div>
               <div className="flex items-center space-x-2">
@@ -319,12 +319,12 @@ export default function SecurityCheckPage() {
             </div>
 
             {/* VM Detection */}
-            <div className="flex items-center justify-between p-4 bg-gray-700 rounded-lg">
+            <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
               <div className="flex items-center space-x-3">
                 <Monitor className="h-5 w-5 text-purple-400" />
                 <div>
                   <h3 className="font-medium">System Verification</h3>
-                  <p className="text-sm text-gray-400">Checking for virtual machines</p>
+                  <p className="text-sm text-muted-foreground">Checking for virtual machines</p>
                 </div>
               </div>
               {securityChecks.noVirtualBox ? (
@@ -335,12 +335,12 @@ export default function SecurityCheckPage() {
             </div>
 
             {/* Copy/Paste Block */}
-            <div className="flex items-center justify-between p-4 bg-gray-700 rounded-lg">
+            <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
               <div className="flex items-center space-x-3">
                 <Copy className="h-5 w-5 text-red-400" />
                 <div>
                   <h3 className="font-medium">Copy/Paste Protection</h3>
-                  <p className="text-sm text-gray-400">Disabled for exam integrity</p>
+                  <p className="text-sm text-muted-foreground">Disabled for exam integrity</p>
                 </div>
               </div>
               {securityChecks.copyPasteBlocked ? (
@@ -351,12 +351,12 @@ export default function SecurityCheckPage() {
             </div>
 
             {/* Focus Detection */}
-            <div className="flex items-center justify-between p-4 bg-gray-700 rounded-lg">
+            <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
               <div className="flex items-center space-x-3">
                 <Eye className="h-5 w-5 text-green-400" />
                 <div>
                   <h3 className="font-medium">Focus Monitoring</h3>
-                  <p className="text-sm text-gray-400">Tab switching will be tracked</p>
+                  <p className="text-sm text-muted-foreground">Tab switching will be tracked</p>
                 </div>
               </div>
               {securityChecks.focusDetection ? (
@@ -369,11 +369,11 @@ export default function SecurityCheckPage() {
         </div>
 
         {/* Agreement */}
-        <div className="bg-gray-800 rounded-lg p-6 mb-8">
+        <div className="bg-card rounded-xl border border-border p-6 mb-8">
           <h2 className="text-xl font-bold mb-4">Exam Agreement</h2>
           
-          <div className="bg-gray-900 p-4 rounded mb-4 max-h-40 overflow-y-auto">
-            <div className="text-sm text-gray-300 space-y-2">
+          <div className="bg-muted/30 p-4 rounded mb-4 max-h-40 overflow-y-auto">
+            <div className="text-sm text-foreground space-y-2">
               <p>By proceeding with this exam, I agree to:</p>
               <ul className="list-disc list-inside space-y-1 ml-4">
                 <li>Stay in fullscreen mode throughout the exam</li>
@@ -415,14 +415,14 @@ export default function SecurityCheckPage() {
           
           <button
             onClick={() => router.push('/coding')}
-            className="bg-gray-600 hover:bg-gray-700 px-8 py-3 rounded-lg"
+            className="bg-gray-600 hover:bg-muted px-8 py-3 rounded-lg"
           >
             Cancel
           </button>
         </div>
 
         {/* Status */}
-        <div className="mt-6 p-4 bg-gray-800 rounded-lg">
+        <div className="mt-6 p-4 bg-card rounded-xl border border-border">
           <div className="flex items-center space-x-2">
             {securityPassed ? (
               <>

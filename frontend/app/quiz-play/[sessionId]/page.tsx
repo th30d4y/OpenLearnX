@@ -1,7 +1,8 @@
 'use client'
 import React, { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { Brain, Trophy, Target, ArrowRight, CheckCircle, XCircle } from 'lucide-react'
+import { Brain, Trophy, ArrowRight, CheckCircle, XCircle, Loader2 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
 interface Question {
   question_id: string
@@ -15,11 +16,7 @@ interface Question {
 
 interface SessionStats {
   current_difficulty?: string
-  consecutive_correct?: {
-    easy: number
-    medium: number
-    hard: number
-  }
+  consecutive_correct?: { easy: number; medium: number; hard: number }
   total_questions?: number
   correct_answers?: number
   score?: number
@@ -38,7 +35,7 @@ export default function QuizPlayPage() {
     total_questions: 0,
     correct_answers: 0,
     score: 0,
-    accuracy: 0
+    accuracy: 0,
   })
   const [selectedAnswer, setSelectedAnswer] = useState<string>('')
   const [showResult, setShowResult] = useState(false)
@@ -46,108 +43,74 @@ export default function QuizPlayPage() {
   const [loading, setLoading] = useState(true)
   const [quizCompleted, setQuizCompleted] = useState(false)
 
-  // ✅ Safe getter for current difficulty with fallback
-  const getCurrentDifficulty = () => {
-    return sessionStats?.current_difficulty || 'easy'
-  }
+  const getCurrentDifficulty = () => sessionStats?.current_difficulty || 'easy'
 
-  // ✅ Safe getter for consecutive correct with fallback
-  const getConsecutiveCorrect = () => {
-    return sessionStats?.consecutive_correct || { easy: 0, medium: 0, hard: 0 }
-  }
-
-  // Fetch next question
   const fetchNextQuestion = async () => {
     try {
       setLoading(true)
-      const token = localStorage.getItem("openlearnx_jwt_token") || localStorage.getItem("openlearnx_token")
+      const token = localStorage.getItem('openlearnx_jwt_token') || localStorage.getItem('openlearnx_token')
       const response = await fetch(`http://127.0.0.1:5000/api/quizzes/session/${sessionId}/next-question`, {
-        headers: {
-          ...(token ? { Authorization: `Bearer ${token}` } : {})
-        }
+        headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
       })
       const data = await response.json()
-
-      console.log('Next question response:', data) // ✅ Debug log
-
       if (data.success) {
         if (data.quiz_completed) {
           setQuizCompleted(true)
           setCurrentQuestion(null)
         } else {
           setCurrentQuestion(data.question)
-          // ✅ Safely update session stats with fallbacks
           setSessionStats(prev => ({
             current_difficulty: data.session_stats?.current_difficulty || prev.current_difficulty || 'easy',
             consecutive_correct: data.session_stats?.consecutive_correct || prev.consecutive_correct || { easy: 0, medium: 0, hard: 0 },
             total_questions: data.session_stats?.total_questions || prev.total_questions || 0,
             correct_answers: data.session_stats?.correct_answers || prev.correct_answers || 0,
             score: data.session_stats?.score || prev.score || 0,
-            accuracy: data.session_stats?.accuracy || prev.accuracy || 0
+            accuracy: data.session_stats?.accuracy || prev.accuracy || 0,
           }))
         }
       } else {
         alert(`Error: ${data.error}`)
       }
-    } catch (error) {
-      console.error('Fetch question error:', error)
+    } catch {
       alert('Failed to fetch next question')
     } finally {
       setLoading(false)
     }
   }
 
-  // Submit answer
   const submitAnswer = async () => {
     if (!selectedAnswer || !currentQuestion) return
-
     try {
       setLoading(true)
-      const token = localStorage.getItem("openlearnx_jwt_token") || localStorage.getItem("openlearnx_token")
-      const storedUserRaw = localStorage.getItem("openlearnx_user")
-      const storedUser = storedUserRaw ? JSON.parse(storedUserRaw) : null
+      const token = localStorage.getItem('openlearnx_jwt_token') || localStorage.getItem('openlearnx_token')
+      const storedUser = JSON.parse(localStorage.getItem('openlearnx_user') || 'null')
       const response = await fetch(`http://127.0.0.1:5000/api/quizzes/session/${sessionId}/submit-answer`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {})
-        },
-        body: JSON.stringify({
-          answer: selectedAnswer,
-          question_data: currentQuestion,
-          user_id: storedUser?.id,
-          wallet_address: storedUser?.wallet_address
-        })
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ answer: selectedAnswer, question_data: currentQuestion, user_id: storedUser?.id, wallet_address: storedUser?.wallet_address }),
       })
-
       const data = await response.json()
-      console.log('Submit answer response:', data) // ✅ Debug log
-
       if (data.success) {
         setLastResult(data)
         setShowResult(true)
-        
-        // ✅ Safely update session stats with fallbacks
         setSessionStats(prev => ({
           current_difficulty: data.session_stats?.current_difficulty || prev.current_difficulty || 'easy',
           consecutive_correct: data.session_stats?.consecutive_correct || prev.consecutive_correct || { easy: 0, medium: 0, hard: 0 },
           total_questions: data.session_stats?.total_questions || prev.total_questions || 0,
           correct_answers: data.session_stats?.correct_answers || prev.correct_answers || 0,
           score: data.session_stats?.score || prev.score || 0,
-          accuracy: data.session_stats?.accuracy || prev.accuracy || 0
+          accuracy: data.session_stats?.accuracy || prev.accuracy || 0,
         }))
       } else {
         alert(`Error: ${data.error}`)
       }
-    } catch (error) {
-      console.error('Submit answer error:', error)
+    } catch {
       alert('Failed to submit answer')
     } finally {
       setLoading(false)
     }
   }
 
-  // Continue to next question
   const continueToNext = () => {
     setShowResult(false)
     setSelectedAnswer('')
@@ -155,28 +118,25 @@ export default function QuizPlayPage() {
     fetchNextQuestion()
   }
 
-  // Initial load
   useEffect(() => {
-    if (sessionId) {
-      fetchNextQuestion()
-    }
+    if (sessionId) fetchNextQuestion()
   }, [sessionId])
 
-  const getDifficultyColor = (difficulty: string) => {
-    switch (difficulty) {
-      case 'easy': return 'text-green-400 bg-green-900'
-      case 'medium': return 'text-yellow-400 bg-yellow-900'
-      case 'hard': return 'text-red-400 bg-red-900'
-      default: return 'text-gray-400 bg-gray-700'
+  const difficultyBadge = (d: string) => {
+    switch (d) {
+      case 'easy': return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400'
+      case 'medium': return 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400'
+      case 'hard': return 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400'
+      default: return 'bg-muted text-muted-foreground'
     }
   }
 
   if (loading && !currentQuestion) {
     return (
-      <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto mb-4"></div>
-          <p>Loading question...</p>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center space-y-3">
+          <Loader2 className="h-6 w-6 animate-spin text-primary mx-auto" />
+          <p className="text-sm text-muted-foreground">Loading question…</p>
         </div>
       </div>
     )
@@ -184,41 +144,29 @@ export default function QuizPlayPage() {
 
   if (quizCompleted) {
     return (
-      <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">
-        <div className="max-w-2xl mx-auto p-6 text-center">
-          <Trophy className="h-16 w-16 text-yellow-400 mx-auto mb-4" />
-          <h1 className="text-3xl font-bold mb-4">🎉 Quiz Completed!</h1>
-          
-          <div className="bg-gray-800 p-6 rounded-lg mb-6">
-            <h2 className="text-xl font-bold mb-4">Final Results</h2>
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <div className="w-full max-w-lg">
+          <div className="text-center mb-8">
+            <Trophy className="h-12 w-12 text-amber-500 mx-auto mb-3" />
+            <h1 className="text-2xl font-bold text-foreground">Quiz Completed</h1>
+          </div>
+          <div className="rounded-xl border border-border bg-card p-6 mb-6">
+            <h2 className="font-semibold text-card-foreground mb-4">Final Results</h2>
             <div className="grid grid-cols-2 gap-4 text-center">
-              <div className="bg-gray-700 p-4 rounded">
-                <div className="text-2xl font-bold text-blue-400">{sessionStats.score || 0}</div>
-                <div className="text-gray-400">Final Score</div>
-              </div>
-              <div className="bg-gray-700 p-4 rounded">
-                <div className="text-2xl font-bold text-green-400">{sessionStats.accuracy || 0}%</div>
-                <div className="text-gray-400">Accuracy</div>
-              </div>
-              <div className="bg-gray-700 p-4 rounded">
-                <div className="text-2xl font-bold text-purple-400">{sessionStats.total_questions || 0}</div>
-                <div className="text-gray-400">Questions</div>
-              </div>
-              <div className="bg-gray-700 p-4 rounded">
-                <div className={`text-2xl font-bold px-3 py-1 rounded ${getDifficultyColor(getCurrentDifficulty())}`}>
-                  {getCurrentDifficulty().toUpperCase()}
+              {[
+                { label: 'Final Score', value: sessionStats.score || 0, color: 'text-primary' },
+                { label: 'Accuracy', value: `${sessionStats.accuracy || 0}%`, color: 'text-emerald-600 dark:text-emerald-400' },
+                { label: 'Questions', value: sessionStats.total_questions || 0, color: 'text-foreground' },
+                { label: 'Final Level', value: getCurrentDifficulty(), color: '' },
+              ].map(({ label, value, color }) => (
+                <div key={label} className="rounded-lg border border-border bg-muted/30 p-3">
+                  <p className={`text-xl font-bold capitalize ${color || difficultyBadge(String(value)).split(' ')[0]}`}>{value}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{label}</p>
                 </div>
-                <div className="text-gray-400">Final Level</div>
-              </div>
+              ))}
             </div>
           </div>
-
-          <button
-            onClick={() => router.push('/quizzes')}
-            className="bg-blue-600 hover:bg-blue-700 px-6 py-3 rounded-lg font-semibold"
-          >
-            Back to Quizzes
-          </button>
+          <Button onClick={() => router.push('/quizzes')} className="w-full">Back to Quizzes</Button>
         </div>
       </div>
     )
@@ -226,87 +174,70 @@ export default function QuizPlayPage() {
 
   if (showResult && lastResult) {
     return (
-      <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">
-        <div className="max-w-2xl mx-auto p-6">
-          <div className="text-center mb-6">
-            {lastResult.is_correct ? (
-              <CheckCircle className="h-16 w-16 text-green-400 mx-auto mb-4" />
-            ) : (
-              <XCircle className="h-16 w-16 text-red-400 mx-auto mb-4" />
-            )}
-            <h1 className="text-3xl font-bold mb-2">
-              {lastResult.is_correct ? '✅ Correct!' : '❌ Incorrect'}
-            </h1>
-            <p className="text-gray-400">
-              {lastResult.is_correct ? 'Great job!' : 'Keep trying!'}
-            </p>
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <div className="w-full max-w-lg space-y-4">
+          <div className="text-center">
+            {lastResult.is_correct
+              ? <CheckCircle className="h-12 w-12 text-emerald-500 mx-auto mb-2" />
+              : <XCircle className="h-12 w-12 text-red-500 mx-auto mb-2" />}
+            <h1 className="text-2xl font-bold text-foreground">{lastResult.is_correct ? 'Correct' : 'Incorrect'}</h1>
+            <p className="text-sm text-muted-foreground mt-1">{lastResult.is_correct ? 'Great job!' : 'Keep trying!'}</p>
           </div>
 
-          <div className="bg-gray-800 p-6 rounded-lg mb-6">
-            <h3 className="font-semibold mb-2">Correct Answer:</h3>
-            <p className="text-green-400 mb-4">{lastResult.correct_answer}</p>
-            
+          <div className="rounded-xl border border-border bg-card p-5 space-y-3">
+            <div>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Correct Answer</p>
+              <p className="text-emerald-600 dark:text-emerald-400 font-medium mt-1">{lastResult.correct_answer}</p>
+            </div>
             {lastResult.explanation && (
               <div>
-                <h3 className="font-semibold mb-2">Explanation:</h3>
-                <p className="text-gray-300">{lastResult.explanation}</p>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Explanation</p>
+                <p className="text-sm text-foreground mt-1">{lastResult.explanation}</p>
               </div>
             )}
           </div>
 
-          {/* Difficulty Change Notification */}
           {lastResult.difficulty_changed && (
-            <div className="bg-blue-900 border border-blue-600 p-4 rounded-lg mb-6">
-              <h3 className="font-semibold mb-2">📈 Difficulty Updated!</h3>
-              <p>
-                Moved from <span className={`px-2 py-1 rounded ${getDifficultyColor(lastResult.previous_difficulty)}`}>
-                  {lastResult.previous_difficulty}
-                </span> to <span className={`px-2 py-1 rounded ${getDifficultyColor(lastResult.new_difficulty)}`}>
-                  {lastResult.new_difficulty}
-                </span>
+            <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
+              <p className="text-sm font-medium text-foreground">Difficulty updated</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                <span className={`px-1.5 py-0.5 rounded text-xs font-medium capitalize ${difficultyBadge(lastResult.previous_difficulty)}`}>{lastResult.previous_difficulty}</span>
+                {' → '}
+                <span className={`px-1.5 py-0.5 rounded text-xs font-medium capitalize ${difficultyBadge(lastResult.new_difficulty)}`}>{lastResult.new_difficulty}</span>
               </p>
             </div>
           )}
 
-          {/* Session Stats */}
-          <div className="bg-gray-800 p-6 rounded-lg mb-6">
-            <h3 className="font-semibold mb-4">📊 Your Progress</h3>
+          <div className="rounded-xl border border-border bg-card p-4">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-3">Your Progress</p>
             <div className="grid grid-cols-2 gap-4 text-center">
               <div>
-                <div className="text-xl font-bold text-blue-400">{sessionStats.score || 0}</div>
-                <div className="text-gray-400 text-sm">Score</div>
+                <p className="text-xl font-bold text-primary">{sessionStats.score || 0}</p>
+                <p className="text-xs text-muted-foreground">Score</p>
               </div>
               <div>
-                <div className="text-xl font-bold text-green-400">{sessionStats.accuracy || 0}%</div>
-                <div className="text-gray-400 text-sm">Accuracy</div>
+                <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400">{sessionStats.accuracy || 0}%</p>
+                <p className="text-xs text-muted-foreground">Accuracy</p>
               </div>
             </div>
           </div>
 
-          {/* AI Feedback */}
           {lastResult.ai_feedback && (
-            <div className="bg-purple-900 border border-purple-600 p-4 rounded-lg mb-6">
-              <h3 className="font-semibold mb-2 flex items-center space-x-2">
-                <Brain className="h-5 w-5" />
-                <span>🤖 AI Analysis</span>
-              </h3>
-              <p className="text-purple-200">
-                AI predicted: <span className="font-semibold">{lastResult.ai_feedback.ai_prediction}</span>
-                {lastResult.ai_feedback.ai_agrees ? ' ✅ (Agrees with correct answer)' : ' ❌ (Disagrees)'}
+            <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
+              <p className="text-sm font-medium text-foreground flex items-center gap-2 mb-1">
+                <Brain className="h-4 w-4 text-primary" /> AI Analysis
               </p>
-              <p className="text-xs text-purple-300 mt-1">
-                Confidence: {Math.round(lastResult.ai_feedback.ai_confidence * 100)}%
+              <p className="text-sm text-muted-foreground">
+                AI predicted: <span className="font-medium text-foreground">{lastResult.ai_feedback.ai_prediction}</span>
+                {' '}{lastResult.ai_feedback.ai_agrees ? '(Agrees)' : '(Disagrees)'}
               </p>
+              <p className="text-xs text-muted-foreground mt-1">Confidence: {Math.round(lastResult.ai_feedback.ai_confidence * 100)}%</p>
             </div>
           )}
 
-          <button
-            onClick={continueToNext}
-            className="w-full bg-blue-600 hover:bg-blue-700 p-4 rounded-lg font-semibold flex items-center justify-center space-x-2"
-          >
-            <span>Continue to Next Question</span>
-            <ArrowRight className="h-5 w-5" />
-          </button>
+          <Button onClick={continueToNext} className="w-full gap-2" size="lg">
+            Continue to Next Question <ArrowRight className="h-4 w-4" />
+          </Button>
         </div>
       </div>
     )
@@ -314,88 +245,81 @@ export default function QuizPlayPage() {
 
   if (!currentQuestion) {
     return (
-      <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">
-        <div className="text-center">
-          <p>No question available</p>
-          <button
-            onClick={() => router.push('/quizzes')}
-            className="mt-4 bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded"
-          >
-            Back to Quizzes
-          </button>
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <div className="text-center space-y-4">
+          <p className="text-muted-foreground">No question available</p>
+          <Button onClick={() => router.push('/quizzes')}>Back to Quizzes</Button>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
-      <div className="max-w-4xl mx-auto p-6">
-        {/* Header with Stats */}
-        <div className="bg-gray-800 p-4 rounded-lg mb-6">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center space-x-4">
-              <span className={`px-3 py-1 rounded font-semibold ${getDifficultyColor(getCurrentDifficulty())}`}>
-                {getCurrentDifficulty().toUpperCase()}
+    <div className="min-h-screen bg-background p-4">
+      <div className="max-w-3xl mx-auto py-6 space-y-5">
+        {/* Stats bar */}
+        <div className="rounded-xl border border-border bg-card p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <span className={`px-2.5 py-1 rounded font-medium text-sm capitalize ${difficultyBadge(getCurrentDifficulty())}`}>
+                {getCurrentDifficulty()}
               </span>
-              <span className="text-gray-400">
+              <span className="text-sm text-muted-foreground">
                 Question {(sessionStats.total_questions || 0) + 1}
               </span>
             </div>
-            <div className="flex items-center space-x-6 text-sm">
+            <div className="flex items-center gap-6 text-sm">
               <div className="text-center">
-                <div className="font-bold text-blue-400">{sessionStats.score || 0}</div>
-                <div className="text-gray-400">Score</div>
+                <p className="font-bold text-primary">{sessionStats.score || 0}</p>
+                <p className="text-xs text-muted-foreground">Score</p>
               </div>
               <div className="text-center">
-                <div className="font-bold text-green-400">{sessionStats.accuracy || 0}%</div>
-                <div className="text-gray-400">Accuracy</div>
+                <p className="font-bold text-emerald-600 dark:text-emerald-400">{sessionStats.accuracy || 0}%</p>
+                <p className="text-xs text-muted-foreground">Accuracy</p>
               </div>
               <div className="text-center">
-                <div className="font-bold text-purple-400">{getConsecutiveCorrect()[getCurrentDifficulty()] || 0}</div>
-                <div className="text-gray-400">Streak</div>
+                <p className="font-bold text-foreground">
+                  {(sessionStats.consecutive_correct || {})[getCurrentDifficulty() as keyof typeof sessionStats.consecutive_correct] || 0}
+                </p>
+                <p className="text-xs text-muted-foreground">Streak</p>
               </div>
             </div>
           </div>
         </div>
 
         {/* Question */}
-        <div className="bg-gray-800 p-6 rounded-lg mb-6">
-          <h1 className="text-2xl font-bold mb-6">{currentQuestion.question_text}</h1>
-          
-          <div className="space-y-3">
+        <div className="rounded-xl border border-border bg-card p-6 space-y-4">
+          <h2 className="text-xl font-semibold text-card-foreground leading-snug">
+            {currentQuestion.question_text}
+          </h2>
+          <div className="space-y-2">
             {currentQuestion.options.map((option, index) => (
               <button
                 key={index}
                 onClick={() => setSelectedAnswer(option)}
-                className={`w-full p-4 text-left rounded-lg border-2 transition-colors ${
+                className={`w-full p-3.5 text-left rounded-lg border-2 transition-colors text-sm ${
                   selectedAnswer === option
-                    ? 'border-blue-500 bg-blue-900'
-                    : 'border-gray-600 bg-gray-700 hover:border-gray-500'
+                    ? 'border-primary bg-primary/10 text-foreground'
+                    : 'border-border bg-background hover:border-primary/40 hover:bg-muted/50 text-foreground'
                 }`}
               >
-                <span className="font-semibold mr-3">{String.fromCharCode(65 + index)})</span>
+                <span className="font-semibold text-muted-foreground mr-3">{String.fromCharCode(65 + index)})</span>
                 {option}
               </button>
             ))}
           </div>
         </div>
 
-        {/* Submit Button */}
-        <button
+        <Button
           onClick={submitAnswer}
           disabled={!selectedAnswer || loading}
-          className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 p-4 rounded-lg font-semibold flex items-center justify-center space-x-2"
+          className="w-full gap-2"
+          size="lg"
         >
-          {loading ? (
-            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-          ) : (
-            <>
-              <span>Submit Answer</span>
-              <ArrowRight className="h-5 w-5" />
-            </>
-          )}
-        </button>
+          {loading
+            ? <Loader2 className="h-4 w-4 animate-spin" />
+            : <><span>Submit Answer</span><ArrowRight className="h-4 w-4" /></>}
+        </Button>
       </div>
     </div>
   )

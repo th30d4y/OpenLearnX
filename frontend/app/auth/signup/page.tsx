@@ -4,29 +4,28 @@ import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/context/auth-context"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
-import { Wallet, Mail, Lock, Loader2, CheckCircle2 } from "lucide-react"
+import { Wallet, Mail, Lock, Loader2, BookOpen, User } from "lucide-react"
 import { toast } from "react-hot-toast"
 import Link from "next/link"
 import { MetaMaskEmailModal } from "@/components/metamask-email-modal"
 
 export default function SignupPage() {
-  const { 
-    user, 
-    walletConnected, 
+  const {
+    user,
+    walletConnected,
     walletAddress,
-    isLoadingAuth, 
+    isLoadingAuth,
     authMethod,
     token,
     showMetaMaskEmailModal,
     setShowMetaMaskEmailModal,
     connectWallet,
-    signupWithEmail
+    signupWithEmail,
   } = useAuth()
-  
+
   const router = useRouter()
   const hasRedirected = useRef(false)
   const [email, setEmail] = useState("")
@@ -36,7 +35,6 @@ export default function SignupPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
-    // If already authenticated, redirect to dashboard
     if ((walletConnected && walletAddress && user) || (user && authMethod === "email")) {
       if (!hasRedirected.current) {
         hasRedirected.current = true
@@ -47,36 +45,23 @@ export default function SignupPage() {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault()
-    
     if (!email.trim() || !password.trim() || !confirmPassword.trim()) {
       toast.error("Please fill in all fields")
       return
     }
-
     if (password !== confirmPassword) {
       toast.error("Passwords do not match")
       return
     }
-
     if (password.length < 6) {
       toast.error("Password must be at least 6 characters")
       return
     }
-
     setIsSubmitting(true)
-
     try {
       const success = await signupWithEmail(email, password, username || email.split("@")[0])
-      
-      if (success) {
-        // Auth context handles everything including token storage
-        // Redirect will be handled by the useEffect
-        setTimeout(() => {
-          router.replace("/dashboard")
-        }, 500)
-      }
+      if (success) setTimeout(() => router.replace("/dashboard"), 500)
     } catch (error: any) {
-      console.error("Signup error:", error)
       toast.error(error.message || "Signup failed")
     } finally {
       setIsSubmitting(false)
@@ -86,156 +71,135 @@ export default function SignupPage() {
   const handleMetaMaskSignup = async () => {
     try {
       await connectWallet()
-      toast.success("Connected with MetaMask!")
       setTimeout(() => {
-        if (walletConnected && walletAddress && user) {
-          router.replace("/dashboard")
-        }
+        if (walletConnected && walletAddress && user) router.replace("/dashboard")
       }, 500)
-    } catch (error: any) {
-      console.error("MetaMask connection failed:", error)
+    } catch {
       toast.error("MetaMask connection failed")
     }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-blue-900/20 dark:to-purple-900/20 p-4">
-      <Card className="w-full max-w-md shadow-2xl">
-        <CardHeader className="text-center space-y-4">
-          <CardTitle className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-            Join OpenLearnX
-          </CardTitle>
-          <p className="text-sm text-gray-600">Create your account to start learning</p>
-        </CardHeader>
+    <div className="min-h-[calc(100vh-56px)] flex items-center justify-center p-4 bg-muted/30">
+      <div className="w-full max-w-sm animate-fade-in">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary mb-4">
+            <BookOpen className="h-6 w-6 text-primary-foreground" />
+          </div>
+          <h1 className="text-2xl font-bold text-foreground">Create account</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Start your learning journey on OpenLearnX
+          </p>
+        </div>
 
-        <CardContent className="space-y-6">
-          {/* MetaMask Signup */}
-          <div className="space-y-4">
-            <Button
-              onClick={handleMetaMaskSignup}
-              disabled={isLoadingAuth || isSubmitting}
-              className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white py-3"
-            >
-              {isLoadingAuth ? (
-                <>
-                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                  Connecting MetaMask...
-                </>
-              ) : (
-                <>
-                  <Wallet className="w-5 h-5 mr-2" />
-                  Sign Up with MetaMask
-                </>
-              )}
-            </Button>
-            
-            <div className="bg-purple-50 dark:bg-purple-900/20 p-3 rounded-lg">
-              <p className="text-xs text-purple-700 dark:text-purple-300 text-center">
-                Get blockchain features and Web3 verification
-              </p>
-            </div>
+        {/* Card */}
+        <div className="rounded-xl border border-border bg-card shadow-sm p-6 space-y-5">
+          {/* MetaMask */}
+          <Button
+            onClick={handleMetaMaskSignup}
+            disabled={isLoadingAuth || isSubmitting}
+            className="w-full gap-2"
+            size="lg"
+          >
+            {isLoadingAuth ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Wallet className="h-4 w-4" />
+            )}
+            {isLoadingAuth ? "Connecting…" : "Sign up with MetaMask"}
+          </Button>
+
+          <div className="relative">
+            <Separator />
+            <span className="absolute inset-x-0 top-1/2 -translate-y-1/2 flex justify-center">
+              <span className="bg-card px-2 text-xs text-muted-foreground">or sign up with email</span>
+            </span>
           </div>
 
-          <Separator />
-
-          {/* Email Signup Form */}
+          {/* Email form */}
           <form onSubmit={handleSignup} className="space-y-4">
-            <div>
-              <Label htmlFor="username">Username (optional)</Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="username">Username <span className="text-muted-foreground">(optional)</span></Label>
               <Input
                 id="username"
                 type="text"
+                placeholder="coollearner"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="Choose a username"
-                disabled={isSubmitting || isLoadingAuth}
+                disabled={isSubmitting}
               />
             </div>
-
-            <div>
-              <Label htmlFor="email">Email Address</Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
                 type="email"
+                placeholder="you@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="Enter your email"
-                disabled={isSubmitting || isLoadingAuth}
+                disabled={isSubmitting}
                 required
               />
             </div>
-            
-            <div>
+            <div className="space-y-1.5">
               <Label htmlFor="password">Password</Label>
               <Input
                 id="password"
                 type="password"
+                placeholder="Min. 6 characters"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="At least 6 characters"
-                disabled={isSubmitting || isLoadingAuth}
+                disabled={isSubmitting}
                 required
               />
-              <p className="text-xs text-gray-500 mt-1">Minimum 6 characters</p>
             </div>
-
-            <div>
-              <Label htmlFor="confirmPassword">Confirm Password</Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="confirmPassword">Confirm password</Label>
               <Input
                 id="confirmPassword"
                 type="password"
+                placeholder="••••••••"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Confirm your password"
-                disabled={isSubmitting || isLoadingAuth}
+                disabled={isSubmitting}
                 required
               />
             </div>
-
             <Button
               type="submit"
+              className="w-full gap-2"
+              size="lg"
               disabled={isSubmitting || isLoadingAuth || !email.trim() || !password.trim()}
-              className="w-full bg-purple-600 hover:bg-purple-700 text-white py-2"
             >
               {isSubmitting ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Creating Account...
-                </>
+                <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
-                <>
-                  <Mail className="w-4 h-4 mr-2" />
-                  Sign Up with Email
-                </>
+                <Mail className="h-4 w-4" />
               )}
+              {isSubmitting ? "Creating account…" : "Create account"}
             </Button>
           </form>
+        </div>
 
-          <div className="text-center pt-4 border-t">
-            <p className="text-sm text-gray-600">
-              Already have an account?{" "}
-              <Link href="/auth/login" className="text-purple-600 hover:text-purple-700 font-semibold">
-                Sign In
-              </Link>
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+        <p className="mt-6 text-center text-sm text-muted-foreground">
+          Already have an account?{" "}
+          <Link href="/auth/login" className="font-medium text-primary hover:underline">
+            Sign in
+          </Link>
+        </p>
+      </div>
 
-      {/* MetaMask Email Modal */}
       {token && walletAddress && (
         <MetaMaskEmailModal
           isOpen={showMetaMaskEmailModal}
           walletAddress={walletAddress}
           token={token}
-          onSuccess={(user) => {
+          onSuccess={() => {
             setShowMetaMaskEmailModal(false)
             toast.success("Profile setup complete!")
           }}
-          onCancel={() => {
-            setShowMetaMaskEmailModal(false)
-            // User can always add email later from dashboard
-          }}
+          onCancel={() => setShowMetaMaskEmailModal(false)}
         />
       )}
     </div>

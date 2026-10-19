@@ -5,15 +5,14 @@ import { useAuth } from "@/context/auth-context"
 import { useRouter } from "next/navigation"
 import { toast } from "react-hot-toast"
 import type { Course } from "@/lib/types"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
-import { Loader2 } from "lucide-react"
-import api from "@/lib/api" // Corrected import: default import
+import { Loader2, BookOpen, AlertCircle, ArrowRight } from "lucide-react"
+import api from "@/lib/api"
 
 export function CourseList() {
-  const { user, isLoadingAuth, authMethod, token } = useAuth() // Check token for access
+  const { user, isLoadingAuth, token } = useAuth()
   const router = useRouter()
   const [courses, setCourses] = useState<Course[]>([])
   const [isLoadingCourses, setIsLoadingCourses] = useState(true)
@@ -21,11 +20,11 @@ export function CourseList() {
 
   useEffect(() => {
     if (!isLoadingAuth && !user) {
-      // Allow either MetaMask or email auth
       toast.error("Please login to view courses.")
       router.push("/")
       return
     }
+    if (!user) return
 
     const fetchCourses = async () => {
       setIsLoadingCourses(true)
@@ -34,89 +33,94 @@ export function CourseList() {
         const response = await api.get<Course[]>("/api/courses")
         setCourses(response.data)
       } catch (err: any) {
-        console.error("Failed to fetch courses:", err)
-        if (err.code === "ERR_NETWORK") {
-          setError(
-            "Network Error: Could not connect to the backend server. Please ensure your Flask backend is running and accessible.",
-          )
-          toast.error("Network Error: Backend server unreachable.")
-        } else {
-          setError(err.response?.data?.message || "Failed to load courses.")
-          toast.error(err.response?.data?.message || "Failed to load courses.")
-        }
+        const msg =
+          err.code === "ERR_NETWORK"
+            ? "Cannot reach the backend server. Make sure it is running."
+            : err.response?.data?.message || "Failed to load courses."
+        setError(msg)
+        toast.error(msg)
       } finally {
         setIsLoadingCourses(false)
       }
     }
 
-    if (user) {
-      // Fetch if user is logged in
-      fetchCourses()
-    }
+    fetchCourses()
   }, [user, isLoadingAuth, router, token])
 
   if (isLoadingAuth || isLoadingCourses) {
     return (
-      <div className="flex justify-center items-center min-h-[calc(100vh-64px)]">
-        <Loader2 className="h-8 w-8 animate-spin text-primary-purple" />
-        <span className="ml-2 text-lg">Loading courses...</span>
+      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-56px)] gap-3">
+        <Loader2 className="h-7 w-7 animate-spin text-primary" />
+        <span className="text-sm text-muted-foreground">Loading courses…</span>
       </div>
     )
   }
 
   if (error) {
     return (
-      <div className="flex justify-center items-center min-h-[calc(100vh-64px)] text-red-500">
-        <p>{error}</p>
+      <div className="container py-16 text-center">
+        <AlertCircle className="h-10 w-10 text-destructive mx-auto mb-4" />
+        <p className="text-sm text-muted-foreground max-w-sm mx-auto">{error}</p>
       </div>
     )
   }
 
   if (courses.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-64px)] text-gray-600 dark:text-gray-300">
-        <p className="text-xl mb-4">No courses available yet.</p>
-        <p>Check back later for new content!</p>
+      <div className="container py-24 text-center">
+        <BookOpen className="h-10 w-10 text-muted-foreground mx-auto mb-4" />
+        <p className="font-medium text-foreground">No courses yet</p>
+        <p className="mt-1 text-sm text-muted-foreground">Check back soon — new content is on its way.</p>
       </div>
     )
   }
 
   return (
-    <div className="container mx-auto py-8 px-4">
-      {authMethod === "firebase" && !token && (
-        <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-6 rounded-md dark:bg-yellow-900 dark:border-yellow-600 dark:text-yellow-200">
-          <p className="font-bold">Limited Access</p>
-          <p>
-            You are logged in with email. Full functionality, including progress tracking and data persistence, requires
-            connecting your MetaMask wallet.
-          </p>
-        </div>
-      )}
-      <h1 className="text-3xl font-bold text-primary-purple mb-8 text-center">Available Courses</h1>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div className="container py-10">
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold text-foreground">Courses</h1>
+        <p className="mt-1 text-sm text-muted-foreground">{courses.length} course{courses.length !== 1 ? "s" : ""} available</p>
+      </div>
+
+      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
         {courses.map((course) => (
-          <Card
+          <div
             key={course.id}
-            className="bg-white shadow-md rounded-lg overflow-hidden dark:bg-[#22314a] dark:text-gray-100 dark:border-blue-300/20"
+            className="group flex flex-col rounded-xl border border-border bg-card transition-shadow hover:shadow-md"
           >
-            <CardHeader>
-              <CardTitle className="text-xl font-semibold">{course.title}</CardTitle>
-              <CardDescription className="text-gray-600 dark:text-gray-300">{course.subject}</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-gray-700 dark:text-gray-200">{course.description}</p>
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm font-medium text-gray-700 dark:text-gray-300">
-                  <span>Progress</span>
-                  <span>{course.progress}%</span>
-                </div>
-                <Progress value={course.progress} className="h-2 bg-primary-blue" />
+            {/* Top color strip */}
+            <div className="h-1.5 rounded-t-xl bg-primary opacity-70" />
+
+            <div className="flex flex-col flex-1 p-5 gap-4">
+              <div className="flex-1">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">
+                  {course.subject}
+                </p>
+                <h2 className="font-semibold text-card-foreground leading-snug line-clamp-2">
+                  {course.title}
+                </h2>
+                <p className="mt-2 text-sm text-muted-foreground line-clamp-3 leading-relaxed">
+                  {course.description}
+                </p>
               </div>
-              <Link href={`/courses/${course.id}`}>
-                <Button className="w-full bg-primary-blue hover:bg-primary-blue/90 text-white">View Course</Button>
+
+              {/* Progress */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span>Progress</span>
+                  <span className="font-medium text-foreground">{course.progress ?? 0}%</span>
+                </div>
+                <Progress value={course.progress ?? 0} className="h-1.5" />
+              </div>
+
+              <Link href={`/courses/${course.id}`} className="mt-auto">
+                <Button variant="outline" className="w-full gap-2 group-hover:bg-primary group-hover:text-primary-foreground group-hover:border-primary transition-colors">
+                  View Course
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </Button>
               </Link>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         ))}
       </div>
     </div>

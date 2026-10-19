@@ -1,131 +1,125 @@
 "use client"
 
 import Link from "next/link"
-import { AuthButtons } from "@/components/auth-buttons" // Renamed from MetaMaskConnect
+import { AuthButtons } from "@/components/auth-buttons"
 import { useAuth } from "@/context/auth-context"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { Menu, Sun, Moon } from "lucide-react"
+import { Menu, Sun, Moon, BookOpen } from "lucide-react"
 import { useTheme } from "next-themes"
 import { useState, useEffect } from "react"
 import { usePathname } from "next/navigation"
 
+const NAV_LINKS = [
+  { href: "/", label: "Home" },
+  { href: "/courses", label: "Courses" },
+  { href: "/coding", label: "Coding" },
+  { href: "/quizzes", label: "Quizzes" },
+  { href: "/dashboard", label: "Dashboard" },
+]
+
 export function Navbar() {
-  const { user, authMethod } = useAuth() // Use authMethod to determine display
+  const { user } = useAuth()
   const { resolvedTheme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
   const pathname = usePathname()
 
-  useEffect(() => {
-    setMounted(true)
-  }, [])
+  useEffect(() => { setMounted(true) }, [])
 
-  if (pathname.startsWith("/admin")) {
-    return null
-  }
+  if (pathname.startsWith("/admin")) return null
 
   const isDark = resolvedTheme === "dark"
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b bg-white/80 backdrop-blur-md dark:bg-[#102a52]/90">
-      <div className="container flex h-16 items-center justify-between">
-        <Link href="/" className="text-2xl font-bold text-primary-purple">
-          OpenLearnX
+    <header className="sticky top-0 z-40 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+      <div className="container flex h-14 items-center justify-between">
+        {/* Logo */}
+        <Link href="/" className="flex items-center gap-2 font-semibold">
+          <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary">
+            <BookOpen className="h-4 w-4 text-primary-foreground" />
+          </div>
+          <span className="text-foreground">OpenLearnX</span>
         </Link>
-        <nav className="hidden md:flex items-center space-x-6">
-          <Link
-            href="/"
-            className="text-sm font-medium text-gray-600 hover:text-primary-blue dark:text-gray-300 dark:hover:text-primary-blue"
-          >
-            Home
-          </Link>
-          <Link
-            href="/courses"
-            className="text-sm font-medium text-gray-600 hover:text-primary-blue dark:text-gray-300 dark:hover:text-primary-blue"
-          >
-            Courses
-          </Link>
-          <Link
-            href="/coding"
-            className="text-sm font-medium text-gray-600 hover:text-primary-blue dark:text-gray-300 dark:hover:text-primary-blue"
-          >
-            Coding Practice
-          </Link>
-          <Link
-            href="/quizzes"
-            className="text-sm font-medium text-gray-600 hover:text-primary-blue dark:text-gray-300 dark:hover:text-primary-blue"
-          >
-            Quizzes
-          </Link>
-          <Link
-            href="/dashboard"
-            className="text-sm font-medium text-gray-600 hover:text-primary-blue dark:text-gray-300 dark:hover:text-primary-blue"
-          >
-            Dashboard
-          </Link>
-          <AuthButtons /> {/* Use the new AuthButtons component */}
+
+        {/* Desktop nav */}
+        <nav className="hidden md:flex items-center gap-1">
+          {NAV_LINKS.map(({ href, label }) => (
+            <Link
+              key={href}
+              href={href}
+              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                pathname === href
+                  ? "bg-accent text-accent-foreground"
+                  : "text-muted-foreground hover:text-foreground hover:bg-accent"
+              }`}
+            >
+              {label}
+            </Link>
+          ))}
+        </nav>
+
+        {/* Desktop actions */}
+        <div className="hidden md:flex items-center gap-2">
+          <AuthButtons />
           <Button
             variant="ghost"
             size="icon"
             onClick={() => setTheme(isDark ? "light" : "dark")}
-            className="ml-2"
+            className="h-8 w-8"
           >
-            {mounted && (isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />)}
-            {!mounted && <div className="h-5 w-5" />} {/* Render a placeholder div to maintain layout */}
+            {mounted ? (
+              isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />
+            ) : (
+              <div className="h-4 w-4" />
+            )}
             <span className="sr-only">Toggle theme</span>
           </Button>
-        </nav>
-        <div className="md:hidden flex items-center">
+        </div>
+
+        {/* Mobile */}
+        <div className="flex md:hidden items-center gap-2">
           <Button
             variant="ghost"
             size="icon"
             onClick={() => setTheme(isDark ? "light" : "dark")}
-            className="mr-2"
+            className="h-8 w-8"
           >
-            {mounted && (isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />)}
-            {!mounted && <div className="h-5 w-5" />} {/* Render a placeholder div to maintain layout */}
+            {mounted ? (
+              isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />
+            ) : (
+              <div className="h-4 w-4" />
+            )}
             <span className="sr-only">Toggle theme</span>
           </Button>
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="outline" size="icon">
-                <Menu className="h-6 w-6" />
-                <span className="sr-only">Toggle navigation</span>
+              <Button variant="outline" size="icon" className="h-8 w-8">
+                <Menu className="h-4 w-4" />
+                <span className="sr-only">Open menu</span>
               </Button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-[250px] sm:w-[300px] p-4 dark:bg-[#1b3760]">
-              <nav className="flex flex-col gap-4">
-                <Link
-                  href="/"
-                  className="text-lg font-medium text-gray-800 hover:text-primary-blue dark:text-gray-200 dark:hover:text-primary-blue"
-                >
-                  Home
-                </Link>
-                <Link
-                  href="/courses"
-                  className="text-lg font-medium text-gray-800 hover:text-primary-blue dark:text-gray-200 dark:hover:text-primary-blue"
-                >
-                  Courses
-                </Link>
-                <Link
-                  href="/coding"
-                  className="text-lg font-medium text-gray-800 hover:text-primary-blue dark:text-gray-200 dark:hover:text-primary-blue"
-                >
-                  Coding Practice
-                </Link>
-                <Link
-                  href="/quizzes"
-                  className="text-lg font-medium text-gray-800 hover:text-primary-blue dark:text-gray-200 dark:hover:text-primary-blue"
-                >
-                  Quizzes
-                </Link>
-                <Link
-                  href="/dashboard"
-                  className="text-lg font-medium text-gray-800 hover:text-primary-blue dark:text-gray-200 dark:hover:text-primary-blue"
-                >
-                  Dashboard
-                </Link>
-                <div className="mt-4">
+            <SheetContent side="right" className="w-72">
+              <div className="flex items-center gap-2 mb-8 mt-2">
+                <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary">
+                  <BookOpen className="h-4 w-4 text-primary-foreground" />
+                </div>
+                <span className="font-semibold">OpenLearnX</span>
+              </div>
+              <nav className="flex flex-col gap-1">
+                {NAV_LINKS.map(({ href, label }) => (
+                  <Link
+                    key={href}
+                    href={href}
+                    className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                      pathname === href
+                        ? "bg-accent text-accent-foreground"
+                        : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                    }`}
+                  >
+                    {label}
+                  </Link>
+                ))}
+                <div className="mt-4 pt-4 border-t border-border">
                   <AuthButtons />
                 </div>
               </nav>

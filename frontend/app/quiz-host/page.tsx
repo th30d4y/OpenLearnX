@@ -1,7 +1,10 @@
 'use client'
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Users, Plus, Trash2, Play, Square, Settings, Brain, Crown, Target } from 'lucide-react'
+import { Users, Plus, Trash2, Play, Square, Brain, Crown, Target } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 
 interface Question {
   question_id: string
@@ -34,253 +37,161 @@ interface QuizRoom {
   participants: Participant[]
   max_participants: number
   duration_minutes: number
-  participants_count?: number
-  questions_count?: number
-  questions_by_difficulty?: {
-    easy: number
-    medium: number
-    hard: number
-  }
 }
 
 export default function QuizHostPanel() {
   const router = useRouter()
   const [currentRoom, setCurrentRoom] = useState<QuizRoom | null>(null)
-  const [activeTab, setActiveTab] = useState<'setup' | 'questions' | 'participants' | 'live'>('setup')
-  const [showCreateRoom, setShowCreateRoom] = useState(false)
+  const [activeTab, setActiveTab] = useState<'questions' | 'participants' | 'live'>('questions')
   const [showAddQuestion, setShowAddQuestion] = useState(false)
   const [showAIGenerate, setShowAIGenerate] = useState(false)
 
-  // Room creation form
   const [roomForm, setRoomForm] = useState({
     host_name: '',
     room_title: '',
     is_private: false,
     max_participants: 50,
-    duration_minutes: 30
+    duration_minutes: 30,
   })
 
-  // Question form
   const [questionForm, setQuestionForm] = useState({
     question_text: '',
     options: ['', '', '', ''],
     correct_answer: '',
     difficulty: 'medium' as 'easy' | 'medium' | 'hard',
     points: 10,
-    explanation: ''
+    explanation: '',
   })
 
-  // AI generation form
-  const [aiForm, setAiForm] = useState({
-    topic: '',
-    num_easy: 3,
-    num_medium: 3,
-    num_hard: 2
-  })
+  const [aiForm, setAiForm] = useState({ topic: '', num_easy: 3, num_medium: 3, num_hard: 2 })
 
   const createRoom = async () => {
     try {
       const response = await fetch('http://127.0.0.1:5000/api/quizzes/create-room', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(roomForm)
+        body: JSON.stringify(roomForm),
       })
-
       const data = await response.json()
-      console.log('Room creation response:', data) // Debug log
-
       if (data.success) {
-        // Ensure the room has all required properties
-        const room = {
-          ...data.room,
-          status: data.room.status || 'waiting',
-          participants: data.room.participants || [],
-          questions: data.room.questions || []
-        }
-        console.log('Room object:', room) // Debug log
-        setCurrentRoom(room)
-        setShowCreateRoom(false)
+        setCurrentRoom({ ...data.room, status: data.room.status || 'waiting', participants: data.room.participants || [], questions: data.room.questions || [] })
         setActiveTab('questions')
-        alert(`🎉 Room created! Code: ${room.room_code}`)
+        alert(`Room created! Code: ${data.room.room_code}`)
       } else {
         alert(`Error: ${data.error}`)
       }
-    } catch (error) {
-      console.error('Room creation error:', error)
+    } catch {
       alert('Network error: Could not create room')
     }
   }
 
   const addQuestion = async () => {
     if (!currentRoom) return
-
-    if (!questionForm.question_text || questionForm.options.some(opt => !opt.trim()) || !questionForm.correct_answer) {
+    if (!questionForm.question_text || questionForm.options.some(o => !o.trim()) || !questionForm.correct_answer) {
       alert('Please fill all question fields')
       return
     }
-
     try {
       const response = await fetch(`http://127.0.0.1:5000/api/quizzes/room/${currentRoom.room_code}/add-question`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(questionForm)
+        body: JSON.stringify(questionForm),
       })
-
       const data = await response.json()
-
       if (data.success) {
-        // Refresh room data
         fetchRoomData()
         setShowAddQuestion(false)
-        setQuestionForm({
-          question_text: '',
-          options: ['', '', '', ''],
-          correct_answer: '',
-          difficulty: 'medium',
-          points: 10,
-          explanation: ''
-        })
-        alert('✅ Question added successfully!')
+        setQuestionForm({ question_text: '', options: ['', '', '', ''], correct_answer: '', difficulty: 'medium', points: 10, explanation: '' })
       } else {
         alert(`Error: ${data.error}`)
       }
-    } catch (error) {
+    } catch {
       alert('Network error: Could not add question')
     }
   }
 
   const generateAIQuestions = async () => {
     if (!currentRoom) return
-
     try {
       const response = await fetch(`http://127.0.0.1:5000/api/quizzes/room/${currentRoom.room_code}/generate-ai-questions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(aiForm)
+        body: JSON.stringify(aiForm),
       })
-
       const data = await response.json()
-
       if (data.success) {
         fetchRoomData()
         setShowAIGenerate(false)
-        alert(`🤖 Generated ${data.questions.length} AI questions!`)
+        alert(`Generated ${data.questions.length} AI questions!`)
       } else {
         alert(`Error: ${data.error}`)
       }
-    } catch (error) {
+    } catch {
       alert('Network error: Could not generate questions')
     }
   }
 
   const removeQuestion = async (questionId: string) => {
     if (!currentRoom || !confirm('Remove this question?')) return
-
     try {
-      const response = await fetch(`http://127.0.0.1:5000/api/quizzes/room/${currentRoom.room_code}/remove-question/${questionId}`, {
-        method: 'DELETE'
-      })
-
+      const response = await fetch(`http://127.0.0.1:5000/api/quizzes/room/${currentRoom.room_code}/remove-question/${questionId}`, { method: 'DELETE' })
       const data = await response.json()
-
-      if (data.success) {
-        fetchRoomData()
-        alert('✅ Question removed')
-      } else {
-        alert(`Error: ${data.error}`)
-      }
-    } catch (error) {
-      alert('Network error: Could not remove question')
+      if (data.success) fetchRoomData()
+      else alert(`Error: ${data.error}`)
+    } catch {
+      alert('Network error')
     }
   }
 
   const removeParticipant = async (username: string) => {
     if (!currentRoom || !confirm(`Remove ${username} from the quiz?`)) return
-
     try {
-      const response = await fetch(`http://127.0.0.1:5000/api/quizzes/room/${currentRoom.room_code}/remove-participant/${username}`, {
-        method: 'DELETE'
-      })
-
+      const response = await fetch(`http://127.0.0.1:5000/api/quizzes/room/${currentRoom.room_code}/remove-participant/${username}`, { method: 'DELETE' })
       const data = await response.json()
-
-      if (data.success) {
-        fetchRoomData()
-        alert(`✅ Removed ${username}`)
-      } else {
-        alert(`Error: ${data.error}`)
-      }
-    } catch (error) {
-      alert('Network error: Could not remove participant')
+      if (data.success) fetchRoomData()
+      else alert(`Error: ${data.error}`)
+    } catch {
+      alert('Network error')
     }
   }
 
   const startQuiz = async () => {
     if (!currentRoom) return
-
-    if (currentRoom.questions.length === 0) {
-      alert('Add questions before starting the quiz!')
-      return
-    }
-
-    if (!confirm('Start the quiz now? Participants will begin answering questions.')) return
-
+    if ((currentRoom.questions?.length || 0) === 0) { alert('Add questions before starting!'); return }
+    if (!confirm('Start the quiz now?')) return
     try {
-      const response = await fetch(`http://127.0.0.1:5000/api/quizzes/room/${currentRoom.room_code}/start`, {
-        method: 'POST'
-      })
-
+      const response = await fetch(`http://127.0.0.1:5000/api/quizzes/room/${currentRoom.room_code}/start`, { method: 'POST' })
       const data = await response.json()
-
-      if (data.success) {
-        fetchRoomData()
-        setActiveTab('live')
-        alert('🚀 Quiz started!')
-      } else {
-        alert(`Error: ${data.error}`)
-      }
-    } catch (error) {
-      alert('Network error: Could not start quiz')
+      if (data.success) { fetchRoomData(); setActiveTab('live') }
+      else alert(`Error: ${data.error}`)
+    } catch {
+      alert('Network error')
     }
   }
 
   const endQuiz = async () => {
     if (!currentRoom || !confirm('End the quiz now?')) return
-
     try {
-      const response = await fetch(`http://127.0.0.1:5000/api/quizzes/room/${currentRoom.room_code}/end`, {
-        method: 'POST'
-      })
-
+      const response = await fetch(`http://127.0.0.1:5000/api/quizzes/room/${currentRoom.room_code}/end`, { method: 'POST' })
       const data = await response.json()
-
-      if (data.success) {
-        fetchRoomData()
-        alert('✅ Quiz ended!')
-      } else {
-        alert(`Error: ${data.error}`)
-      }
-    } catch (error) {
-      alert('Network error: Could not end quiz')
+      if (data.success) fetchRoomData()
+      else alert(`Error: ${data.error}`)
+    } catch {
+      alert('Network error')
     }
   }
 
   const fetchRoomData = async () => {
     if (!currentRoom) return
-
     try {
       const response = await fetch(`http://127.0.0.1:5000/api/quizzes/room/${currentRoom.room_code}/info`)
       const data = await response.json()
-
-      if (data.success) {
-        setCurrentRoom(data.room)
-      }
-    } catch (error) {
-      console.error('Failed to fetch room data:', error)
+      if (data.success) setCurrentRoom(data.room)
+    } catch {
+      console.error('Failed to fetch room data')
     }
   }
 
-  // Poll for live updates when quiz is active
   useEffect(() => {
     if (currentRoom?.status === 'active') {
       const interval = setInterval(fetchRoomData, 3000)
@@ -288,100 +199,66 @@ export default function QuizHostPanel() {
     }
   }, [currentRoom?.status])
 
-  const getDifficultyColor = (difficulty: string) => {
-    switch (difficulty) {
-      case 'easy': return 'text-green-400 bg-green-900'
-      case 'medium': return 'text-yellow-400 bg-yellow-900'
-      case 'hard': return 'text-red-400 bg-red-900'
-      default: return 'text-gray-400 bg-gray-700'
+  const difficultyBadge = (d: string) => {
+    switch (d) {
+      case 'easy': return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400'
+      case 'medium': return 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400'
+      case 'hard': return 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400'
+      default: return 'bg-muted text-muted-foreground'
     }
   }
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'waiting': return 'text-yellow-400 bg-yellow-900'
-      case 'active': return 'text-green-400 bg-green-900'
-      case 'completed': return 'text-gray-400 bg-gray-700'
-      default: return 'text-gray-400 bg-gray-700'
+  const statusBadge = (s: string) => {
+    switch (s) {
+      case 'waiting': return 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400'
+      case 'active': return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400'
+      default: return 'bg-muted text-muted-foreground'
     }
   }
 
-  // Safe status getter
   const roomStatus = currentRoom?.status || 'waiting'
 
+  // Create room screen
   if (!currentRoom) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:bg-gradient-to-br dark:from-gray-900 dark:via-blue-900 dark:to-purple-900 text-gray-900 dark:text-white">
-        <div className="max-w-4xl mx-auto p-6">
+      <div className="min-h-screen bg-background p-4">
+        <div className="max-w-xl mx-auto py-10">
           <div className="text-center mb-8">
-            <Crown className="h-16 w-16 text-yellow-500 mx-auto mb-4" />
-            <h1 className="text-4xl font-bold mb-4 text-gray-900 dark:text-white">👑 Quiz Host Panel</h1>
-            <p className="text-gray-600 dark:text-gray-300">
-              Create and manage adaptive quizzes with AI-powered questions
-            </p>
+            <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary mb-4">
+              <Crown className="h-6 w-6 text-primary-foreground" />
+            </div>
+            <h1 className="text-2xl font-bold text-foreground">Quiz Host Panel</h1>
+            <p className="mt-1 text-sm text-muted-foreground">Create and manage adaptive quizzes with AI-powered questions</p>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700 shadow">
-            <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">Create New Quiz Room</h2>
-            
-            <div className="space-y-4">
-              <input
-                type="text"
-                placeholder="Your name (Host)"
-                value={roomForm.host_name}
-                onChange={(e) => setRoomForm(prev => ({...prev, host_name: e.target.value}))}
-                className="w-full p-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 rounded border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-              />
-              
-              <input
-                type="text"
-                placeholder="Quiz room title"
-                value={roomForm.room_title}
-                onChange={(e) => setRoomForm(prev => ({...prev, room_title: e.target.value}))}
-                className="w-full p-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 rounded border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-              />
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="flex items-center space-x-2 text-gray-900 dark:text-white">
-                    <input
-                      type="checkbox"
-                      checked={roomForm.is_private}
-                      onChange={(e) => setRoomForm(prev => ({...prev, is_private: e.target.checked}))}
-                      className="rounded accent-blue-600 dark:accent-blue-500"
-                    />
-                    <span>Private Room (requires code)</span>
-                  </label>
-                </div>
-                
-                <input
-                  type="number"
-                  placeholder="Max participants"
-                  value={roomForm.max_participants}
-                  onChange={(e) => setRoomForm(prev => ({...prev, max_participants: parseInt(e.target.value) || 50}))}
-                  className="p-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                  min="1"
-                  max="100"
-                />
-                
-                <input
-                  type="number"
-                  placeholder="Duration (minutes)"
-                  value={roomForm.duration_minutes}
-                  onChange={(e) => setRoomForm(prev => ({...prev, duration_minutes: parseInt(e.target.value) || 30}))}
-                  className="p-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                  min="5"
-                  max="180"
-                />
+          <div className="rounded-xl border border-border bg-card p-6 space-y-4">
+            <h2 className="font-semibold text-card-foreground">Create New Quiz Room</h2>
+            <div className="space-y-3">
+              <div className="space-y-1.5">
+                <Label>Your name (Host)</Label>
+                <Input placeholder="Your name" value={roomForm.host_name} onChange={(e) => setRoomForm(p => ({...p, host_name: e.target.value}))} />
               </div>
-
-              <button
-                onClick={createRoom}
-                disabled={!roomForm.host_name || !roomForm.room_title}
-                className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 dark:from-purple-700 dark:to-blue-700 dark:hover:from-purple-800 dark:hover:to-blue-800 disabled:from-gray-400 disabled:to-gray-400 dark:disabled:from-gray-600 dark:disabled:to-gray-600 p-4 rounded-lg font-semibold text-white"
-              >
-                🚀 Create Quiz Room
-              </button>
+              <div className="space-y-1.5">
+                <Label>Quiz room title</Label>
+                <Input placeholder="Quiz room title" value={roomForm.room_title} onChange={(e) => setRoomForm(p => ({...p, room_title: e.target.value}))} />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label>Max participants</Label>
+                  <Input type="number" value={roomForm.max_participants} onChange={(e) => setRoomForm(p => ({...p, max_participants: parseInt(e.target.value) || 50}))} min="1" max="100" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Duration (minutes)</Label>
+                  <Input type="number" value={roomForm.duration_minutes} onChange={(e) => setRoomForm(p => ({...p, duration_minutes: parseInt(e.target.value) || 30}))} min="5" max="180" />
+                </div>
+              </div>
+              <label className="flex items-center gap-2 text-sm text-foreground cursor-pointer">
+                <input type="checkbox" checked={roomForm.is_private} onChange={(e) => setRoomForm(p => ({...p, is_private: e.target.checked}))} className="rounded" />
+                Private room (requires code to join)
+              </label>
+              <Button onClick={createRoom} disabled={!roomForm.host_name || !roomForm.room_title} className="w-full" size="lg">
+                Create Quiz Room
+              </Button>
             </div>
           </div>
         </div>
@@ -390,136 +267,103 @@ export default function QuizHostPanel() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:bg-gradient-to-br dark:from-gray-900 dark:via-blue-900 dark:to-purple-900 text-gray-900 dark:text-white">
-      <div className="max-w-7xl mx-auto p-6">
-        {/* Header */}
-        <div className="bg-gray-800 p-4 rounded-lg mb-6">
-          <div className="flex justify-between items-center">
+    <div className="min-h-screen bg-background">
+      <div className="max-w-7xl mx-auto px-4 py-6">
+        {/* Room header */}
+        <div className="rounded-xl border border-border bg-card p-4 mb-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h1 className="text-2xl font-bold flex items-center space-x-2">
-                <Crown className="h-6 w-6 text-yellow-400" />
-                <span>{currentRoom.title}</span>
+              <h1 className="text-xl font-bold text-card-foreground flex items-center gap-2">
+                <Crown className="h-5 w-5 text-amber-500" />
+                {currentRoom.title}
               </h1>
-              <div className="flex items-center space-x-4 text-sm text-gray-400 mt-1">
-                <span>Code: <span className="font-bold text-blue-400">{currentRoom.room_code}</span></span>
-                <span className={`px-2 py-1 rounded text-xs ${getStatusColor(roomStatus)}`}>
-                  {roomStatus.toUpperCase()}
-                </span>
-                <span>👥 {currentRoom.participants?.length || 0}/{currentRoom.max_participants}</span>
-                <span>❓ {currentRoom.questions?.length || 0} questions</span>
+              <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground mt-1">
+                <span>Code: <span className="font-mono font-semibold text-primary">{currentRoom.room_code}</span></span>
+                <span className={`px-2 py-0.5 rounded text-xs font-medium capitalize ${statusBadge(roomStatus)}`}>{roomStatus}</span>
+                <span>{currentRoom.participants?.length || 0}/{currentRoom.max_participants} participants</span>
+                <span>{currentRoom.questions?.length || 0} questions</span>
               </div>
             </div>
-            
-            <div className="flex items-center space-x-2">
+            <div className="flex gap-2">
               {roomStatus === 'waiting' && (
-                <button
-                  onClick={startQuiz}
-                  disabled={(currentRoom.questions?.length || 0) === 0}
-                  className="bg-green-600 hover:bg-green-700 disabled:bg-gray-600 px-4 py-2 rounded flex items-center space-x-2"
-                >
-                  <Play className="h-4 w-4" />
-                  <span>Start Quiz</span>
-                </button>
+                <Button onClick={startQuiz} disabled={(currentRoom.questions?.length || 0) === 0} className="gap-2" size="sm">
+                  <Play className="h-4 w-4" /> Start Quiz
+                </Button>
               )}
-              
               {roomStatus === 'active' && (
-                <button
-                  onClick={endQuiz}
-                  className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded flex items-center space-x-2"
-                >
-                  <Square className="h-4 w-4" />
-                  <span>End Quiz</span>
-                </button>
+                <Button onClick={endQuiz} variant="destructive" className="gap-2" size="sm">
+                  <Square className="h-4 w-4" /> End Quiz
+                </Button>
               )}
             </div>
           </div>
         </div>
 
         {/* Tabs */}
-        <div className="flex space-x-1 mb-6">
+        <div className="flex gap-1 border border-border rounded-lg p-1 w-fit mb-5 bg-muted/30">
           {[
             { id: 'questions', label: `Questions (${currentRoom.questions?.length || 0})`, icon: Target },
             { id: 'participants', label: `Participants (${currentRoom.participants?.length || 0})`, icon: Users },
-            { id: 'live', label: 'Live View', icon: Play }
+            { id: 'live', label: 'Live View', icon: Play },
           ].map(tab => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
-              className={`px-4 py-2 rounded flex items-center space-x-2 ${
-                activeTab === tab.id 
-                  ? 'bg-blue-600 text-white' 
-                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-              }`}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${activeTab === tab.id ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-muted'}`}
             >
               <tab.icon className="h-4 w-4" />
-              <span>{tab.label}</span>
+              {tab.label}
             </button>
           ))}
         </div>
 
-        {/* Questions Tab */}
+        {/* Questions tab */}
         {activeTab === 'questions' && (
-          <div>
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold">📝 Question Management</h2>
-              <div className="flex space-x-2">
-                <button
-                  onClick={() => setShowAIGenerate(true)}
-                  className="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded flex items-center space-x-2"
-                >
-                  <Brain className="h-4 w-4" />
-                  <span>🤖 AI Generate</span>
-                </button>
-                <button
-                  onClick={() => setShowAddQuestion(true)}
-                  className="bg-green-600 hover:bg-green-700 px-4 py-2 rounded flex items-center space-x-2"
-                >
-                  <Plus className="h-4 w-4" />
-                  <span>Add Question</span>
-                </button>
+          <div className="space-y-5">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h2 className="font-semibold text-foreground">Question Management</h2>
+              <div className="flex gap-2">
+                <Button onClick={() => setShowAIGenerate(true)} variant="outline" size="sm" className="gap-2">
+                  <Brain className="h-4 w-4" /> AI Generate
+                </Button>
+                <Button onClick={() => setShowAddQuestion(true)} size="sm" className="gap-2">
+                  <Plus className="h-4 w-4" /> Add Question
+                </Button>
               </div>
             </div>
 
-            {/* Questions by Difficulty */}
-            {['easy', 'medium', 'hard'].map(difficulty => {
-              const difficultyQuestions = (currentRoom.questions || []).filter(q => q.difficulty === difficulty)
+            {(['easy', 'medium', 'hard'] as const).map(diff => {
+              const qs = (currentRoom.questions || []).filter(q => q.difficulty === diff)
               return (
-                <div key={difficulty} className="mb-6">
-                  <h3 className={`text-lg font-semibold mb-3 px-3 py-1 rounded inline-block ${getDifficultyColor(difficulty)}`}>
-                    {difficulty.toUpperCase()} ({difficultyQuestions.length} questions)
-                  </h3>
-                  
-                  <div className="space-y-3">
-                    {difficultyQuestions.map((question, index) => (
-                      <div key={question.question_id} className="bg-gray-800 p-4 rounded-lg">
-                        <div className="flex justify-between items-start">
-                          <div className="flex-1">
-                            <h4 className="font-semibold mb-2">{question.question_text}</h4>
-                            <div className="grid grid-cols-2 gap-2 text-sm text-gray-400 mb-2">
-                              {question.options.map((option, optIndex) => (
-                                <span key={optIndex} className={`${option === question.correct_answer ? 'text-green-400 font-semibold' : ''}`}>
-                                  {String.fromCharCode(65 + optIndex)}) {option}
+                <div key={diff}>
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className={`px-2 py-0.5 rounded text-xs font-medium capitalize ${difficultyBadge(diff)}`}>{diff}</span>
+                    <span className="text-xs text-muted-foreground">({qs.length} questions)</span>
+                  </div>
+                  <div className="space-y-2">
+                    {qs.map(q => (
+                      <div key={q.question_id} className="rounded-lg border border-border bg-card p-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-card-foreground text-sm">{q.question_text}</p>
+                            <div className="grid grid-cols-2 gap-1 mt-2 text-xs text-muted-foreground">
+                              {q.options.map((o, i) => (
+                                <span key={i} className={o === q.correct_answer ? 'text-emerald-600 dark:text-emerald-400 font-medium' : ''}>
+                                  {String.fromCharCode(65+i)}) {o}
                                 </span>
                               ))}
                             </div>
-                            <div className="text-xs text-gray-500">
-                              Points: {question.points} | Correct: {question.correct_answer}
-                            </div>
+                            <p className="text-xs text-muted-foreground mt-1">Points: {q.points}</p>
                           </div>
-                          <button
-                            onClick={() => removeQuestion(question.question_id)}
-                            disabled={roomStatus !== 'waiting'}
-                            className="text-red-400 hover:text-red-300 disabled:text-gray-600 ml-4"
-                          >
+                          <button onClick={() => removeQuestion(q.question_id)} disabled={roomStatus !== 'waiting'} className="text-muted-foreground hover:text-destructive disabled:opacity-30 shrink-0">
                             <Trash2 className="h-4 w-4" />
                           </button>
                         </div>
                       </div>
                     ))}
-                    
-                    {difficultyQuestions.length === 0 && (
-                      <div className="text-center py-4 text-gray-500 border-2 border-dashed border-gray-700 rounded-lg">
-                        No {difficulty} questions yet
+                    {qs.length === 0 && (
+                      <div className="text-center py-4 text-sm text-muted-foreground border-2 border-dashed border-border rounded-lg">
+                        No {diff} questions yet
                       </div>
                     )}
                   </div>
@@ -529,88 +373,46 @@ export default function QuizHostPanel() {
 
             {/* Add Question Modal */}
             {showAddQuestion && (
-              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                <div className="bg-gray-800 p-6 rounded-lg max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-                  <h3 className="text-xl font-bold mb-4">➕ Add New Question</h3>
-                  
-                  <div className="space-y-4">
-                    <textarea
-                      placeholder="Question text"
-                      value={questionForm.question_text}
-                      onChange={(e) => setQuestionForm(prev => ({...prev, question_text: e.target.value}))}
-                      className="w-full p-3 bg-gray-700 rounded border border-gray-600 focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none"
-                      rows={3}
-                    />
-
+              <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                <div className="rounded-xl border border-border bg-card p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                  <h3 className="font-semibold text-card-foreground mb-4">Add New Question</h3>
+                  <div className="space-y-3">
+                    <textarea placeholder="Question text" value={questionForm.question_text}
+                      onChange={(e) => setQuestionForm(p => ({...p, question_text: e.target.value}))}
+                      className="w-full p-3 rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none" rows={3} />
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">Options:</label>
-                      {questionForm.options.map((option, index) => (
-                        <input
-                          key={index}
-                          type="text"
-                          placeholder={`Option ${String.fromCharCode(65 + index)}`}
-                          value={option}
-                          onChange={(e) => {
-                            const newOptions = [...questionForm.options]
-                            newOptions[index] = e.target.value
-                            setQuestionForm(prev => ({...prev, options: newOptions}))
-                          }}
-                          className="w-full p-3 bg-gray-700 rounded border border-gray-600 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                        />
+                      <Label>Options</Label>
+                      {questionForm.options.map((o, i) => (
+                        <Input key={i} placeholder={`Option ${String.fromCharCode(65+i)}`} value={o}
+                          onChange={(e) => { const opts = [...questionForm.options]; opts[i] = e.target.value; setQuestionForm(p => ({...p, options: opts})) }} />
                       ))}
                     </div>
-
-                    <div className="grid grid-cols-3 gap-4">
-                      <input
-                        type="text"
-                        placeholder="Correct answer"
-                        value={questionForm.correct_answer}
-                        onChange={(e) => setQuestionForm(prev => ({...prev, correct_answer: e.target.value}))}
-                        className="p-3 bg-gray-700 rounded border border-gray-600 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                      />
-                      
-                      <select
-                        value={questionForm.difficulty}
-                        onChange={(e) => setQuestionForm(prev => ({...prev, difficulty: e.target.value as any}))}
-                        className="p-3 bg-gray-700 rounded border border-gray-600 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                      >
-                        <option value="easy">🟢 Easy</option>
-                        <option value="medium">🟡 Medium</option>
-                        <option value="hard">🔴 Hard</option>
-                      </select>
-                      
-                      <input
-                        type="number"
-                        placeholder="Points"
-                        value={questionForm.points}
-                        onChange={(e) => setQuestionForm(prev => ({...prev, points: parseInt(e.target.value) || 10}))}
-                        className="p-3 bg-gray-700 rounded border border-gray-600 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                        min="1"
-                      />
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="space-y-1.5">
+                        <Label>Correct answer</Label>
+                        <Input placeholder="Correct answer" value={questionForm.correct_answer} onChange={(e) => setQuestionForm(p => ({...p, correct_answer: e.target.value}))} />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label>Difficulty</Label>
+                        <select value={questionForm.difficulty} onChange={(e) => setQuestionForm(p => ({...p, difficulty: e.target.value as any}))}
+                          className="w-full p-2 rounded-md border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/30">
+                          <option value="easy">Easy</option>
+                          <option value="medium">Medium</option>
+                          <option value="hard">Hard</option>
+                        </select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label>Points</Label>
+                        <Input type="number" value={questionForm.points} onChange={(e) => setQuestionForm(p => ({...p, points: parseInt(e.target.value) || 10}))} min="1" />
+                      </div>
                     </div>
-
-                    <textarea
-                      placeholder="Explanation (optional)"
-                      value={questionForm.explanation}
-                      onChange={(e) => setQuestionForm(prev => ({...prev, explanation: e.target.value}))}
-                      className="w-full p-3 bg-gray-700 rounded border border-gray-600 focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none"
-                      rows={2}
-                    />
+                    <textarea placeholder="Explanation (optional)" value={questionForm.explanation}
+                      onChange={(e) => setQuestionForm(p => ({...p, explanation: e.target.value}))}
+                      className="w-full p-3 rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none" rows={2} />
                   </div>
-
-                  <div className="flex space-x-4 mt-6">
-                    <button
-                      onClick={addQuestion}
-                      className="bg-green-600 hover:bg-green-700 px-6 py-2 rounded font-semibold"
-                    >
-                      ✅ Add Question
-                    </button>
-                    <button
-                      onClick={() => setShowAddQuestion(false)}
-                      className="bg-gray-600 hover:bg-gray-700 px-6 py-2 rounded"
-                    >
-                      Cancel
-                    </button>
+                  <div className="flex gap-3 mt-4">
+                    <Button onClick={addQuestion}>Add Question</Button>
+                    <Button onClick={() => setShowAddQuestion(false)} variant="outline">Cancel</Button>
                   </div>
                 </div>
               </div>
@@ -618,75 +420,29 @@ export default function QuizHostPanel() {
 
             {/* AI Generate Modal */}
             {showAIGenerate && (
-              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                <div className="bg-gray-800 p-6 rounded-lg max-w-md w-full mx-4">
-                  <h3 className="text-xl font-bold mb-4 flex items-center space-x-2">
-                    <Brain className="h-5 w-5 text-purple-400" />
-                    <span>🤖 AI Question Generator</span>
+              <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                <div className="rounded-xl border border-border bg-card p-6 max-w-md w-full">
+                  <h3 className="font-semibold text-card-foreground mb-4 flex items-center gap-2">
+                    <Brain className="h-5 w-5 text-primary" /> AI Question Generator
                   </h3>
-                  
-                  <div className="space-y-4">
-                    <input
-                      type="text"
-                      placeholder="Topic (e.g., Programming, Science)"
-                      value={aiForm.topic}
-                      onChange={(e) => setAiForm(prev => ({...prev, topic: e.target.value}))}
-                      className="w-full p-3 bg-gray-700 rounded border border-gray-600 focus:ring-2 focus:ring-purple-500 focus:outline-none"
-                    />
-
-                    <div className="grid grid-cols-3 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium mb-1">🟢 Easy</label>
-                        <input
-                          type="number"
-                          value={aiForm.num_easy}
-                          onChange={(e) => setAiForm(prev => ({...prev, num_easy: parseInt(e.target.value) || 0}))}
-                          className="w-full p-2 bg-gray-700 rounded border border-gray-600 focus:ring-2 focus:ring-purple-500 focus:outline-none"
-                          min="0"
-                          max="10"
-                        />
-                      </div>
-                      
-                      <div>
-                        <label className="block text-sm font-medium mb-1">🟡 Medium</label>
-                        <input
-                          type="number"
-                          value={aiForm.num_medium}
-                          onChange={(e) => setAiForm(prev => ({...prev, num_medium: parseInt(e.target.value) || 0}))}
-                          className="w-full p-2 bg-gray-700 rounded border border-gray-600 focus:ring-2 focus:ring-purple-500 focus:outline-none"
-                          min="0"
-                          max="10"
-                        />
-                      </div>
-                      
-                      <div>
-                        <label className="block text-sm font-medium mb-1">🔴 Hard</label>
-                        <input
-                          type="number"
-                          value={aiForm.num_hard}
-                          onChange={(e) => setAiForm(prev => ({...prev, num_hard: parseInt(e.target.value) || 0}))}
-                          className="w-full p-2 bg-gray-700 rounded border border-gray-600 focus:ring-2 focus:ring-purple-500 focus:outline-none"
-                          min="0"
-                          max="10"
-                        />
-                      </div>
+                  <div className="space-y-3">
+                    <div className="space-y-1.5">
+                      <Label>Topic</Label>
+                      <Input placeholder="e.g. Programming, Science" value={aiForm.topic} onChange={(e) => setAiForm(p => ({...p, topic: e.target.value}))} />
+                    </div>
+                    <div className="grid grid-cols-3 gap-3">
+                      {[{key: 'num_easy', label: 'Easy'}, {key: 'num_medium', label: 'Medium'}, {key: 'num_hard', label: 'Hard'}].map(({key, label}) => (
+                        <div key={key} className="space-y-1.5">
+                          <Label>{label}</Label>
+                          <Input type="number" value={(aiForm as any)[key]}
+                            onChange={(e) => setAiForm(p => ({...p, [key]: parseInt(e.target.value) || 0}))} min="0" max="10" />
+                        </div>
+                      ))}
                     </div>
                   </div>
-
-                  <div className="flex space-x-4 mt-6">
-                    <button
-                      onClick={generateAIQuestions}
-                      disabled={aiForm.num_easy + aiForm.num_medium + aiForm.num_hard === 0}
-                      className="bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 px-6 py-2 rounded font-semibold"
-                    >
-                      🚀 Generate
-                    </button>
-                    <button
-                      onClick={() => setShowAIGenerate(false)}
-                      className="bg-gray-600 hover:bg-gray-700 px-6 py-2 rounded"
-                    >
-                      Cancel
-                    </button>
+                  <div className="flex gap-3 mt-4">
+                    <Button onClick={generateAIQuestions} disabled={aiForm.num_easy + aiForm.num_medium + aiForm.num_hard === 0}>Generate</Button>
+                    <Button onClick={() => setShowAIGenerate(false)} variant="outline">Cancel</Button>
                   </div>
                 </div>
               </div>
@@ -694,55 +450,37 @@ export default function QuizHostPanel() {
           </div>
         )}
 
-        {/* Participants Tab */}
+        {/* Participants tab */}
         {activeTab === 'participants' && (
-          <div>
-            <h2 className="text-xl font-bold mb-6">👥 Participant Management</h2>
-            
+          <div className="space-y-4">
+            <h2 className="font-semibold text-foreground">Participant Management</h2>
             {(currentRoom.participants?.length || 0) === 0 ? (
-              <div className="text-center py-12 text-gray-400">
-                <Users className="h-16 w-16 mx-auto mb-4 opacity-50" />
-                <p className="text-xl mb-2">No participants yet</p>
-                <p>Share room code: <span className="font-bold text-blue-400">{currentRoom.room_code}</span></p>
+              <div className="text-center py-16 rounded-xl border border-border bg-card">
+                <Users className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+                <p className="font-medium text-foreground">No participants yet</p>
+                <p className="text-sm text-muted-foreground mt-1">Share room code: <span className="font-mono font-semibold text-primary">{currentRoom.room_code}</span></p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {(currentRoom.participants || []).map((participant) => (
-                  <div key={participant.session_id} className="bg-gray-800 p-4 rounded-lg">
-                    <div className="flex justify-between items-start mb-3">
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {(currentRoom.participants || []).map(p => (
+                  <div key={p.session_id} className="rounded-xl border border-border bg-card p-4 space-y-3">
+                    <div className="flex items-start justify-between">
                       <div>
-                        <h3 className="font-semibold">{participant.username}</h3>
-                        <div className="text-sm text-gray-400">
-                          Score: {participant.score} pts
-                        </div>
+                        <p className="font-medium text-card-foreground">{p.username}</p>
+                        <p className="text-sm text-muted-foreground">{p.score} pts</p>
                       </div>
-                      <button
-                        onClick={() => removeParticipant(participant.username)}
-                        disabled={roomStatus === 'active'}
-                        className="text-red-400 hover:text-red-300 disabled:text-gray-600"
-                      >
+                      <button onClick={() => removeParticipant(p.username)} disabled={roomStatus === 'active'} className="text-muted-foreground hover:text-destructive disabled:opacity-30">
                         <Trash2 className="h-4 w-4" />
                       </button>
                     </div>
-                    
-                    <div className="space-y-2 text-sm">
+                    <div className="space-y-1 text-sm">
                       <div className="flex justify-between">
-                        <span>Difficulty:</span>
-                        <span className={`px-2 py-1 rounded text-xs ${getDifficultyColor(participant.current_difficulty)}`}>
-                          {participant.current_difficulty}
-                        </span>
+                        <span className="text-muted-foreground">Level</span>
+                        <span className={`px-2 py-0.5 rounded text-xs font-medium capitalize ${difficultyBadge(p.current_difficulty)}`}>{p.current_difficulty}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span>Progress:</span>
-                        <span>{participant.correct_answers}/{participant.total_questions}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Accuracy:</span>
-                        <span>
-                          {participant.total_questions > 0 
-                            ? Math.round((participant.correct_answers / participant.total_questions) * 100)
-                            : 0}%
-                        </span>
+                        <span className="text-muted-foreground">Progress</span>
+                        <span className="text-foreground">{p.correct_answers}/{p.total_questions}</span>
                       </div>
                     </div>
                   </div>
@@ -752,71 +490,56 @@ export default function QuizHostPanel() {
           </div>
         )}
 
-        {/* Live View Tab */}
+        {/* Live tab */}
         {activeTab === 'live' && (
-          <div>
-            <h2 className="text-xl font-bold mb-6">📺 Live Quiz Dashboard</h2>
-            
+          <div className="space-y-5">
+            <h2 className="font-semibold text-foreground">Live Quiz Dashboard</h2>
             {roomStatus !== 'active' ? (
-              <div className="text-center py-12 text-gray-400">
-                <Play className="h-16 w-16 mx-auto mb-4 opacity-50" />
-                <p className="text-xl mb-2">Quiz not active</p>
-                <p>Start the quiz to see live updates</p>
+              <div className="text-center py-16 rounded-xl border border-border bg-card">
+                <Play className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+                <p className="font-medium text-foreground">Quiz not active</p>
+                <p className="text-sm text-muted-foreground mt-1">Start the quiz to see live updates</p>
               </div>
             ) : (
-              <div className="space-y-6">
-                {/* Real-time Stats */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <div className="bg-gray-800 p-4 rounded-lg text-center">
-                    <div className="text-2xl font-bold text-blue-400">{currentRoom.participants?.length || 0}</div>
-                    <div className="text-sm text-gray-400">Active Participants</div>
-                  </div>
-                  <div className="bg-gray-800 p-4 rounded-lg text-center">
-                    <div className="text-2xl font-bold text-green-400">
-                      {Math.round((currentRoom.participants || []).reduce((sum, p) => sum + (p.total_questions > 0 ? (p.correct_answers / p.total_questions) * 100 : 0), 0) / Math.max((currentRoom.participants || []).length, 1))}%
+              <>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  {[
+                    { label: 'Active Participants', value: currentRoom.participants?.length || 0, color: 'text-primary' },
+                    {
+                      label: 'Avg Accuracy', value: `${Math.round((currentRoom.participants || []).reduce((s, p) => s + (p.total_questions > 0 ? (p.correct_answers/p.total_questions)*100 : 0), 0) / Math.max((currentRoom.participants || []).length, 1))}%`,
+                      color: 'text-emerald-600 dark:text-emerald-400'
+                    },
+                    { label: 'Top Score', value: Math.max(...(currentRoom.participants || []).map(p => p.score), 0), color: 'text-amber-600 dark:text-amber-400' },
+                    { label: 'On Hard Level', value: (currentRoom.participants || []).filter(p => p.current_difficulty === 'hard').length, color: 'text-red-600 dark:text-red-400' },
+                  ].map(({ label, value, color }) => (
+                    <div key={label} className="rounded-xl border border-border bg-card p-4 text-center">
+                      <p className={`text-2xl font-bold ${color}`}>{value}</p>
+                      <p className="text-xs text-muted-foreground mt-1">{label}</p>
                     </div>
-                    <div className="text-sm text-gray-400">Avg Accuracy</div>
-                  </div>
-                  <div className="bg-gray-800 p-4 rounded-lg text-center">
-                    <div className="text-2xl font-bold text-purple-400">
-                      {Math.max(...(currentRoom.participants || []).map(p => p.score), 0)}
-                    </div>
-                    <div className="text-sm text-gray-400">Top Score</div>
-                  </div>
-                  <div className="bg-gray-800 p-4 rounded-lg text-center">
-                    <div className="text-2xl font-bold text-yellow-400">
-                      {(currentRoom.participants || []).filter(p => p.current_difficulty === 'hard').length}
-                    </div>
-                    <div className="text-sm text-gray-400">Hard Level</div>
-                  </div>
+                  ))}
                 </div>
 
-                {/* Leaderboard */}
-                <div className="bg-gray-800 p-6 rounded-lg">
-                  <h3 className="text-lg font-bold mb-4">🏆 Live Leaderboard</h3>
+                <div className="rounded-xl border border-border bg-card p-5">
+                  <h3 className="font-semibold text-card-foreground mb-4">Live Leaderboard</h3>
                   <div className="space-y-2">
-                    {(currentRoom.participants || [])
-                      .sort((a, b) => b.score - a.score)
-                      .map((participant, index) => (
-                        <div key={participant.session_id} className="flex items-center justify-between p-3 bg-gray-700 rounded">
-                          <div className="flex items-center space-x-3">
-                            <span className="font-bold text-yellow-400">#{index + 1}</span>
-                            <span className="font-semibold">{participant.username}</span>
-                            <span className={`px-2 py-1 rounded text-xs ${getDifficultyColor(participant.current_difficulty)}`}>
-                              {participant.current_difficulty}
-                            </span>
-                          </div>
-                          <div className="text-right">
-                            <div className="font-bold">{participant.score} pts</div>
-                            <div className="text-sm text-gray-400">
-                              {participant.correct_answers}/{participant.total_questions} correct
-                            </div>
-                          </div>
+                    {(currentRoom.participants || []).sort((a, b) => b.score - a.score).map((p, i) => (
+                      <div key={p.session_id} className="flex items-center justify-between p-3 rounded-lg border border-border bg-background">
+                        <div className="flex items-center gap-3">
+                          <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${i === 0 ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400' : 'bg-muted text-muted-foreground'}`}>
+                            {i+1}
+                          </span>
+                          <span className="font-medium text-foreground">{p.username}</span>
+                          <span className={`px-2 py-0.5 rounded text-xs font-medium capitalize ${difficultyBadge(p.current_difficulty)}`}>{p.current_difficulty}</span>
                         </div>
-                      ))}
+                        <div className="text-right">
+                          <p className="font-bold text-foreground">{p.score} pts</p>
+                          <p className="text-xs text-muted-foreground">{p.correct_answers}/{p.total_questions} correct</p>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              </div>
+              </>
             )}
           </div>
         )}

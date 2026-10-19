@@ -6,8 +6,7 @@ import { useRouter } from "next/navigation"
 import { toast } from "react-hot-toast"
 import { 
   User, 
-  LogOut, 
-  Settings, 
+  Settings,
   Trophy, 
   BookOpen, 
   Target, 
@@ -22,10 +21,8 @@ import {
   Save,
   X,
   Loader2,
-  Github,
-  Linkedin,
-  Twitter,
   Link2,
+  ExternalLink,
   Flame,
   Upload
 } from "lucide-react"
@@ -52,7 +49,7 @@ type CertificateItem = {
 }
 
 export default function DashboardPage() {
-  const { user, walletConnected, logout, authMethod } = useAuth()
+  const { user, walletConnected, authMethod } = useAuth()
   const router = useRouter()
   const normalizedRole = String(user?.role || 'student').toLowerCase()
   const roleLabel = normalizedRole === 'admin' ? 'Admin' : normalizedRole === 'instructor' ? 'Instructor' : 'Student'
@@ -340,69 +337,45 @@ export default function DashboardPage() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 dark:bg-gradient-to-br dark:from-gray-900 dark:via-blue-900 dark:to-purple-900">
-      {/* Professional Header */}
-      <header className="bg-white dark:bg-gray-950 shadow-lg border-b border-gray-100 dark:border-gray-800">
-        <div className="w-full px-4 sm:px-6 lg:px-10">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-gradient-to-r from-indigo-600 via-purple-600 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
-                  <BookOpen className="w-6 h-6 text-white" />
-                </div>
-                <div>
-                  <h1 className="text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                    OpenLearnX
-                  </h1>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Learn • Earn • Grow</p>
-                </div>
-              </div>
-            </div>
-            
-            <div className="flex items-center space-x-3">
-              <button
-                onClick={handleSettingsClick}
-                className="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-all duration-200"
-                title="Open profile settings"
-              >
-                <Settings className="w-5 h-5" />
-              </button>
-              <button 
-                onClick={logout}
-                className="flex items-center space-x-2 px-4 py-2 text-red-600 hover:text-white hover:bg-red-600 rounded-xl transition-all duration-200 border border-red-200 hover:border-red-600"
-              >
-                <LogOut className="w-4 h-4" />
-                <span className="text-sm font-medium">Logout</span>
-              </button>
-            </div>
-          </div>
+    <div className="min-h-screen bg-background">
+      {/* Dashboard sub-header */}
+      <div className="border-b border-border bg-card">
+        <div className="container flex items-center justify-between h-12">
+          <h1 className="text-sm font-semibold text-foreground">Dashboard</h1>
+          <button
+            onClick={handleSettingsClick}
+            className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-colors"
+            title="Profile settings"
+          >
+            <Settings className="w-4 h-4" />
+          </button>
         </div>
-      </header>
+      </div>
 
       {/* Main Dashboard Content */}
-      <main className="w-full px-4 sm:px-6 lg:px-10 py-8">
+      <main className="container py-8">
         {/* Welcome Section */}
         <div className="mb-8">
-          <div className="bg-gradient-to-r from-indigo-600 via-purple-600 to-blue-600 dark:from-indigo-700 dark:via-purple-700 dark:to-blue-700 rounded-2xl p-8 text-white shadow-xl">
+          <div className="bg-primary rounded-2xl p-8 text-primary-foreground shadow-sm">
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-3xl font-bold mb-2">
                   Welcome back
                 </h2>
-                <p className="text-indigo-100 dark:text-indigo-200 text-lg">
+                <p className="text-primary-foreground/80 text-lg">
                   Ready to continue your learning journey?
                 </p>
                 {authMethod === "metamask" && user ? (
                   <div className="mt-3 flex items-center space-x-2">
                     <Wallet className="w-4 h-4 text-orange-300" />
-                    <span className="text-sm text-indigo-100 dark:text-indigo-200">
+                    <span className="text-sm text-primary-foreground/80">
                       Connected: {user.wallet_address.slice(0, 6)}...{user.wallet_address.slice(-4)}
                     </span>
                     <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${roleBadgeClass}`}>
@@ -412,7 +385,7 @@ export default function DashboardPage() {
                 ) : (
                   <div className="mt-3 flex items-center space-x-2">
                     <Mail className="w-4 h-4 text-blue-300" />
-                    <span className="text-sm text-indigo-100 dark:text-indigo-200">
+                    <span className="text-sm text-primary-foreground/80">
                       {user.email || user.id}
                     </span>
                     <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${roleBadgeClass}`}>
@@ -436,7 +409,7 @@ export default function DashboardPage() {
             // Loading skeleton
             <>
               {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 p-6 animate-pulse">
+                <div key={i} className="bg-card rounded-2xl shadow-sm border border-border p-6 animate-pulse">
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
                       <div className="h-4 bg-gray-200 rounded w-24 mb-3"></div>
@@ -449,11 +422,11 @@ export default function DashboardPage() {
             </>
           ) : (
             <>
-              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 p-6 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+              <div className="bg-card rounded-2xl shadow-sm border border-border p-6 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide">Total XP</p>
-                <p className="text-3xl font-bold text-gray-900 dark:text-white mt-1">{stats.totalXP.toLocaleString()}</p>
+                    <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Total XP</p>
+                <p className="text-3xl font-bold text-foreground mt-1">{stats.totalXP.toLocaleString()}</p>
               </div>
               <div className="p-4 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-xl shadow-lg">
                 <Trophy className="w-8 h-8 text-white" />
@@ -465,11 +438,11 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 p-6 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+          <div className="bg-card rounded-2xl shadow-sm border border-border p-6 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide">Courses</p>
-                <p className="text-3xl font-bold text-gray-900 dark:text-white mt-1">{stats.coursesCompleted}</p>
+                <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Courses</p>
+                <p className="text-3xl font-bold text-foreground mt-1">{stats.coursesCompleted}</p>
               </div>
               <div className="p-4 bg-gradient-to-r from-green-500 to-teal-500 rounded-xl shadow-lg">
                 <BookOpen className="w-8 h-8 text-white" />
@@ -481,11 +454,11 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 p-6 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+          <div className="bg-card rounded-2xl shadow-sm border border-border p-6 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide">Streak</p>
-                <p className="text-3xl font-bold text-gray-900 dark:text-white mt-1">{stats.currentStreak} days</p>
+                <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Streak</p>
+                <p className="text-3xl font-bold text-foreground mt-1">{stats.currentStreak} days</p>
               </div>
               <div className="p-4 bg-gradient-to-r from-orange-500 to-red-500 rounded-xl shadow-lg">
                 <Flame className="w-8 h-8 text-white" />
@@ -496,11 +469,11 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 p-6 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+          <div className="bg-card rounded-2xl shadow-sm border border-border p-6 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide">Global Rank</p>
-                <p className="text-3xl font-bold text-gray-900 dark:text-white mt-1">#{stats.rank}</p>
+                <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Global Rank</p>
+                <p className="text-3xl font-bold text-foreground mt-1">#{stats.rank}</p>
               </div>
               <div className="p-4 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl shadow-lg">
                 <BarChart3 className="w-8 h-8 text-white" />
@@ -519,13 +492,13 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Profile Card with Edit Functionality */}
           <div className="lg:col-span-1">
-            <div id="profile-card" className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 overflow-hidden">
+            <div id="profile-card" className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
               {/* Profile Tabs */}
-              <div className="flex border-b border-gray-200 dark:border-gray-700">
+              <div className="flex border-b border-gray-200 dark:border-border">
                 <button
                   onClick={() => { setIsEditingProfile(false); setIsEditingSocial(false); }}
                   className={`flex-1 py-3 px-4 text-sm font-semibold transition-all ${
-                    !isEditingSocial ? 'text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 bg-indigo-50 dark:bg-gray-700' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                    !isEditingSocial ? 'text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 bg-indigo-50 dark:bg-muted' : 'text-muted-foreground hover:text-gray-900 dark:hover:text-gray-200'
                   }`}
                 >
                   Profile
@@ -533,7 +506,7 @@ export default function DashboardPage() {
                 <button
                   onClick={() => setIsEditingSocial(true)}
                   className={`flex-1 py-3 px-4 text-sm font-semibold transition-all ${
-                    isEditingSocial ? 'text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 bg-indigo-50 dark:bg-gray-700' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                    isEditingSocial ? 'text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 bg-indigo-50 dark:bg-muted' : 'text-muted-foreground hover:text-gray-900 dark:hover:text-gray-200'
                   }`}
                 >
                   Social Links
@@ -564,7 +537,7 @@ export default function DashboardPage() {
                             value={profileData.name}
                             onChange={(e) => setProfileData({...profileData, name: e.target.value})}
                             placeholder="Your name"
-                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-center"
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-muted text-foreground placeholder-gray-500 dark:placeholder-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-center"
                           />
                           
                           {/* Image Upload Input */}
@@ -602,7 +575,7 @@ export default function DashboardPage() {
                             value={profileData.bio}
                             onChange={(e) => setProfileData({...profileData, bio: e.target.value})}
                             placeholder="Your bio"
-                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-center h-20 resize-none"
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-muted text-foreground placeholder-gray-500 dark:placeholder-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-center h-20 resize-none"
                           />
                           <div className="flex gap-2">
                             <button
@@ -614,7 +587,7 @@ export default function DashboardPage() {
                             </button>
                             <button
                               onClick={() => setIsEditingProfile(false)}
-                              className="flex-1 flex items-center justify-center space-x-2 px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                              className="flex-1 flex items-center justify-center space-x-2 px-4 py-2 bg-gray-200 dark:bg-muted text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
                             >
                               <X className="w-4 h-4" />
                               <span>Cancel</span>
@@ -624,7 +597,7 @@ export default function DashboardPage() {
                       ) : (
                         <div>
                           <div className="flex items-center justify-center gap-2 mb-2">
-                            <h4 className="text-lg font-semibold text-gray-900 dark:text-white">
+                            <h4 className="text-lg font-semibold text-foreground">
                               {profileData.name || "Your Name"}
                             </h4>
                             <button
@@ -650,8 +623,8 @@ export default function DashboardPage() {
                             <Mail className="w-6 h-6 text-blue-600" />
                           )}
                           <div>
-                            <p className="text-sm font-semibold text-gray-900 dark:text-white">Auth Method</p>
-                            <p className="text-xs text-gray-600 dark:text-gray-400">
+                            <p className="text-sm font-semibold text-foreground">Auth Method</p>
+                            <p className="text-xs text-muted-foreground">
                               {authMethod === "metamask" ? "MetaMask Wallet" : "Email Account"}
                             </p>
                           </div>
@@ -663,12 +636,12 @@ export default function DashboardPage() {
                       </div>
 
                       <div className="grid grid-cols-2 gap-4">
-                        <div className="text-center p-4 bg-blue-50 dark:bg-gray-700 rounded-xl">
+                        <div className="text-center p-4 bg-blue-50 dark:bg-muted rounded-xl">
                           <Calendar className="w-6 h-6 text-blue-600 dark:text-blue-400 mx-auto mb-2" />
                           <p className="text-2xl font-bold text-blue-900 dark:text-blue-300">{stats.hoursLearned}</p>
                           <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">Hours Learned</p>
                         </div>
-                        <div className="text-center p-4 bg-green-50 dark:bg-gray-700 rounded-xl">
+                        <div className="text-center p-4 bg-green-50 dark:bg-muted rounded-xl">
                           <Award className="w-6 h-6 text-green-600 dark:text-green-400 mx-auto mb-2" />
                           <p className="text-2xl font-bold text-green-900 dark:text-green-300">{stats.certificatesEarned}</p>
                           <p className="text-xs text-green-600 dark:text-green-400 font-medium">Certificates</p>
@@ -679,13 +652,13 @@ export default function DashboardPage() {
                 ) : (
                   /* Social Links Tab */
                   <div>
-                    <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">Connect Your Social Accounts</h4>
+                    <h4 className="text-sm font-semibold text-foreground mb-4">Connect Your Social Accounts</h4>
                     
                     {isEditingSocial && (
                       <div className="space-y-4">
                         <div className="space-y-2">
-                          <label className="flex items-center space-x-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-                            <Github className="w-5 h-5 text-gray-800 dark:text-gray-400" />
+                          <label className="flex items-center space-x-2 text-sm font-medium text-muted-foreground">
+                            <ExternalLink className="w-5 h-5 text-muted-foreground" />
                             <span>GitHub Profile</span>
                           </label>
                           <input
@@ -693,13 +666,13 @@ export default function DashboardPage() {
                             value={socialData.github}
                             onChange={(e) => setSocialData({...socialData, github: e.target.value})}
                             placeholder="username or profile URL"
-                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-muted text-foreground placeholder-gray-500 dark:placeholder-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
                           />
                         </div>
 
                         <div className="space-y-2">
-                          <label className="flex items-center space-x-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-                            <Linkedin className="w-5 h-5 text-blue-600" />
+                          <label className="flex items-center space-x-2 text-sm font-medium text-muted-foreground">
+                            <ExternalLink className="w-5 h-5 text-blue-500" />
                             <span>LinkedIn Profile</span>
                           </label>
                           <input
@@ -707,21 +680,21 @@ export default function DashboardPage() {
                             value={socialData.linkedin}
                             onChange={(e) => setSocialData({...socialData, linkedin: e.target.value})}
                             placeholder="username or profile URL"
-                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-muted text-foreground placeholder-gray-500 dark:placeholder-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
                           />
                         </div>
 
                         <div className="space-y-2">
-                          <label className="flex items-center space-x-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-                            <Twitter className="w-5 h-5 text-blue-400" />
-                            <span>Twitter Profile</span>
+                          <label className="flex items-center space-x-2 text-sm font-medium text-muted-foreground">
+                            <Link2 className="w-5 h-5 text-sky-400" />
+                            <span>X / Twitter Profile</span>
                           </label>
                           <input
                             type="text"
                             value={socialData.twitter}
                             onChange={(e) => setSocialData({...socialData, twitter: e.target.value})}
                             placeholder="@username or profile URL"
-                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-muted text-foreground placeholder-gray-500 dark:placeholder-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
                           />
                         </div>
 
@@ -746,10 +719,10 @@ export default function DashboardPage() {
                               href={socialData.github.startsWith('http') ? socialData.github : `https://github.com/${socialData.github}`}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="flex items-center space-x-3 p-3 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-all"
+                              className="flex items-center space-x-3 p-3 border border-border rounded-lg hover:bg-muted/60 transition-all"
                             >
-                              <Github className="w-5 h-5 text-gray-800 dark:text-gray-400" />
-                              <span className="text-sm text-gray-700 dark:text-gray-300 flex-1 truncate">{socialData.github}</span>
+                              <ExternalLink className="w-5 h-5 text-muted-foreground" />
+                              <span className="text-sm text-muted-foreground flex-1 truncate">{socialData.github}</span>
                               <Link2 className="w-4 h-4 text-gray-400 dark:text-gray-500" />
                             </a>
                           )}
@@ -758,10 +731,10 @@ export default function DashboardPage() {
                               href={socialData.linkedin.startsWith('http') ? socialData.linkedin : `https://linkedin.com/in/${socialData.linkedin}`}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="flex items-center space-x-3 p-3 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-all"
+                              className="flex items-center space-x-3 p-3 border border-border rounded-lg hover:bg-muted/60 transition-all"
                             >
-                              <Linkedin className="w-5 h-5 text-blue-600" />
-                              <span className="text-sm text-gray-700 dark:text-gray-300 flex-1 truncate">{socialData.linkedin}</span>
+                              <ExternalLink className="w-5 h-5 text-blue-500" />
+                              <span className="text-sm text-muted-foreground flex-1 truncate">{socialData.linkedin}</span>
                               <Link2 className="w-4 h-4 text-gray-400 dark:text-gray-500" />
                             </a>
                           )}
@@ -770,16 +743,16 @@ export default function DashboardPage() {
                               href={socialData.twitter.startsWith('http') ? socialData.twitter : `https://twitter.com/${socialData.twitter}`}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="flex items-center space-x-3 p-3 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-all"
+                              className="flex items-center space-x-3 p-3 border border-border rounded-lg hover:bg-muted/60 transition-all"
                             >
-                              <Twitter className="w-5 h-5 text-blue-400" />
-                              <span className="text-sm text-gray-700 dark:text-gray-300 flex-1 truncate">{socialData.twitter}</span>
+                              <Link2 className="w-5 h-5 text-sky-400" />
+                              <span className="text-sm text-muted-foreground flex-1 truncate">{socialData.twitter}</span>
                               <Link2 className="w-4 h-4 text-gray-400 dark:text-gray-500" />
                             </a>
                           )}
                         </div>
                         {!socialData.github && !socialData.linkedin && !socialData.twitter && (
-                          <div className="text-center py-8 px-4 bg-gray-50 dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600">
+                          <div className="text-center py-8 px-4 bg-gray-50 dark:bg-muted rounded-xl border border-border">
                             <p className="text-sm text-gray-600 dark:text-gray-300">No social links added yet</p>
                             <button
                               onClick={() => setIsEditingSocial(true)}
@@ -791,7 +764,7 @@ export default function DashboardPage() {
                         )}
                         <button
                           onClick={() => setIsEditingSocial(true)}
-                          className="w-full mt-4 flex items-center justify-center space-x-2 px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                          className="w-full mt-4 flex items-center justify-center space-x-2 px-4 py-2 bg-gray-100 dark:bg-muted text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                         >
                           <Edit3 className="w-4 h-4" />
                           <span>Edit Links</span>
@@ -804,22 +777,22 @@ export default function DashboardPage() {
             </div>
 
             {/* Streak Calendar */}
-            <div className="mt-6 bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 p-6">
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Learning Streak</h3>
+            <div className="mt-6 bg-card rounded-2xl shadow-sm border border-border p-6">
+              <h3 className="text-lg font-bold text-foreground mb-4">Learning Streak</h3>
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <p className="text-3xl font-bold text-orange-600 dark:text-orange-400">{stats.currentStreak}</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">days in a row</p>
+                  <p className="text-sm text-muted-foreground">days in a row</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Best streak</p>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.bestStreak} days</p>
+                  <p className="text-sm text-muted-foreground">Best streak</p>
+                  <p className="text-2xl font-bold text-foreground">{stats.bestStreak} days</p>
                 </div>
               </div>
               
               {/* GitHub-style contribution graph */}
-              <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
-                <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-3">Last 12 weeks</p>
+              <div className="mt-6 pt-4 border-t border-gray-200 dark:border-border">
+                <p className="text-xs font-semibold text-muted-foreground mb-3">Last 12 weeks</p>
                 <div className="grid grid-cols-12 gap-1">
                   {[...Array(84)].map((_, i) => {
                     // Calculate activity based on current streak
@@ -837,7 +810,7 @@ export default function DashboardPage() {
                       activity = Math.random() * 0.3
                     }
                     
-                    let bgColor = 'bg-gray-100 dark:bg-gray-700'
+                    let bgColor = 'bg-gray-100 dark:bg-muted'
                     if (activity > 0.75) bgColor = 'bg-green-600'
                     else if (activity > 0.5) bgColor = 'bg-green-400'
                     else if (activity > 0.25) bgColor = 'bg-green-200'
@@ -852,10 +825,10 @@ export default function DashboardPage() {
                     )
                   })}
                 </div>
-                <div className="mt-4 flex items-center justify-between text-xs text-gray-600 dark:text-gray-400">
+                <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground">
                   <span>Less</span>
                   <div className="flex gap-1">
-                    <div className="w-3 h-3 bg-gray-100 dark:bg-gray-700 rounded-sm"></div>
+                    <div className="w-3 h-3 bg-gray-100 dark:bg-muted rounded-sm"></div>
                     <div className="w-3 h-3 bg-green-100 dark:bg-green-900 rounded-sm"></div>
                     <div className="w-3 h-3 bg-green-400 dark:bg-green-600 rounded-sm"></div>
                     <div className="w-3 h-3 bg-green-600 dark:bg-green-500 rounded-sm"></div>
@@ -868,9 +841,9 @@ export default function DashboardPage() {
 
           {/* Recent Activity */}
           <div className="lg:col-span-2">
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 p-6">
+            <div className="bg-card rounded-2xl shadow-sm border border-border p-6">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-bold text-gray-900 dark:text-white">Recent Activity</h3>
+                <h3 className="text-xl font-bold text-foreground">Recent Activity</h3>
                 <button
                   onClick={() => setShowAllActivities((prev) => !prev)}
                   className="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 font-semibold hover:bg-indigo-50 dark:hover:bg-gray-700 px-3 py-1 rounded-lg transition-all duration-200"
@@ -884,12 +857,12 @@ export default function DashboardPage() {
                   const iconConfig = activityIconConfig(activity.type)
                   const Icon = iconConfig.icon
                   return (
-                  <div key={activity.id} className="flex items-center space-x-4 p-4 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-xl transition-all duration-200 border border-gray-100 dark:border-gray-700 hover:border-gray-200 dark:hover:border-gray-600 hover:shadow-md">
+                  <div key={activity.id} className="flex items-center space-x-4 p-4 hover:bg-muted/60 rounded-xl transition-all duration-200 border border-gray-100 dark:border-border hover:border-gray-200 dark:hover:border-gray-600 hover:shadow-md">
                     <div className={`p-3 rounded-xl ${iconConfig.bgColor} shadow-sm`}>
                       <Icon className={`w-5 h-5 ${iconConfig.textColor}`} />
                     </div>
                     <div className="flex-1">
-                      <p className="text-sm font-semibold text-gray-900 dark:text-white">{activity.title}</p>
+                      <p className="text-sm font-semibold text-foreground">{activity.title}</p>
                       <p className="text-xs text-gray-600 dark:text-gray-300 mt-1">{activity.description}</p>
                       <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{activity.timestamp_utc || activity.completed_at}</p>
                     </div>
@@ -905,9 +878,9 @@ export default function DashboardPage() {
 
           {/* Certificates */}
           <div className="lg:col-span-3">
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 p-6">
+            <div className="bg-card rounded-2xl shadow-sm border border-border p-6">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-bold text-gray-900 dark:text-white">Your Certificates</h3>
+                <h3 className="text-xl font-bold text-foreground">Your Certificates</h3>
                 <span className="text-sm text-gray-500 dark:text-gray-400">
                   {certificates.length} total
                 </span>
@@ -921,11 +894,11 @@ export default function DashboardPage() {
                     <a
                       key={cert.certificate_id}
                       href={cert.public_url || cert.unique_url || `/certificate/${cert.certificate_id}`}
-                      className="group rounded-xl border border-gray-200 dark:border-gray-700 p-4 hover:shadow-md hover:border-indigo-300 dark:hover:border-indigo-500 transition-all"
+                      className="group rounded-xl border border-gray-200 dark:border-border p-4 hover:shadow-md hover:border-indigo-300 dark:hover:border-indigo-500 transition-all"
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div>
-                          <p className="text-sm font-semibold text-gray-900 dark:text-white group-hover:text-indigo-600">
+                          <p className="text-sm font-semibold text-foreground group-hover:text-indigo-600">
                             {cert.course_title || "Course Certificate"}
                           </p>
                           <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
