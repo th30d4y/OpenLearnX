@@ -219,11 +219,11 @@ export default function CodingExamPlatform() {
   // Role selection
   if (userRole === 'selector') {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <div className="w-full max-w-sm">
-          <div className="text-center mb-8">
-            <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary mb-4">
-              <Code className="h-6 w-6 text-primary-foreground" />
+      <div className="bg-background py-24 px-4">
+        <div className="max-w-sm mx-auto">
+          <div className="mb-8">
+            <div className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-card mb-4">
+              <Code className="h-5 w-5 text-foreground" />
             </div>
             <h1 className="text-2xl font-bold text-foreground">Coding Exam</h1>
             <p className="mt-1 text-sm text-muted-foreground">Choose your role to get started</p>
@@ -239,8 +239,6 @@ export default function CodingExamPlatform() {
               Join an Exam
             </Button>
           </div>
-
-          <p className="mt-6 text-center text-xs text-muted-foreground">Secure · Real-time · Professional</p>
         </div>
       </div>
     )

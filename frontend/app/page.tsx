@@ -199,7 +199,7 @@ export default function Home() {
                 className="group flex items-start gap-5 p-6 bg-card hover:bg-muted/30 transition-colors"
               >
                 <div className="mt-0.5 shrink-0 h-9 w-9 rounded-lg border border-border bg-background flex items-center justify-center">
-                  <Icon className="h-4.5 w-4.5 text-foreground" />
+                  <Icon className="h-5 w-5 text-foreground" />
                 </div>
                 <div className="space-y-1 min-w-0">
                   <h3 className="font-semibold text-card-foreground">{title}</h3>
@@ -292,7 +292,7 @@ export default function Home() {
         <div className="container flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-xs font-semibold text-foreground">OpenLearnX</p>
           <p className="text-xs text-muted-foreground text-center">
-            Open-source · AI-adaptive · Blockchain-verified
+            Open-source. AI-adaptive. Blockchain-verified.
           </p>
           <div className="flex gap-4 text-xs text-muted-foreground">
             <Link href="/courses" className="hover:text-foreground transition-colors">Courses</Link>

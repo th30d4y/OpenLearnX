@@ -186,12 +186,12 @@ export default function QuizPlayPage() {
 
           <div className="rounded-xl border border-border bg-card p-5 space-y-3">
             <div>
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Correct Answer</p>
+              <p className="text-xs font-medium text-muted-foreground">Correct Answer</p>
               <p className="text-emerald-600 dark:text-emerald-400 font-medium mt-1">{lastResult.correct_answer}</p>
             </div>
             {lastResult.explanation && (
               <div>
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Explanation</p>
+                <p className="text-xs font-medium text-muted-foreground">Explanation</p>
                 <p className="text-sm text-foreground mt-1">{lastResult.explanation}</p>
               </div>
             )}
@@ -209,7 +209,7 @@ export default function QuizPlayPage() {
           )}
 
           <div className="rounded-xl border border-border bg-card p-4">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-3">Your Progress</p>
+            <p className="text-xs font-medium text-muted-foreground mb-3">Your Progress</p>
             <div className="grid grid-cols-2 gap-4 text-center">
               <div>
                 <p className="text-xl font-bold text-primary">{sessionStats.score || 0}</p>

@@ -425,7 +425,7 @@ export default function DashboardPage() {
               <div className="bg-card rounded-2xl border border-border p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Total XP</p>
+                    <p className="text-xs font-medium text-muted-foreground">Total XP</p>
                     <p className="text-3xl font-bold text-foreground mt-1">{stats.totalXP.toLocaleString()}</p>
                   </div>
                   <div className="p-3 bg-muted rounded-xl">
@@ -440,7 +440,7 @@ export default function DashboardPage() {
               <div className="bg-card rounded-2xl border border-border p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Courses</p>
+                    <p className="text-xs font-medium text-muted-foreground">Courses</p>
                     <p className="text-3xl font-bold text-foreground mt-1">{stats.coursesCompleted}</p>
                   </div>
                   <div className="p-3 bg-muted rounded-xl">
@@ -453,7 +453,7 @@ export default function DashboardPage() {
               <div className="bg-card rounded-2xl border border-border p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Streak</p>
+                    <p className="text-xs font-medium text-muted-foreground">Streak</p>
                     <p className="text-3xl font-bold text-foreground mt-1">{stats.currentStreak} <span className="text-lg font-normal text-muted-foreground">days</span></p>
                   </div>
                   <div className="p-3 bg-muted rounded-xl">
@@ -468,7 +468,7 @@ export default function DashboardPage() {
               <div className="bg-card rounded-2xl border border-border p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Global Rank</p>
+                    <p className="text-xs font-medium text-muted-foreground">Global Rank</p>
                     <p className="text-3xl font-bold text-foreground mt-1">
                       {stats.rank > 0 ? `#${stats.rank}` : '—'}
                     </p>

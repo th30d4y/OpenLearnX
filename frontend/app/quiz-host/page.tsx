@@ -229,14 +229,14 @@ export default function QuizHostPanel() {
   // Create room screen
   if (!currentRoom) {
     return (
-      <div className="min-h-screen bg-background p-4">
-        <div className="max-w-xl mx-auto py-10">
-          <div className="text-center mb-8">
-            <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary mb-4">
-              <Crown className="h-6 w-6 text-primary-foreground" />
+      <div className="bg-background px-4 py-16">
+        <div className="max-w-xl mx-auto">
+          <div className="mb-8">
+            <div className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-card mb-4">
+              <Crown className="h-5 w-5 text-foreground" />
             </div>
             <h1 className="text-2xl font-bold text-foreground">Quiz Host Panel</h1>
-            <p className="mt-1 text-sm text-muted-foreground">Create and manage adaptive quizzes with AI-powered questions</p>
+            <p className="mt-1 text-sm text-muted-foreground">Create a room and invite participants to join</p>
           </div>
 
           <div className="rounded-xl border border-border bg-card p-6 space-y-4">
