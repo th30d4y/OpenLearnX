@@ -42,7 +42,7 @@ interface QuizRoom {
 export default function QuizHostPanel() {
   const router = useRouter()
   const [currentRoom, setCurrentRoom] = useState<QuizRoom | null>(null)
-  const [activeTab, setActiveTab] = useState<'questions' | 'participants' | 'live'>('questions')
+  const [activeTab, setActiveTab] = useState<'overview' | 'participants' | 'questions'>('questions')
   const [showAddQuestion, setShowAddQuestion] = useState(false)
   const [showAIGenerate, setShowAIGenerate] = useState(false)
   const [codeCopied, setCodeCopied] = useState(false)
@@ -170,7 +170,7 @@ export default function QuizHostPanel() {
     try {
       const response = await fetch(`http://127.0.0.1:5000/api/quizzes/room/${currentRoom.room_code}/start`, { method: 'POST' })
       const data = await response.json()
-      if (data.success) { fetchRoomData(); setActiveTab('live') }
+      if (data.success) { fetchRoomData(); setActiveTab('overview') }
       else alert(`Error: ${data.error}`)
     } catch {
       alert('Network error')
@@ -303,12 +303,12 @@ export default function QuizHostPanel() {
             </span>
             {roomStatus === 'waiting' && (
               <Button onClick={startQuiz} disabled={(currentRoom.questions?.length || 0) === 0} className="gap-1.5" size="sm">
-                <Play className="h-3.5 w-3.5" /> Start Quiz
+                <Play className="h-3.5 w-3.5" /> Start
               </Button>
             )}
             {roomStatus === 'active' && (
               <Button onClick={endQuiz} variant="destructive" className="gap-1.5" size="sm">
-                <Square className="h-3.5 w-3.5" /> End Quiz
+                <Square className="h-3.5 w-3.5" /> End
               </Button>
             )}
           </div>
@@ -320,9 +320,9 @@ export default function QuizHostPanel() {
         {/* Tabs */}
         <div className="flex gap-1 border border-border rounded-lg p-1 w-fit mb-5 bg-muted/30">
           {[
-            { id: 'questions', label: `Questions (${currentRoom.questions?.length || 0})`, icon: Target },
+            { id: 'overview', label: 'Overview', icon: Play },
             { id: 'participants', label: `Participants (${currentRoom.participants?.length || 0})`, icon: Users },
-            { id: 'live', label: 'Live View', icon: Play },
+            { id: 'questions', label: `Questions (${currentRoom.questions?.length || 0})`, icon: Target },
           ].map(tab => (
             <button
               key={tab.id}
@@ -508,15 +508,38 @@ export default function QuizHostPanel() {
           </div>
         )}
 
-        {/* Live tab */}
-        {activeTab === 'live' && (
+        {/* Overview tab */}
+        {activeTab === 'overview' && (
           <div className="space-y-5">
-            <h2 className="font-semibold text-foreground">Live Quiz Dashboard</h2>
+            <h2 className="font-semibold text-foreground">Session Overview</h2>
             {roomStatus !== 'active' ? (
-              <div className="text-center py-16 rounded-xl border border-border bg-card">
-                <Play className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-                <p className="font-medium text-foreground">Quiz not active</p>
-                <p className="text-sm text-muted-foreground mt-1">Start the quiz to see live updates</p>
+              <div className="space-y-4">
+                <div className="rounded-xl border border-border bg-card p-5 space-y-3">
+                  <h3 className="text-sm font-semibold text-card-foreground">Room ready</h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+                    {[
+                      { label: 'Questions', value: currentRoom.questions?.length || 0 },
+                      { label: 'Participants', value: currentRoom.participants?.length || 0 },
+                      { label: 'Max capacity', value: currentRoom.max_participants },
+                      { label: 'Duration', value: `${currentRoom.duration_minutes}m` },
+                    ].map(({ label, value }) => (
+                      <div key={label} className="rounded-lg border border-border bg-background p-3">
+                        <p className="text-xl font-bold text-foreground">{value}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">{label}</p>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Share code <span className="font-mono font-semibold text-foreground">{currentRoom.room_code}</span> for participants to join, then start when ready.
+                  </p>
+                </div>
+                {(currentRoom.questions?.length || 0) === 0 && (
+                  <div className="rounded-xl border-2 border-dashed border-border p-8 text-center">
+                    <Target className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                    <p className="text-sm font-medium text-foreground">No questions yet</p>
+                    <p className="text-xs text-muted-foreground mt-1">Go to the Questions tab to add or generate questions</p>
+                  </div>
+                )}
               </div>
             ) : (
               <>
