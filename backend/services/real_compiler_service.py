@@ -258,6 +258,8 @@ class RealCompilerService:
         self.blocked_patterns = {
             "python": [
                 r"\b__import__\s*\(",
+                r"\b__builtins__\b",
+                r"\[[\'\"]__import__[\'\"]\]",
                 r"\beval\s*\(",
                 r"\bexec\s*\(",
                 r"\bopen\s*\(",
@@ -581,6 +583,25 @@ class RealCompilerService:
                         violations.append(f"Blocked function call: {fn.id}")
                     if isinstance(fn, ast.Attribute) and fn.attr in self.blocked_python_attrs:
                         violations.append(f"Blocked dangerous call: {fn.attr}")
+
+                # Reject any access to __builtins__ regardless of call site shape.
+                if isinstance(node, ast.Name) and node.id == "__builtins__":
+                    violations.append("Blocked access to __builtins__")
+                if isinstance(node, ast.Attribute) and node.attr == "__builtins__":
+                    violations.append("Blocked access to __builtins__")
+
+                # Reject subscript selecting '__import__' as a string key,
+                # e.g. __builtins__.__dict__['__import__'].
+                if isinstance(node, ast.Subscript):
+                    slice_node = node.slice
+                    # ast.Index wrapper was removed in Python 3.9; handle both.
+                    if isinstance(slice_node, ast.Index):
+                        slice_node = slice_node.value  # type: ignore[attr-defined]
+                    if (
+                        isinstance(slice_node, ast.Constant)
+                        and slice_node.value == "__import__"
+                    ):
+                        violations.append("Blocked indirect __import__ access via subscript")
 
         for pattern in self.blocked_patterns.get(language, []):
             if re.search(pattern, code, flags=re.IGNORECASE | re.MULTILINE):
