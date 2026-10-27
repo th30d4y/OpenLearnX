@@ -16,75 +16,61 @@ client = MongoClient(mongo_uri)
 db = client.openlearnx
 
 def verify_wallet_authentication():
-    """✅ FIXED: Verify MetaMask wallet authentication with proper JWT handling"""
-    user_id = None
-    wallet_address = None
-    
-    # ✅ Try JWT token first with proper algorithm specification
+    """Verify authentication via JWT only. Fails closed — no unauthenticated header fallback.
+
+    GHSA-fhwv-x9rc-w3qw: the previous implementation accepted X-Wallet-Address,
+    X-User-ID, query params and JSON body as a verified identity whenever JWT
+    verification failed or was absent. Those fields are caller-controlled public
+    data and prove nothing about wallet ownership. The function now returns
+    (None, None) for every request that does not carry a valid, server-signed JWT.
+    """
+    from flask import current_app
+
     auth_header = request.headers.get('Authorization', '')
-    if auth_header.startswith('Bearer '):
-        try:
-            token = auth_header.split(' ')[1]
-            # ✅ FIXED: Verify JWT signature using JWT_SECRET_KEY
-            from flask import current_app
-            jwt_secret = current_app.config.get('JWT_SECRET_KEY') or os.getenv('JWT_SECRET_KEY')
-            fallback_secret = os.getenv('JWT_SECRET')
-            decoded = None
+    if not auth_header.startswith('Bearer '):
+        logger.warning("Authentication required: no Bearer token in request")
+        return None, None
 
-            if jwt_secret:
-                try:
-                    decoded = jwt.decode(
-                        token,
-                        jwt_secret,
-                        algorithms=["HS256", "RS256"],
-                    )
-                except Exception as e:
-                    logger.warning(f"⚠️ JWT decode failed with JWT_SECRET_KEY: {e}")
+    try:
+        token = auth_header.split(' ', 1)[1]
+        jwt_secret = current_app.config.get('JWT_SECRET_KEY') or os.getenv('JWT_SECRET_KEY')
+        fallback_secret = os.getenv('JWT_SECRET')
+        decoded = None
 
-            if decoded is None and fallback_secret:
-                try:
-                    decoded = jwt.decode(
-                        token,
-                        fallback_secret,
-                        algorithms=["HS256", "RS256"],
-                    )
-                except Exception as e:
-                    logger.warning(f"⚠️ JWT decode failed with JWT_SECRET: {e}")
+        if jwt_secret:
+            try:
+                decoded = jwt.decode(token, jwt_secret, algorithms=["HS256", "RS256"])
+            except Exception as e:
+                logger.warning(f"JWT decode failed (primary secret): {e}")
 
-            if decoded is None:
-                logger.error("JWT secrets not configured or token invalid")
-            
-            if decoded:
-                user_id = decoded.get('sub') or decoded.get('user_id') or decoded.get('uid') or decoded.get('wallet_address')
-                wallet_address = decoded.get('wallet_address') or user_id
-            else:
-                user_id = None
-                wallet_address = None
-            
-            if user_id:
-                logger.info(f"✅ JWT authentication verified: {user_id}")
-                return user_id, wallet_address
-        except Exception as e:
-            logger.warning(f"⚠️ JWT decode failed: {e}")
-    
-    # ✅ Enhanced fallback: Try multiple header sources and request data
-    wallet_address = (
-        request.headers.get('X-Wallet-Address') or
-        request.headers.get('X-User-ID') or 
-        request.args.get('wallet_address') or
-        (request.json.get('wallet_address') if request.is_json else None)
-    )
-    
-    if wallet_address:
-        user_id = wallet_address
-        logger.info(f"✅ Wallet address authentication verified: {user_id}")
+        if decoded is None and fallback_secret:
+            try:
+                decoded = jwt.decode(token, fallback_secret, algorithms=["HS256", "RS256"])
+            except Exception as e:
+                logger.warning(f"JWT decode failed (fallback secret): {e}")
+
+        if decoded is None:
+            logger.warning("JWT verification failed: invalid token or secret not configured")
+            return None, None
+
+        user_id = (
+            decoded.get('sub')
+            or decoded.get('user_id')
+            or decoded.get('uid')
+            or decoded.get('wallet_address')
+        )
+        wallet_address = decoded.get('wallet_address') or user_id
+
+        if not user_id:
+            logger.warning("JWT decoded but contains no usable identity claim")
+            return None, None
+
+        logger.info(f"JWT authentication verified: {user_id}")
         return user_id, wallet_address
-    
-    # ✅ Enhanced debug logging for troubleshooting
-    logger.error("❌ No MetaMask wallet authentication found")
-    logger.debug(f"Auth header: {auth_header[:50]}...")
-    logger.debug(f"Headers: X-Wallet-Address={request.headers.get('X-Wallet-Address')}, X-User-ID={request.headers.get('X-User-ID')}")
-    return None, None
+
+    except Exception as e:
+        logger.warning(f"JWT authentication error: {e}")
+        return None, None
 
 @bp.route('/comprehensive-stats', methods=['GET', 'OPTIONS'])
 def get_comprehensive_stats():
