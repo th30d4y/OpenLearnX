@@ -208,20 +208,43 @@ class RealCompilerService:
         }
 
         self.blocked_python_modules = {
-            "os",
-            "socket",
-            "subprocess",
-            "pty",
-            "multiprocessing",
-            "ctypes",
-            "resource",
-            "pwd",
-            "grp",
-            "signal",
-            "fcntl",
-            "selectors",
-            "pathlib",
-            "shutil",
+            # Process / OS access
+            "os", "socket", "subprocess", "pty", "multiprocessing", "ctypes",
+            "resource", "pwd", "grp", "signal", "fcntl", "selectors",
+            "pathlib", "shutil",
+            # Import machinery — indirect __import__ bypass vectors
+            "sys",          # sys.modules['subprocess'] if already loaded
+            "importlib",    # importlib.import_module('subprocess')
+            "builtins",     # import builtins; builtins.__import__(...)
+            "zipimport",    # zipimport.zipimporter -> load_module
+            # Filesystem access
+            "io",           # io.open, io.FileIO
+            "tempfile",     # temp file creation
+            "glob",         # filesystem traversal
+            "zipfile",      # archive read/write
+            "tarfile",      # archive read/write
+            "linecache",    # reads source files from disk
+            "tokenize",     # reads source files from disk
+            # Arbitrary code execution via serialisation
+            "pickle",       # __reduce__ runs arbitrary code on loads()
+            "pickletools",  # pickle-related
+            "marshal",      # code object deserialisation -> FunctionType(code, {})()
+            # Introspection — exposes live objects and import internals
+            "inspect",      # inspect.getmodule(print).__import__(...)
+            "gc",           # gc.get_objects() enumerates every live object
+            # Code execution helpers
+            "types",        # types.FunctionType(marshal.loads(...), {})()
+            "code",         # interactive Python interpreter
+            "codeop",       # compile-and-execute helper
+            # Platform utilities with command execution
+            "platform",     # platform.popen(...)
+            # Encoding helpers used to obfuscate module names
+            "base64",       # base64.b64decode('c3VicHJvY2Vzcw==') -> 'subprocess'
+            "codecs",       # codecs.decode(..., 'base64')
+            "binascii",     # binascii.unhexlify(...)
+            # Indirect attribute / item access — bypass via dynamic key
+            "operator",     # operator.attrgetter('__glob'+'als__')(f) avoids literal
+            "functools",    # functools.reduce(getattr, [...], obj) chains attribute lookup
         }
         self.blocked_python_calls = {
             "eval",
@@ -235,36 +258,76 @@ class RealCompilerService:
             "getattr",
             "setattr",
             "delattr",
+            "hasattr",      # hasattr(obj, '__subclasses__') probing
+            "breakpoint",   # opens pdb debugger; executes arbitrary hooks
+            "__build_class__",
         }
         self.blocked_python_attrs = {
-            "fork",
-            "forkpty",
-            "spawn",
-            "spawnl",
-            "spawnlp",
-            "spawnv",
-            "spawnvp",
-            "system",
-            "popen",
-            "execl",
-            "execle",
-            "execlp",
-            "execv",
-            "execve",
-            "execvp",
-            "setsid",
-            "dup2",
+            # Original process-execution attrs
+            "fork", "forkpty",
+            "spawn", "spawnl", "spawnlp", "spawnv", "spawnvp",
+            "system", "popen",
+            "execl", "execle", "execlp", "execv", "execve", "execvp",
+            "setsid", "dup2",
+            # Import / introspection dunder attrs
+            # GHSA-rw3v-xxwg-3p4g: attribute-call __import__ bypass
+            "__import__",       # builtins.__import__('subprocess')
+            # Class hierarchy traversal -> subprocess.Popen without any import
+            "__subclasses__",   # [].__class__.__base__.__subclasses__()
+            "__bases__",        # class hierarchy walk
+            "__mro__",          # method resolution walk
+            # Function / frame introspection -> __builtins__ / globals
+            "__globals__",      # (lambda:None).__globals__['__builtins__']
+            "__code__",         # code object access -> bytecode manipulation
+            "__dict__",         # x.__dict__['__import__'] indirection
+            # Import loader bypass
+            "__loader__",       # module-level __loader__.load_module(...)
+            "load_module",      # importlib loader method
+            "find_module",      # importlib finder method
+            "exec_module",      # importlib exec method
+            "create_module",    # importlib create method
+            # operator indirect attribute/item access (obfuscated key bypass)
+            "attrgetter",       # operator.attrgetter('__glob'+'als__')(f)
+            "methodcaller",     # operator.methodcaller(obfuscated_name)(obj)
+            "itemgetter",       # operator.itemgetter(obfuscated_key)(d)
+        }
+        # Dunder names that are dangerous when used as bare identifiers (ast.Name).
+        # __builtins__ is handled separately in the AST walk; these are additional.
+        self._blocked_dunder_names: set = {
+            "__loader__",   # __loader__.load_module('subprocess')
+            "__spec__",     # __spec__.loader.exec_module(...)
         }
         self.blocked_patterns = {
             "python": [
+                # Direct dangerous calls
                 r"\b__import__\s*\(",
                 r"\beval\s*\(",
                 r"\bexec\s*\(",
                 r"\bopen\s*\(",
                 r"\bcompile\s*\(",
+                r"\bbreakpoint\s*\(",
+                # Dunder name/attr access
+                r"\b__builtins__\b",
+                r"\b__globals__\b",
+                r"\b__subclasses__\s*\(",
+                r"\b__loader__\b",
+                r"\b__spec__\b",
+                r"\b__code__\b",
+                r"\b__bases__\b",
+                r"\b__mro__\b",
+                # Subscript-style import indirection
+                r"\[[\'\"]__import__[\'\"]\]",
+                r"\[[\'\"]__builtins__[\'\"]\]",
+                # Dangerous module name references
+                r"\bimportlib\b",
+                r"\bpickle\b",
+                r"\bmarshal\b",
+                r"\binspect\b",
+                # Common module attr access
                 r"\bos\.",
                 r"\bsocket\.",
                 r"\bsubprocess\.",
+                r"\bsys\.modules\b",
             ],
             "javascript": [
                 r"require\s*\(\s*['\"]child_process['\"]\s*\)",
@@ -581,6 +644,38 @@ class RealCompilerService:
                         violations.append(f"Blocked function call: {fn.id}")
                     if isinstance(fn, ast.Attribute) and fn.attr in self.blocked_python_attrs:
                         violations.append(f"Blocked dangerous call: {fn.attr}")
+
+                # Reject dangerous dunder names used as bare identifiers.
+                _dangerous_names = {"__builtins__"} | self._blocked_dunder_names
+                if isinstance(node, ast.Name) and node.id in _dangerous_names:
+                    violations.append(f"Blocked dangerous name: {node.id}")
+
+                # Reject dangerous dunder attrs (belt-and-suspenders over
+                # blocked_python_attrs, which only triggers on call sites).
+                _dangerous_attrs = {
+                    "__builtins__", "__import__", "__subclasses__",
+                    "__globals__", "__dict__", "__code__",
+                    "__bases__", "__mro__", "__loader__",
+                }
+                if isinstance(node, ast.Attribute) and node.attr in _dangerous_attrs:
+                    violations.append(f"Blocked dangerous attribute: {node.attr}")
+
+                # Reject subscript selecting dangerous dunder string keys,
+                # e.g. x.__dict__['__import__'] or x['__builtins__'].
+                _dangerous_keys = {"__import__", "__builtins__", "__globals__",
+                                   "__subclasses__", "__code__", "__loader__"}
+                if isinstance(node, ast.Subscript):
+                    slice_node = node.slice
+                    # ast.Index wrapper was removed in Python 3.9; handle both.
+                    if isinstance(slice_node, ast.Index):
+                        slice_node = slice_node.value  # type: ignore[attr-defined]
+                    if (
+                        isinstance(slice_node, ast.Constant)
+                        and slice_node.value in _dangerous_keys
+                    ):
+                        violations.append(
+                            f"Blocked indirect access via subscript key: {slice_node.value}"
+                        )
 
         for pattern in self.blocked_patterns.get(language, []):
             if re.search(pattern, code, flags=re.IGNORECASE | re.MULTILINE):
