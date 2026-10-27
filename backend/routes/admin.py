@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify
 from functools import wraps
+import hmac
 import uuid
 from datetime import datetime
 from pymongo import MongoClient
@@ -110,8 +111,6 @@ def admin_required(f):
     def decorated_function(*args, **kwargs):
         try:
             auth_header = request.headers.get('Authorization')
-            print(f"Admin auth check - Header: {auth_header}")
-            
             if not auth_header:
                 print("❌ No Authorization header")
                 _admin_log("admin_auth_failed", "missing_authorization_header", status_code=401, severity="warning")
@@ -133,8 +132,7 @@ def admin_required(f):
             
             # Strip any whitespace from both tokens
             if token and expected_token:
-                if token.strip() == expected_token.strip():
-                    print("✅ Admin authentication successful")
+                if hmac.compare_digest(token.strip(), expected_token.strip()):
                     _admin_log("admin_auth_success", "token_validated", status_code=200)
                     return f(*args, **kwargs)
             

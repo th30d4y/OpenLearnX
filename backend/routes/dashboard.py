@@ -86,7 +86,7 @@ def get_comprehensive_stats():
                 "success": False,
                 "error": "MetaMask wallet authentication required",
                 "auth_required": True,
-                "debug_hint": "Ensure JWT token is sent in Authorization header or wallet address in X-Wallet-Address header"
+                "debug_hint": "Ensure a valid JWT token is sent in the Authorization: Bearer <token> header"
             }), 401
         
         logger.info(f"📊 Fetching REAL MongoDB data for wallet: {user_id}")
@@ -1043,5 +1043,5 @@ def dashboard_root():
             "/api/dashboard/set-username",
             "/api/dashboard/update-profile"
         ],
-        "authentication": "JWT Token in Authorization header OR Wallet address in X-Wallet-Address header"
+        "authentication": "JWT Token in Authorization: Bearer <token> header"
     })
