@@ -242,6 +242,9 @@ class RealCompilerService:
             "base64",       # base64.b64decode('c3VicHJvY2Vzcw==') -> 'subprocess'
             "codecs",       # codecs.decode(..., 'base64')
             "binascii",     # binascii.unhexlify(...)
+            # Indirect attribute / item access — bypass via dynamic key
+            "operator",     # operator.attrgetter('__glob'+'als__')(f) avoids literal
+            "functools",    # functools.reduce(getattr, [...], obj) chains attribute lookup
         }
         self.blocked_python_calls = {
             "eval",
@@ -283,6 +286,10 @@ class RealCompilerService:
             "find_module",      # importlib finder method
             "exec_module",      # importlib exec method
             "create_module",    # importlib create method
+            # operator indirect attribute/item access (obfuscated key bypass)
+            "attrgetter",       # operator.attrgetter('__glob'+'als__')(f)
+            "methodcaller",     # operator.methodcaller(obfuscated_name)(obj)
+            "itemgetter",       # operator.itemgetter(obfuscated_key)(d)
         }
         # Dunder names that are dangerous when used as bare identifiers (ast.Name).
         # __builtins__ is handled separately in the AST walk; these are additional.
