@@ -4,6 +4,13 @@
 
 **OpenLearnX** is an open-source, decentralized learning and assessment platform that combines adaptive AI-driven quizzes, real-time code execution, and blockchain-based NFT certificates to create a transparent, verifiable, and personalized educational experience.
 
+## Community
+
+Join the OpenLearnX community chat:
+
+- **Web:** [chat.w4nn4d13.tech](https://chat.w4nn4d13.tech) — join `#openlearnx` channel
+- **IRC client:** `chat.w4nn4d13.tech` port `6697` (TLS) — channel `#openlearnx`
+
 ## Official npm Package
 
 The official package for this repository is:
