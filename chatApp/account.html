@@ -273,6 +273,11 @@
                 </button>
             </div>
             
+            <div id="historyStatus" class="p-3" role="status" aria-live="polite" hidden>
+                <p id="historyMessage" class="mb-2"></p>
+                <button id="retryHistory" class="btn btn-outline-light btn-sm" type="button"
+                        onclick="retryMessageHistory()">Retry history</button>
+            </div>
             <div class="contacts-list" id="contactsList">
                 <div class="text-center p-4">
                     <div class="spinner-border text-primary"></div>
@@ -300,6 +305,8 @@
         let allContacts = [];
         let messageStore = new Map(); // Store messages for each chat
         let blockchainCheckTimer;
+        let pendingHistoryRange = {fromBlock: 0, toBlock: null};
+        let historyLoadInProgress = false;
         
         const CONTRACT_ADDRESS = '0xd9145CCE52D386f254917e481eB44e9943F39138';
         const CONTRACT_ABI = [
@@ -356,11 +363,8 @@
                 // Load contacts
                 await loadContacts();
                 
-                // Load all existing messages ONCE
-                await loadAllExistingMessages();
-                
-                // Start checking for NEW messages only (every 6 seconds)
-                startNewMessageChecker();
+                // Only poll after the complete initial range has been loaded.
+                await retryMessageHistory();
                 
             } catch (error) {
                 console.error('❌ Initialization failed:', error);
@@ -395,13 +399,30 @@
         }
 
         // Load all existing messages ONCE when app starts
+        async function retryMessageHistory() {
+            if (!pendingHistoryRange || historyLoadInProgress) return;
+            const throughBlock = await loadAllExistingMessages();
+            if (throughBlock !== null) startNewMessageChecker(throughBlock);
+        }
+
         async function loadAllExistingMessages() {
+            historyLoadInProgress = true;
+            const status = document.getElementById('historyStatus');
+            const retryButton = document.getElementById('retryHistory');
+            retryButton.disabled = true;
+            document.getElementById('historyMessage').textContent = 'Loading message history…';
             try {
+                // Keep this exact range on failure, even if the head advances.
+                if (pendingHistoryRange.toBlock === null) {
+                    pendingHistoryRange.toBlock = await web3.eth.getBlockNumber();
+                }
+                const throughBlock = pendingHistoryRange.toBlock;
+                const historyStore = new Map();
                 console.log('📨 Loading all existing messages...');
                 
                 const events = await contract.getPastEvents('message', {
-                    fromBlock: 0,
-                    toBlock: 'latest'
+                    fromBlock: pendingHistoryRange.fromBlock,
+                    toBlock: throughBlock
                 });
                 
                 console.log(`Found ${events.length} existing messages on blockchain`);
@@ -427,11 +448,11 @@
                     }
                     
                     if (chatWith) {
-                        if (!messageStore.has(chatWith)) {
-                            messageStore.set(chatWith, []);
+                        if (!historyStore.has(chatWith)) {
+                            historyStore.set(chatWith, []);
                         }
                         
-                        messageStore.get(chatWith).push({
+                        historyStore.get(chatWith).push({
                             message: message,
                             timestamp: timestamp,
                             isMyMessage: isMyMessage,
@@ -441,15 +462,27 @@
                     }
                 });
                 
-                // Sort all message arrays by block number
-                messageStore.forEach(messages => {
-                    messages.sort((a, b) => a.blockNumber - b.blockNumber);
+                historyStore.forEach((messages, chatWith) => {
+                    const existing = messageStore.get(chatWith) || [];
+                    const ids = new Set(existing.map(message => message.id));
+                    const merged = existing.concat(messages.filter(message => !ids.has(message.id)));
+                    merged.sort((a, b) => a.blockNumber - b.blockNumber);
+                    messageStore.set(chatWith, merged);
                 });
-                
+                if (currentChat) displayStoredMessages(currentChat);
+                pendingHistoryRange = null;
+                status.hidden = true;
                 console.log('💾 Stored messages for', messageStore.size, 'conversations');
-                
+                return throughBlock;
             } catch (error) {
                 console.error('❌ Error loading existing messages:', error);
+                status.hidden = false;
+                document.getElementById('historyMessage').textContent =
+                    'Message history unavailable. Earlier messages may be missing. Retry to load them.';
+                return null;
+            } finally {
+                historyLoadInProgress = false;
+                retryButton.disabled = false;
             }
         }
 
@@ -622,14 +655,9 @@
         }
 
         // Check for NEW messages only (every 6 seconds)
-        function startNewMessageChecker() {
-            let lastCheckedBlock = 0;
-            
-            // Get current block number
-            web3.eth.getBlockNumber().then(blockNumber => {
-                lastCheckedBlock = blockNumber;
-                console.log('📦 Starting from block:', lastCheckedBlock);
-            });
+        function startNewMessageChecker(lastCheckedBlock) {
+            if (blockchainCheckTimer) return;
+            console.log('📦 Starting from loaded block:', lastCheckedBlock);
             
             blockchainCheckTimer = setInterval(async () => {
                 try {
