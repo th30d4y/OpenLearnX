@@ -463,9 +463,17 @@
                 });
                 
                 historyStore.forEach((messages, chatWith) => {
-                    const existing = messageStore.get(chatWith) || [];
+                    const existing = (messageStore.get(chatWith) || []).slice();
                     const ids = new Set(existing.map(message => message.id));
-                    const merged = existing.concat(messages.filter(message => !ids.has(message.id)));
+                    const unseen = messages.filter(message => !ids.has(message.id));
+                    unseen.filter(message => message.isMyMessage).forEach(confirmed => {
+                        const tempIndex = existing.findIndex(message =>
+                            message.isMyMessage && message.id.startsWith('temp-') &&
+                            message.message === confirmed.message && message.timestamp === confirmed.timestamp
+                        );
+                        if (tempIndex !== -1) existing.splice(tempIndex, 1);
+                    });
+                    const merged = existing.concat(unseen);
                     merged.sort((a, b) => a.blockNumber - b.blockNumber);
                     messageStore.set(chatWith, merged);
                 });

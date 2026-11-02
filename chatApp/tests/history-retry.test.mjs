@@ -134,3 +134,57 @@ test('retry status stays outside the replaceable chat panel and is accessible', 
     assert.ok(html.indexOf('id="historyStatus"') < html.indexOf('<!-- Chat Area -->'));
     assert.ok(/id="retryHistory"[^>]*onclick="retryMessageHistory\(\)"/.test(html));
 });
+
+test('retry replaces a pending send already included in the captured history', async () => {
+    const h = harness({headFailures: 1, batches: [[event(100)]]});
+    await h.run('initializeApp()');
+    h.run(`addMessageToUI('${contact}', 'hello', 'fixture', true)`);
+    await h.run('retryMessageHistory()');
+    assert.equal(h.messages().length, 1);
+    assert.equal(h.messages()[0].id.startsWith('temp-'), false);
+    assert.equal(h.messages()[0].blockNumber, 100);
+    assert.deepEqual(h.requests, [range(0, 100)]);
+    assert.equal(h.timers.length, 1);
+});
+
+test('one confirmed send consumes only one matching pending copy', async () => {
+    const h = harness({headFailures: 1, batches: [[event(100)]]});
+    await h.run('initializeApp()');
+    h.run(`addMessageToUI('${contact}', 'hello', 'fixture', true)`);
+    h.run(`addMessageToUI('${contact}', 'hello', 'fixture', true)`);
+    await h.run('retryMessageHistory()');
+    assert.equal(h.messages().length, 2);
+    assert.equal(h.messages().filter(message => message.id.startsWith('temp-')).length, 1);
+});
+
+test('incoming history does not consume an outgoing pending send with the same text', async () => {
+    const incoming = event(100);
+    incoming.returnValues.from = contact;
+    incoming.returnValues.to = account;
+    const h = harness({headFailures: 1, batches: [[incoming]]});
+    await h.run('initializeApp()');
+    h.run(`addMessageToUI('${contact}', 'hello', 'fixture', true)`);
+    await h.run('retryMessageHistory()');
+    assert.equal(h.messages().length, 2);
+    assert.equal(h.messages().filter(message => message.id.startsWith('temp-')).length, 1);
+});
+
+test('an older same-text message does not consume a pending send with a different timestamp', async () => {
+    const h = harness({headFailures: 1, batches: [[event(50)]]});
+    await h.run('initializeApp()');
+    h.run(`addMessageToUI('${contact}', 'hello', 'new-send', true)`);
+    await h.run('retryMessageHistory()');
+    assert.equal(h.messages().length, 2);
+    assert.equal(h.messages().filter(message => message.id.startsWith('temp-')).length, 1);
+});
+
+test('an already merged history event does not consume another pending copy', async () => {
+    const h = harness({headFailures: 1, batches: [[event(100)]]});
+    await h.run('initializeApp()');
+    h.run(`messageStore.set('${contact}', [{message: 'hello', timestamp: 'fixture',
+        isMyMessage: true, blockNumber: 100, id: '${account}-${contact}-100-fixture-100'}])`);
+    h.run(`addMessageToUI('${contact}', 'hello', 'fixture', true)`);
+    await h.run('retryMessageHistory()');
+    assert.equal(h.messages().length, 2);
+    assert.equal(h.messages().filter(message => message.id.startsWith('temp-')).length, 1);
+});
