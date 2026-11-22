@@ -79,7 +79,7 @@
   },
   "repository": "https://github.com/th30d4y/OpenLearnX.git",
   "publishConfig": {
-    "registry": "https://registry.npmjs.org",
+    "registry": "https://npm.pkg.github.com",
     "access": "public"
   },
   "files": [

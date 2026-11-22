@@ -8,7 +8,7 @@ on:
 
 permissions:
   contents: read
-  id-token: write
+  packages: write
 
 jobs:
   publish:
@@ -21,7 +21,7 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version: "20"
-          registry-url: "https://registry.npmjs.org"
+          registry-url: "https://npm.pkg.github.com"
 
       - name: Install dependencies
         working-directory: frontend
@@ -33,12 +33,12 @@ jobs:
         working-directory: frontend
         run: npm run build
 
-      - name: Publish to npm
+      - name: Publish to GitHub Packages
         working-directory: frontend
         env:
-          # First publish of a new scoped package can't use OIDC trusted
-          # publishing (nothing exists to attach a trusted publisher to), so
-          # registry auth comes from an npm automation/granular token stored
-          # as the NPM_TOKEN repo secret. Provenance still signs via OIDC.
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: npm publish --access public --provenance
+          # Publish to the th30d4y GitHub Packages npm registry using the
+          # built-in GITHUB_TOKEN (packages: write above). No external npm
+          # secret needed. Provenance is dropped: npm --provenance is only
+          # supported when publishing to the public npm registry.
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm publish
