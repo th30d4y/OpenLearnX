@@ -35,4 +35,10 @@ jobs:
 
       - name: Publish to npm
         working-directory: frontend
+        env:
+          # First publish of a new scoped package can't use OIDC trusted
+          # publishing (nothing exists to attach a trusted publisher to), so
+          # registry auth comes from an npm automation/granular token stored
+          # as the NPM_TOKEN repo secret. Provenance still signs via OIDC.
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: npm publish --access public --provenance
