@@ -4,7 +4,7 @@ import { useState } from "react"
 import { X, Download, Share2, Award, Calendar, User, BookOpen, Wallet, CheckCircle } from "lucide-react"
 import { toast } from "react-hot-toast"
 
-const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:5000"
+const API_BASE = (process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:5000").replace(/\/+$/, "")
 
 interface Certificate {
   certificate_id: string
