@@ -11,7 +11,6 @@ import re
 import json
 import csv
 import io
-import hashlib
 from werkzeug.security import generate_password_hash
 from activity_logger import log_user_activity
 
