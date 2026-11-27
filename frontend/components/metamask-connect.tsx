@@ -12,8 +12,8 @@ export function MetaMaskConnect() {
       {user ? (
         <>
           <span className="text-sm text-gray-600 dark:text-gray-300">
-            Connected: {user.wallet_address.slice(0, 6)}...
-            {user.wallet_address.slice(-4)}
+            Connected: {user.wallet_address?.slice(0, 6)}...
+            {user.wallet_address?.slice(-4)}
           </span>
           <Button onClick={logout} variant="outline" disabled={isLoadingAuth}>
             Logout

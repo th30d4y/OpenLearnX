@@ -30,7 +30,7 @@ export function AccountStatusGuard() {
           <ShieldAlert className="h-7 w-7" />
         </div>
         <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">{title}</h2>
-        <p className="mt-2 inline-flex rounded-full bg-red-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-red-700 dark:bg-red-950 dark:text-red-200">
+        <p className="mt-2 inline-flex rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-700 dark:bg-red-950 dark:text-red-200">
           Status: {status}
         </p>
         <p className="mt-3 text-sm text-gray-700 dark:text-gray-300">{message}</p>
