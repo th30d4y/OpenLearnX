@@ -257,6 +257,8 @@ export function LessonViewer({ courseId, lessonId }: LessonViewerProps) {
                 title={lesson.title}
                 className="w-full h-full"
                 allowFullScreen
+                sandbox="allow-scripts allow-same-origin allow-presentation allow-popups allow-popups-to-escape-sandbox"
+                referrerPolicy="strict-origin-when-cross-origin"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                 style={{ border: 'none' }}
               />
