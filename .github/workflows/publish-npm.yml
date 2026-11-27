@@ -8,7 +8,7 @@ on:
 
 permissions:
   contents: read
-  id-token: write
+  packages: write
 
 jobs:
   publish:
@@ -21,16 +21,24 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version: "20"
-          registry-url: "https://registry.npmjs.org"
+          registry-url: "https://npm.pkg.github.com"
 
       - name: Install dependencies
         working-directory: frontend
-        run: npm install
+        # --legacy-peer-deps: vaul 0.9.x declares a react <=18 peer but works
+        # with the project's react 19. Remove once vaul is bumped to >=1.1.
+        run: npm install --legacy-peer-deps
 
       - name: Build package
         working-directory: frontend
         run: npm run build
 
-      - name: Publish to npm
+      - name: Publish to GitHub Packages
         working-directory: frontend
-        run: npm publish --access public --provenance
+        env:
+          # Publish to the th30d4y GitHub Packages npm registry using the
+          # built-in GITHUB_TOKEN (packages: write above). No external npm
+          # secret needed. Provenance is dropped: npm --provenance is only
+          # supported when publishing to the public npm registry.
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm publish

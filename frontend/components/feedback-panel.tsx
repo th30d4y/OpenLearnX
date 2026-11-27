@@ -39,18 +39,11 @@ export function FeedbackPanel({
       <CardContent className="space-y-4">
         <div className="space-y-2">
           <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
-            Confidence Score: {Math.round(feedback.confidence_score * 100)}%
+            Confidence Score: {Math.round((feedback.confidence_score ?? 0) * 100)}%
           </p>
           <Progress
-            value={feedback.confidence_score * 100}
+            value={(feedback.confidence_score ?? 0) * 100}
             className="h-2"
-            indicatorClassName={
-              feedback.confidence_score > 0.7
-                ? "bg-success"
-                : feedback.confidence_score > 0.4
-                  ? "bg-warning"
-                  : "bg-destructive"
-            }
           />
         </div>
         {feedback.correct_answer && (

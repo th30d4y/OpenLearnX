@@ -661,55 +661,66 @@ def get_db():
 # ✅ ADD WALLET AUTHENTICATION ENDPOINT (Keep this in main app)
 @app.route('/api/auth/wallet-login', methods=['POST', 'OPTIONS'])
 def wallet_login():
-    """Authenticate user with wallet signature"""
+    """Authenticate user with wallet signature.
+
+    GHSA-6jh7-q9mf-9p28: the previous implementation called a stub that
+    returned True unconditionally. This endpoint now performs real
+    ecrecover-based signature verification using the same approach as
+    POST /api/auth/verify (routes/auth.py).
+
+    Expected request body:
+        address   — the wallet address claiming ownership
+        signature — the hex signature produced by MetaMask personal_sign
+        message   — the original plaintext that was signed
+    """
     if request.method == "OPTIONS":
         return jsonify({'status': 'ok'})
-    
+
     try:
-        data = request.json
-        address = data.get('address')
-        signature = data.get('signature')
-        timestamp = data.get('timestamp')
-        
-        if not address or not signature:
-            return jsonify({"error": "Missing address or signature"}), 400
-        
-        # Verify the signature (implement your verification logic)
-        is_valid = verify_wallet_signature(address, signature, timestamp)
-        
-        if not is_valid:
+        data = request.json or {}
+        address = (data.get('address') or '').strip()
+        signature = (data.get('signature') or '').strip()
+        message = (data.get('message') or '').strip()
+
+        if not address or not signature or not message:
+            return jsonify({"error": "address, signature, and message are required"}), 400
+
+        # Cryptographic signature verification — recover the signer address
+        # from the EIP-191 personal_sign hash and compare to the claimed address.
+        try:
+            from eth_account.messages import encode_defunct
+            from web3 import Web3 as _Web3
+            msg_hash = encode_defunct(text=message)
+            recovered = _Web3().eth.account.recover_message(msg_hash, signature=signature)
+            if recovered.lower() != address.lower():
+                logger.warning(f"Wallet login: signature mismatch — claimed {address}, recovered {recovered}")
+                return jsonify({"error": "Invalid signature"}), 401
+        except Exception as e:
+            logger.error(f"Wallet login: signature verification error: {e}")
             return jsonify({"error": "Invalid signature"}), 401
-        
-        # Get database connection
+
         db = get_db()
         if db is None:
             return jsonify({"error": "Database connection failed"}), 500
-        
-        # Find or create user
+
         user = db.users.find_one({"wallet_address": address})
-        
         if user is None:
-            # Create new user
             user_id = str(uuid.uuid4())
-            user = {
+            db.users.insert_one({
                 "user_id": user_id,
                 "wallet_address": address,
                 "login_method": "wallet",
                 "created_at": datetime.now().isoformat(),
-                "last_login": datetime.now().isoformat()
-            }
-            db.users.insert_one(user)
+                "last_login": datetime.now().isoformat(),
+            })
         else:
-            # Update last login
+            user_id = user['user_id']
             db.users.update_one(
                 {"wallet_address": address},
                 {"$set": {"last_login": datetime.now().isoformat()}}
             )
-            user_id = user['user_id']
-        
-        # Generate JWT token
+
         token = create_access_token(identity=user_id)
-        
         return jsonify({
             "success": True,
             "message": "Wallet authentication successful",
@@ -717,23 +728,13 @@ def wallet_login():
             "user": {
                 "user_id": user_id,
                 "wallet_address": address,
-                "login_method": "wallet"
-            }
+                "login_method": "wallet",
+            },
         })
-        
-    except Exception as e:
-        logger.error(f"Wallet login error: {str(e)}")
-        return jsonify({"error": "Authentication failed"}), 500
 
-def verify_wallet_signature(address, signature, timestamp):
-    """Verify wallet signature - implement based on your needs"""
-    try:
-        # For now, return True. In production, implement proper signature verification
-        # You would recreate the signed message and verify it matches the signature
-        return True
     except Exception as e:
-        logger.error(f"Signature verification failed: {e}")
-        return False
+        logger.error(f"Wallet login error: {e}")
+        return jsonify({"error": "Authentication failed"}), 500
 
 # ===================================================================
 # ✅ HEALTH ENDPOINTS

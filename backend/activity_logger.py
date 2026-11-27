@@ -47,28 +47,19 @@ def resolve_user_identity(request, db=None, jwt_secret: str = None) -> Dict[str,
     payload = _decode_token_verified(token, jwt_secret) if token else {}
     request_json = request.get_json(silent=True) or {}
 
+    # GHSA-p7p9-jc8p-p38m: identity must come from a verified JWT payload only.
+    # Caller-supplied headers (X-User-ID, X-Wallet-Address) and query/body fields
+    # are unauthenticated and must not be trusted as identity sources.
     user_id = (
         payload.get("user_id")
         or payload.get("sub")
         or payload.get("uid")
-        or request.headers.get("X-User-ID")
-        or request.args.get("user_id")
-        or request_json.get("user_id")
+        or payload.get("wallet_address")
     )
 
-    wallet_address = (
-        payload.get("wallet_address")
-        or request.headers.get("X-Wallet-Address")
-        or request.args.get("wallet_address")
-        or request_json.get("wallet_address")
-    )
+    wallet_address = payload.get("wallet_address")
 
-    email = (
-        payload.get("email")
-        or request.headers.get("X-User-Email")
-        or request.args.get("email")
-        or request_json.get("email")
-    )
+    email = payload.get("email")
 
     # Prefer wallet as canonical identity when available.
     if wallet_address:
