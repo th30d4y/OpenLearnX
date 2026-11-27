@@ -40,6 +40,11 @@ export function UsernameSetup({ userProfile, onUsernameSet }: UsernameSetupProps
       return
     }
 
+    if (!/^[A-Za-z0-9_]+$/.test(username.trim())) {
+      toast.error("Username can only contain letters, numbers, and underscores")
+      return
+    }
+
     setIsSubmitting(true)
     
     try {
@@ -107,7 +112,7 @@ export function UsernameSetup({ userProfile, onUsernameSet }: UsernameSetupProps
             <Input
               id="username"
               value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              onChange={(e) => setUsername(e.target.value.replace(/[^A-Za-z0-9_]/g, ""))}
               placeholder="Enter your username"
               maxLength={25}
               disabled={isSubmitting}
@@ -115,7 +120,7 @@ export function UsernameSetup({ userProfile, onUsernameSet }: UsernameSetupProps
             
             <div className="text-xs text-gray-500 space-y-1">
               <p>• 3-25 characters</p>
-              <p>• Letters, numbers, and underscores recommended</p>
+              <p>• Letters, numbers, and underscores only</p>
             </div>
           </div>
 
