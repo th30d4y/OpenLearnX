@@ -83,14 +83,21 @@ def _admin_log(event_type, action, status_code=200, severity="info", metadata=No
         print(f"Log write failed: {log_error}")
 
 
+# Credential material that must never be returned to API clients.
+_HIDDEN_FIELDS = {"password_hash", "password"}
+
+
 def _json_safe(value):
-    """Convert ObjectId/datetime/nested structures into JSON-safe values."""
+    """Convert ObjectId/datetime/nested structures into JSON-safe values.
+
+    Credential fields (password hashes) are dropped from every dict.
+    """
     if isinstance(value, ObjectId):
         return str(value)
     if isinstance(value, datetime):
         return value.isoformat()
     if isinstance(value, dict):
-        return {k: _json_safe(v) for k, v in value.items()}
+        return {k: _json_safe(v) for k, v in value.items() if k not in _HIDDEN_FIELDS}
     if isinstance(value, list):
         return [_json_safe(v) for v in value]
     return value
