@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import type { Question, QuestionOption } from "@/lib/types"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -16,6 +16,12 @@ interface QuestionCardProps {
 
 export function QuestionCard({ question, onAnswerSubmit, isLoading }: QuestionCardProps) {
   const [selectedOptionIndex, setSelectedOptionIndex] = useState<number | null>(null)
+
+  // Clear the selection whenever a different question is shown, even if the
+  // parent advanced without going through handleSubmit.
+  useEffect(() => {
+    setSelectedOptionIndex(null)
+  }, [question.id])
 
   const handleSubmit = () => {
     if (selectedOptionIndex !== null) {
