@@ -75,16 +75,17 @@ fi
 
 # 5. Clean previous build
 print_status "Cleaning previous build..."
-rm -rf .next node_modules pnpm-lock.yaml npm-lock.json 2>/dev/null || true
+rm -rf .next node_modules 2>/dev/null || true
 print_success "Previous build cleaned"
 
 # 6. Install dependencies
 print_status "Installing dependencies with $PACKAGE_MANAGER..."
 if [ "$PACKAGE_MANAGER" = "pnpm" ]; then
-    pnpm install --no-frozen-lockfile 2>&1 | tail -10 | tee -a "$LOG_FILE"
+    pnpm install --frozen-lockfile 2>&1 | tail -10 | tee -a "$LOG_FILE"
 else
     npm ci 2>&1 | tail -10 | tee -a "$LOG_FILE"
 fi
+[ "${PIPESTATUS[0]}" -eq 0 ] || { print_error "Dependency installation failed"; exit 1; }
 print_success "Dependencies installed"
 
 # 7. Build application
