@@ -96,7 +96,9 @@ except Exception as e:
 # 8. Build smart contracts
 print_status "Building smart contracts..."
 export PATH="${FOUNDRY_BIN:-$HOME/.foundry/bin}:$PATH"
+command -v forge >/dev/null 2>&1 || { print_error "forge not found (set FOUNDRY_BIN)"; exit 1; }
 forge build 2>&1 | tail -5 | tee -a "$LOG_FILE"
+[ "${PIPESTATUS[0]}" -eq 0 ] || { print_error "forge build failed"; exit 1; }
 print_success "Smart contracts built"
 
 # 9. Run tests (optional)
