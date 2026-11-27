@@ -373,10 +373,14 @@ def login():
                 db,
                 str(user.get("_id")),
                 "account_status",
-                "Login attempted while suspended",
-                "User logged in while account status is suspended",
+                "Login blocked",
+                "Login blocked because account is suspended",
                 {"status": "suspended", "email": email},
             )
+            return jsonify({
+                "success": False,
+                "error": "Your account is suspended. Contact admin."
+            }), 403
         
         from werkzeug.security import check_password_hash
         if not check_password_hash(user.get('password_hash', ''), password):
