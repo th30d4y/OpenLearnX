@@ -200,7 +200,15 @@ export default function AdminUsersPage() {
     action: "suspend" | "ban" | "activate" | "delete" | "reset-password",
     role?: string,
   ) => {
-    if (!userId) return
+    if (!userId || actionLoadingId) return
+
+    const confirmations: Record<string, string> = {
+      delete: "Permanently delete this user? This cannot be undone.",
+      ban: "Ban this user? They will lose access to the platform.",
+      suspend: "Suspend this user? They will be unable to sign in until reactivated.",
+      "reset-password": "Reset this user's password?",
+    }
+    if (!role && confirmations[action] && !window.confirm(confirmations[action])) return
 
     setActionLoadingId(`${userId}:${action}`)
     setMessage("")
