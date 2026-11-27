@@ -95,7 +95,7 @@ except Exception as e:
 
 # 8. Build smart contracts
 print_status "Building smart contracts..."
-export PATH="/home/w4nn4d13/.foundry/bin:$PATH"
+export PATH="${FOUNDRY_BIN:-$HOME/.foundry/bin}:$PATH"
 forge build 2>&1 | tail -5 | tee -a "$LOG_FILE"
 print_success "Smart contracts built"
 
