@@ -82,14 +82,25 @@ export default function AdminDashboardPage() {
     return true
   }
 
+  const [failedSections, setFailedSections] = useState<string[]>([])
+
   const fetchDashboardData = async () => {
-    const [statsResp, logsResp, actionsResp, alertsResp, chartsResp] = await Promise.all([
+    const labels = ["stats", "recent logs", "recent actions", "alerts", "charts"]
+    const results = await Promise.allSettled([
       fetch(`${API_BASE}/api/admin/dashboard`, { headers: headers() }),
       fetch(`${API_BASE}/api/admin/logs?limit=8`, { headers: headers() }),
       fetch(`${API_BASE}/api/admin/recent-actions?limit=8`, { headers: headers() }),
       fetch(`${API_BASE}/api/admin/alerts?limit=50`, { headers: headers() }),
       fetch(`${API_BASE}/api/admin/analytics/activity`, { headers: headers() }),
     ])
+    // A failed request must not look like "zero"; tell the admin what is missing.
+    setFailedSections(labels.filter((_, i) => {
+      const r = results[i]
+      return r.status === "rejected" || !r.value.ok
+    }))
+    const [statsResp, logsResp, actionsResp, alertsResp, chartsResp] = results.map((r) =>
+      r.status === "fulfilled" ? r.value : ({ ok: false } as Response),
+    )
 
     if (statsResp.ok) {
       const data = await statsResp.json()
@@ -157,6 +168,12 @@ export default function AdminDashboardPage() {
           Real-time operational metrics sourced from database collections.
         </p>
       </div>
+
+      {failedSections.length > 0 && (
+        <div role="alert" className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-800 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-200">
+          Could not load: {failedSections.join(", ")}. Values shown for these sections may be incomplete.
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-7">
         <StatCard label="Total Courses" value={stats.total_courses} color="text-blue-600" />
