@@ -1795,10 +1795,17 @@ def get_admin_stats():
 @bp.route("/health", methods=["GET"])
 def admin_health():
     """Admin health check endpoint"""
+    try:
+        if db is None:
+            raise RuntimeError("Database not initialized")
+        db.command("ping")
+        database_connected = True
+    except Exception:
+        database_connected = False
     return jsonify({
-        "status": "Admin API is healthy",
+        "status": "Admin API is healthy" if database_connected else "Admin API is degraded",
         "timestamp": datetime.now().isoformat(),
-        "database_connected": True,
+        "database_connected": database_connected,
         "endpoints": [
             "GET /api/admin/dashboard",
             "GET /api/admin/courses",
@@ -1819,4 +1826,4 @@ def admin_health():
             "GET /api/admin/test",
             "GET /api/admin/stats"
         ]
-    })
+    }), (200 if database_connected else 503)
