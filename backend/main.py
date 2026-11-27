@@ -544,10 +544,10 @@ def write_request_audit_log(response):
                 "request_body": _redact_text(request_payload_preview),
                 "response_body": _redact_text(response_body_preview),
                 "request_details": {
-                    "query": dict(request.args),
+                    "query": _redact_value(dict(request.args)),
                     "json": _redact_value(request_json_payload),
                     "form": _redact_value(request_form_payload),
-                    "headers": request_headers_snapshot,
+                    "headers": _redact_value(request_headers_snapshot),
                     "content_length": request.content_length,
                 },
                 "response_details": {
