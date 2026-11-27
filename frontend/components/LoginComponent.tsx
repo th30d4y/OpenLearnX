@@ -166,7 +166,8 @@ export function LoginComponent() {
               </Button>
               <Button 
                 variant="outline" 
-                onClick={() => logout()} 
+                type="button"
+                onClick={() => void logout()} 
                 className="w-full"
               >
                 Logout
