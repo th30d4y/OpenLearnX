@@ -7,7 +7,11 @@ MONGO_LOG="/tmp/openlearnx_mongod.log"
 BACKEND_LOG="/tmp/openlearnx_backend.log"
 FRONTEND_LOG="/tmp/openlearnx_frontend.log"
 FRONTEND_PID_FILE="/tmp/openlearnx_frontend.pid"
-VENV_PYTHON="${ROOT_DIR}/venv_openlearnx/bin/python3"
+# Honour VENV_DIR, else use the first venv found (the docs create ./venv).
+VENV_PYTHON=""
+for d in "${VENV_DIR:-}" "${ROOT_DIR}/venv" "${ROOT_DIR}/.venv" "${ROOT_DIR}/venv_openlearnx"; do
+  if [[ -n "$d" && -x "$d/bin/python3" ]]; then VENV_PYTHON="$d/bin/python3"; break; fi
+done
 
 cd "$ROOT_DIR"
 
@@ -15,7 +19,7 @@ echo "[1/8] Checking prerequisites"
 command -v mongod >/dev/null 2>&1 || { echo "ERROR: mongod not found"; exit 1; }
 command -v pnpm >/dev/null 2>&1 || { echo "ERROR: pnpm not found"; exit 1; }
 command -v docker >/dev/null 2>&1 || { echo "ERROR: docker not found"; exit 1; }
-[[ -x "$VENV_PYTHON" ]] || { echo "ERROR: Python venv not found at $VENV_PYTHON"; exit 1; }
+[[ -n "$VENV_PYTHON" ]] || { echo "ERROR: Python venv not found (tried venv, .venv, venv_openlearnx; set VENV_DIR)"; exit 1; }
 
 ensure_docker_access() {
   if docker info >/dev/null 2>&1; then
