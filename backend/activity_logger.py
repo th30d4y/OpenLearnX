@@ -25,7 +25,7 @@ def _decode_token_verified(token: str, secret: str = None) -> Dict[str, Any]:
         return jwt.decode(
             token,
             secret,
-            algorithms=["HS256", "RS256"],
+            algorithms=["HS256"],
         )
     except Exception:
         return {}
