@@ -265,17 +265,8 @@ CORS(app, resources={r"/api/*": {
     "max_age": 3600
 }})
 
-# ✅ Handle CORS preflight requests with explicit route
-@app.before_request
-def handle_preflight():
-    if request.method == "OPTIONS":
-        response = make_response()
-        response.headers.add("Access-Control-Allow-Origin", request.headers.get("Origin", "*"))
-        response.headers.add("Access-Control-Allow-Headers", "Content-Type,Authorization,Accept,Origin,X-Requested-With")
-        response.headers.add("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS,PATCH,HEAD")
-        response.headers.add("Access-Control-Max-Age", "3600")
-        response.headers.add("Access-Control-Allow-Credentials", "true")
-        return response, 200
+# CORS preflight (OPTIONS) is answered by flask-cors using the origin allow-list above.
+# Do not hand-roll a handler that reflects arbitrary Origin values with credentials.
 
 
 SUSPICIOUS_PAYLOAD_PATTERNS = [
