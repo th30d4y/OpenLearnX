@@ -18,7 +18,7 @@ export default function AdminLogin() {
       if (token) {
         try {
           // Verify token with API - no hardcoded secret check
-          const response = await fetch('http://127.0.0.1:5000/api/admin/courses', {
+          const response = await fetch(`${(process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:5000").replace(/\/+$/, "")}/api/admin/test`, {
             headers: { 'Authorization': `Bearer ${token}` }
           })
           
@@ -53,7 +53,7 @@ export default function AdminLogin() {
     
     try {
       // Test API connection first
-      const testResponse = await fetch('http://127.0.0.1:5000/api/admin/courses', {
+      const testResponse = await fetch(`${(process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:5000").replace(/\/+$/, "")}/api/admin/test`, {
         headers: { 'Authorization': `Bearer ${adminToken}` }
       })
 
