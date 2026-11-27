@@ -31,17 +31,16 @@ if not JWT_SECRET:
         return secrets_module.token_hex(32)
     
     # Use persistent file-based secret for development to avoid invalidating tokens on restart
-    _secret_file = os.path.join(tempfile.gettempdir(), '.openlearnx_dev_jwt_secret_auth')
+    _secret_file = os.path.join(tempfile.gettempdir(), '.openlearnx_dev_jwt_secret_key')  # keep in sync with main.get_dev_fallback_secret
     try:
         if os.path.exists(_secret_file):
             with open(_secret_file, 'r') as f:
                 JWT_SECRET = f.read().strip()
         if not JWT_SECRET:
             JWT_SECRET = _generate_and_store_secret()
-            with open(_secret_file, 'w') as f:
+            fd = os.open(_secret_file, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, stat.S_IRUSR | stat.S_IWUSR)
+            with os.fdopen(fd, 'w') as f:
                 f.write(JWT_SECRET)
-            # Set restrictive permissions (owner read/write only)
-            os.chmod(_secret_file, stat.S_IRUSR | stat.S_IWUSR)
     except Exception:
         JWT_SECRET = _generate_and_store_secret()
 
