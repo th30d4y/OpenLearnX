@@ -224,7 +224,7 @@ def mark_lesson_complete(course_id, lesson_id):
             ) or {}
             if total_lessons and len(progress.get("lessons_completed", [])) >= total_lessons:
                 db.user_courses.update_one(
-                    {"user_id": user_id, "course_id": course_id},
+                    {"user_id": user_id, "course_id": course_id, "completed": {"$ne": True}},
                     {"$set": {"completed": True, "completed_at": datetime.utcnow()}},
                 )
 
