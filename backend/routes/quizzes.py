@@ -3,6 +3,7 @@ from flask import Blueprint, request, jsonify, current_app
 from datetime import datetime
 import uuid
 import random
+import secrets
 import string
 from activity_logger import log_user_activity, resolve_user_identity
 
@@ -21,7 +22,7 @@ def get_ai_service():
 # ✅ UNIQUE ROOM CODE GENERATOR - Creates random code every time
 def generate_room_code(length=6):
     """Generate unique random room invitation code"""
-    return ''.join(random.choices(string.ascii_uppercase + string.digits, k=length))
+    return ''.join(secrets.choice(string.ascii_uppercase + string.digits) for _ in range(length))
 
 def apply_difficulty_progression(current_difficulty, consecutive_correct, is_correct):
     """
