@@ -11,7 +11,10 @@ import { AccountStatusGuard } from "@/components/account-status-guard"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "OpenLearnX - Comprehensive Learning Dashboard",
+  title: {
+    default: "OpenLearnX - Comprehensive Learning Dashboard",
+    template: "%s | OpenLearnX",
+  },
   description: "AI-powered adaptive learning with blockchain integration, real-time analytics, and professional progress tracking.",
   keywords: "learning, coding, blockchain, AI, analytics, professional development",
   generator: 'OpenLearnX v2.0'
