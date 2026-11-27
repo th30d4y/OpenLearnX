@@ -163,7 +163,7 @@ cat << EOF | tee -a "$LOG_FILE"
   Status: ✅ Ready
 
 ⛓️  Blockchain
-  Network: Ethereum Mainnet
+  Network: ${BLOCKCHAIN_NETWORK:-${ENVIRONMENT:-unknown}}
   RPC: Configured in .env
   Status: ✅ Ready
 
