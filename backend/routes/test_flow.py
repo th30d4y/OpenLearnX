@@ -12,7 +12,7 @@ def get_user_from_token(token):
         payload = jwt.decode(
             token,
             jwt_secret,
-            algorithms=['HS256', 'RS256']
+            algorithms=["HS256"]
         )
         return payload['user_id']
     except Exception:

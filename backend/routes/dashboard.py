@@ -39,13 +39,13 @@ def verify_wallet_authentication():
 
         if jwt_secret:
             try:
-                decoded = jwt.decode(token, jwt_secret, algorithms=["HS256", "RS256"])
+                decoded = jwt.decode(token, jwt_secret, algorithms=["HS256"])
             except Exception as e:
                 logger.warning(f"JWT decode failed (primary secret): {e}")
 
         if decoded is None and fallback_secret:
             try:
-                decoded = jwt.decode(token, fallback_secret, algorithms=["HS256", "RS256"])
+                decoded = jwt.decode(token, fallback_secret, algorithms=["HS256"])
             except Exception as e:
                 logger.warning(f"JWT decode failed (fallback secret): {e}")
 

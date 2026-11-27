@@ -495,7 +495,7 @@ def write_request_audit_log(response):
                     decoded = pyjwt.decode(
                         token,
                         jwt_secret,
-                        algorithms=["HS256", "RS256"],
+                        algorithms=["HS256"],
                     )
                     auth_user_id = decoded.get("user_id") or decoded.get("sub") or decoded.get("uid")
                     auth_wallet_address = decoded.get("wallet_address")
