@@ -200,7 +200,7 @@ export default function AdminUsersPage() {
     action: "suspend" | "ban" | "activate" | "delete" | "reset-password",
     role?: string,
   ) => {
-    if (!userId) return
+    if (!userId || actionLoadingId) return
 
     const confirmations: Record<string, string> = {
       delete: "Permanently delete this user? This cannot be undone.",
