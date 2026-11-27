@@ -1,3 +1,4 @@
+import re
 from flask import Blueprint, request, jsonify
 from datetime import datetime, timedelta
 from pymongo import MongoClient
@@ -243,6 +244,12 @@ def register():
                 "error": "Email and password are required"
             }), 400
         
+        if not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]{2,}", email) or len(email) > 254:
+            return jsonify({
+                "success": False,
+                "error": "Please enter a valid email address"
+            }), 400
+
         if len(password) < 6:
             return jsonify({
                 "success": False,
