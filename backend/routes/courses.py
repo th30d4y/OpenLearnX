@@ -63,7 +63,7 @@ def get_course(course_id):
         if not course:
             try:
                 course = db.courses.find_one({"_id": ObjectId(course_id)})
-            except:
+            except Exception:
                 pass
         
         # If still not found, try as 'id' field (legacy)
@@ -137,7 +137,7 @@ def get_lesson(course_id, lesson_id):
         if not course:
             try:
                 course = db.courses.find_one({"_id": ObjectId(course_id)})
-            except:
+            except Exception:
                 pass
         if not course:
             course = db.courses.find_one({"id": course_id})
@@ -178,7 +178,7 @@ def mark_lesson_complete(course_id, lesson_id):
             if not course:
                 try:
                     course = db.courses.find_one({"_id": ObjectId(course_id)}, {"title": 1})
-                except:
+                except Exception:
                     pass
             if not course:
                 course = db.courses.find_one({"id": course_id}, {"title": 1})
