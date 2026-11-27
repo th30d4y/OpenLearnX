@@ -299,17 +299,17 @@ export function CertificateModal({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         {step === "input" && (
           <>
-            <div className="px-8 py-6 border-b border-gray-200 flex justify-between items-center">
+            <div className="px-8 py-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
               <div className="flex items-center space-x-3">
                 <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-indigo-600 rounded-full flex items-center justify-center">
                   <Award className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-900">Generate Certificate</h2>
-                  <p className="text-gray-600">You've completed the course!</p>
+                  <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Generate Certificate</h2>
+                  <p className="text-gray-600 dark:text-gray-400">You've completed the course!</p>
                 </div>
               </div>
               <button onClick={handleClose} className="text-gray-400 hover:text-gray-600 transition-colors">
@@ -320,28 +320,28 @@ export function CertificateModal({
             <div className="p-8">
               <div className="text-center mb-8">
                 <div className="text-6xl mb-4">🎉</div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">Congratulations!</h3>
-                <p className="text-gray-600">
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">Congratulations!</h3>
+                <p className="text-gray-600 dark:text-gray-400">
                   You have successfully completed <strong>"{courseTitle}"</strong>
                 </p>
               </div>
 
               <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-lg p-6 mb-8">
-                <h4 className="font-semibold text-gray-900 mb-4">Course Details:</h4>
+                <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-4">Course Details:</h4>
                 <div className="space-y-3 text-sm">
-                  <div className="flex items-center text-gray-700">
+                  <div className="flex items-center text-gray-700 dark:text-gray-300">
                     <BookOpen className="w-4 h-4 mr-3 text-indigo-600" />
                     <span><strong>Course:</strong> {courseTitle}</span>
                   </div>
-                  <div className="flex items-center text-gray-700">
+                  <div className="flex items-center text-gray-700 dark:text-gray-300">
                     <User className="w-4 h-4 mr-3 text-indigo-600" />
                     <span><strong>Instructor:</strong> {courseMentor}</span>
                   </div>
-                  <div className="flex items-center text-gray-700">
+                  <div className="flex items-center text-gray-700 dark:text-gray-300">
                     <Calendar className="w-4 h-4 mr-3 text-indigo-600" />
                     <span><strong>Completed:</strong> {new Date().toLocaleDateString()}</span>
                   </div>
-                  <div className="flex items-start text-gray-700">
+                  <div className="flex items-start text-gray-700 dark:text-gray-300">
                     <Wallet className="w-4 h-4 mr-3 mt-0.5 text-purple-600" />
                     <div>
                       <span><strong>Wallet:</strong></span>
@@ -354,7 +354,7 @@ export function CertificateModal({
               </div>
 
               <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-3">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
                   Enter your full name for the certificate: *
                 </label>
                 <input
@@ -362,7 +362,7 @@ export function CertificateModal({
                   value={userName}
                   onChange={(e) => setUserName(e.target.value)}
                   placeholder="e.g., John Smith"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-lg"
+                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-lg dark:bg-gray-800 dark:text-gray-100"
                   autoFocus
                   maxLength={50}
                 />
@@ -379,7 +379,7 @@ export function CertificateModal({
               <div className="flex space-x-4">
                 <button
                   onClick={handleClose}
-                  className="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors"
+                  className="flex-1 px-6 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 font-medium transition-colors"
                 >
                   Cancel
                 </button>
@@ -398,21 +398,21 @@ export function CertificateModal({
         {step === "generating" && (
           <div className="px-8 py-12 text-center">
             <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-indigo-600 mx-auto mb-6"></div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">Generating Your Certificate</h3>
-            <p className="text-gray-600">Creating unique certificate ID and blockchain verification...</p>
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Generating Your Certificate</h3>
+            <p className="text-gray-600 dark:text-gray-400">Creating unique certificate ID and blockchain verification...</p>
           </div>
         )}
 
         {step === "completed" && certificate && (
           <>
-            <div className="px-8 py-6 border-b border-gray-200 flex justify-between items-center">
+            <div className="px-8 py-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
               <div className="flex items-center space-x-3">
                 <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
                   <CheckCircle className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-900">Certificate Ready!</h2>
-                  <p className="text-gray-600">For: {certificate.user_name}</p>
+                  <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Certificate Ready!</h2>
+                  <p className="text-gray-600 dark:text-gray-400">For: {certificate.user_name}</p>
                 </div>
               </div>
               <button onClick={handleClose} className="text-gray-400 hover:text-gray-600 transition-colors">
@@ -485,7 +485,7 @@ export function CertificateModal({
                 </button>
                 <button
                   onClick={handleShareCertificate}
-                  className="flex items-center justify-center space-x-2 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors"
+                  className="flex items-center justify-center space-x-2 px-6 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 font-medium transition-colors"
                 >
                   <Share2 className="w-5 h-5" />
                   <span>Share</span>
