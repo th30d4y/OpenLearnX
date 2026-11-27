@@ -79,6 +79,7 @@ cd "$SCRIPT_DIR"
 # 1. Pull latest changes
 print_status "Step 1/5: Pulling latest changes..."
 if git pull origin main 2>&1 | tee -a "$LOG_FILE"; then
+    export SKIP_GIT_PULL=1  # sub-scripts must deploy the same revision
     print_success "Latest changes pulled"
 else
     print_warning "Git pull encountered issues, continuing..."

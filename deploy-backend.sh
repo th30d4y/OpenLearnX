@@ -39,7 +39,11 @@ print_status "Working directory: $(pwd)"
 
 # 3. Pull latest changes
 print_status "Pulling latest changes from GitHub..."
-git pull origin main 2>&1 | tee -a "$LOG_FILE" || { print_error "Git pull failed"; exit 1; }
+if [ "${SKIP_GIT_PULL:-0}" = "1" ]; then
+    print_status "Skipping git pull (already done by deploy.sh)"
+else
+    git pull origin main 2>&1 | tee -a "$LOG_FILE" || { print_error "Git pull failed"; exit 1; }
+fi
 print_success "Latest changes pulled"
 
 # 4. Check/create virtual environment
