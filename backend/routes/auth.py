@@ -255,6 +255,12 @@ def register():
                 "success": False,
                 "error": "Password must be at least 6 characters"
             }), 400
+
+        if len(password) > 128:
+            return jsonify({
+                "success": False,
+                "error": "Password must be at most 128 characters"
+            }), 400
         
         # Check if user already exists
         existing_user = db.users.find_one({"email": email})
