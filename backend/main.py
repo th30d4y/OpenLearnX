@@ -681,6 +681,38 @@ def get_db():
         logger.error(f"Database connection failed: {e}")
         return None
 
+
+def ensure_indexes():
+    """Create non-unique indexes for the fields the routes filter on.
+
+    Non-unique on purpose: existing data may already contain duplicates, and
+    create_index is a no-op when the index exists.
+    """
+    database = get_db()
+    if database is None:
+        return
+    specs = [
+        ("users", [("email", 1)]),
+        ("users", [("wallet_address", 1)]),
+        ("courses", [("id", 1)]),
+        ("modules", [("course_id", 1)]),
+        ("lessons", [("module_id", 1)]),
+        ("lessons", [("course_id", 1), ("id", 1)]),
+        ("user_courses", [("user_id", 1), ("course_id", 1)]),
+        ("security_logs", [("timestamp", -1)]),
+    ]
+    for collection, keys in specs:
+        try:
+            database[collection].create_index(keys, background=True)
+        except Exception as e:
+            logger.warning(f"Could not create index {keys} on {collection}: {e}")
+
+
+try:
+    ensure_indexes()
+except Exception as e:
+    logger.warning(f"Index creation skipped: {e}")
+
 # ===================================================================
 # ✅ REMOVED ALL CERTIFICATE ROUTES - NOW USING BLUEPRINT
 # Certificate routes have been moved to routes/certificate.py blueprint
