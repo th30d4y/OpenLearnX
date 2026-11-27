@@ -35,7 +35,7 @@ export function UsernameSetup({ userProfile, onUsernameSet }: UsernameSetupProps
       return
     }
 
-    if (username.length < 3) {
+    if (username.trim().length < 3) {
       toast.error("Username must be at least 3 characters long")
       return
     }
