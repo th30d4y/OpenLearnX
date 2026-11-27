@@ -383,6 +383,35 @@ def enforce_manual_firewall_rules():
     return None
 
 
+_SENSITIVE_KEY_RE = re.compile(
+    r"pass(word|wd)?|secret|token|signature|private_?key|api_?key|authorization|cookie|^(otp|pin)$",
+    re.IGNORECASE,
+)
+_SENSITIVE_TEXT_RE = re.compile(
+    r'("?(?:[\w-]*(?:pass(?:word|wd)?|secret|token|signature|private_?key|api_?key|otp)[\w-]*)"?\s*[:=]\s*)("[^"]*"|[^&,\s}]+)',
+    re.IGNORECASE,
+)
+
+
+def _redact_value(value):
+    """Recursively mask values stored under sensitive-looking keys."""
+    if isinstance(value, dict):
+        return {
+            k: "[redacted]" if _SENSITIVE_KEY_RE.search(str(k)) else _redact_value(v)
+            for k, v in value.items()
+        }
+    if isinstance(value, list):
+        return [_redact_value(v) for v in value]
+    return value
+
+
+def _redact_text(text):
+    """Mask sensitive key/value pairs in raw JSON or form-encoded text."""
+    if not text:
+        return text
+    return _SENSITIVE_TEXT_RE.sub(lambda m: m.group(1) + '"[redacted]"', text)
+
+
 @app.before_request
 def capture_request_start_and_payload():
     g.request_start_time = time.time()
@@ -512,19 +541,19 @@ def write_request_audit_log(response):
             "metadata": {
                 "suspicious_matches": suspicious_matches,
                 "content_type": request.headers.get("Content-Type", ""),
-                "request_body": request_payload_preview,
-                "response_body": response_body_preview,
+                "request_body": _redact_text(request_payload_preview),
+                "response_body": _redact_text(response_body_preview),
                 "request_details": {
-                    "query": dict(request.args),
-                    "json": request_json_payload,
-                    "form": request_form_payload,
-                    "headers": request_headers_snapshot,
+                    "query": _redact_value(dict(request.args)),
+                    "json": _redact_value(request_json_payload),
+                    "form": _redact_value(request_form_payload),
+                    "headers": _redact_value(request_headers_snapshot),
                     "content_length": request.content_length,
                 },
                 "response_details": {
                     "content_type": response_content_type,
                     "content_length": response.calculate_content_length(),
-                    "json": parsed_response_json,
+                    "json": _redact_value(parsed_response_json),
                 },
                 "usage": system_usage,
                 "duration_ms": duration_ms,
