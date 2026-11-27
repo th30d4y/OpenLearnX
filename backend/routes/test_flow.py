@@ -15,7 +15,7 @@ def get_user_from_token(token):
             algorithms=['HS256', 'RS256']
         )
         return payload['user_id']
-    except:
+    except Exception:
         return None
 
 @bp.route('/start', methods=['POST'])
