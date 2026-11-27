@@ -116,7 +116,7 @@ except Exception as e:
 # Utility functions
 def generate_room_code(length=6):
     """Generate unique room code"""
-    return ''.join(random.choices(string.ascii_uppercase + string.digits, k=length))
+    return ''.join(secrets.choice(string.ascii_uppercase + string.digits) for _ in range(length))
 
 def check_docker_availability():
     """Check if Docker is available"""

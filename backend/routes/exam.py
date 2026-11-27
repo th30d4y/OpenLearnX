@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify, session, current_app
 import uuid
 import random
+import secrets
 import string
 from datetime import datetime, timedelta
 from pymongo import MongoClient
@@ -21,7 +22,7 @@ def get_db():
 def generate_exam_code():
     """Generate a unique 6-character exam code"""
     while True:
-        code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+        code = ''.join(secrets.choice(string.ascii_uppercase + string.digits) for _ in range(6))
         if not db.exams.find_one({"exam_code": code}):
             return code
 
