@@ -247,7 +247,8 @@ CORS(app, resources={r"/api/*": {
         "http://127.0.0.1:3004",
         "http://127.0.0.1:3005",
         "http://127.0.0.1:3006",
-        "https://openlearnx.vercel.app"
+        "https://openlearnx.vercel.app",
+        *[o.strip() for o in os.getenv("CORS_ALLOWED_ORIGINS", "").split(",") if o.strip()],
     ],
     "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH", "HEAD"],
     "allow_headers": [
