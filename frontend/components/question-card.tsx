@@ -24,7 +24,7 @@ export function QuestionCard({ question, onAnswerSubmit, isLoading }: QuestionCa
   }, [question.id])
 
   const handleSubmit = () => {
-    if (selectedOptionIndex !== null) {
+    if (selectedOptionIndex !== null && !isLoading) {
       onAnswerSubmit(question.id, selectedOptionIndex)
       setSelectedOptionIndex(null) // Reset selection after submission
     }
