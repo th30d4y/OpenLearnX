@@ -38,10 +38,9 @@ if not JWT_SECRET:
                 JWT_SECRET = f.read().strip()
         if not JWT_SECRET:
             JWT_SECRET = _generate_and_store_secret()
-            with open(_secret_file, 'w') as f:
+            fd = os.open(_secret_file, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, stat.S_IRUSR | stat.S_IWUSR)
+            with os.fdopen(fd, 'w') as f:
                 f.write(JWT_SECRET)
-            # Set restrictive permissions (owner read/write only)
-            os.chmod(_secret_file, stat.S_IRUSR | stat.S_IWUSR)
     except Exception:
         JWT_SECRET = _generate_and_store_secret()
 
