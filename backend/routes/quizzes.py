@@ -748,7 +748,7 @@ def debug_questions():
         return jsonify({"error": "Not found"}), 404
     ai_service = get_ai_service()
     if not ai_service:
-        return jsonify({"error": "AI service not available"})
+        return jsonify({"error": "AI service not available"}), 503
     
     stats = {
         "total_questions": len(ai_service.quiz_data),
