@@ -12,6 +12,7 @@ import json
 import csv
 import io
 import hashlib
+from werkzeug.security import generate_password_hash
 from activity_logger import log_user_activity
 
 bp = Blueprint('admin', __name__)
@@ -104,7 +105,8 @@ def _to_object_id(value):
 
 
 def _hash_password(password):
-    return hashlib.sha256(password.encode()).hexdigest()
+    # Salted, slow hash; matches check_password_hash() used at login in auth.py.
+    return generate_password_hash(password)
 
 def admin_required(f):
     @wraps(f)
