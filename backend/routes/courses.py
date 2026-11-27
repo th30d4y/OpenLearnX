@@ -367,16 +367,31 @@ def get_course_registration(course_id):
 
 @bp.route("/<course_id>/progress", methods=["GET"])
 def get_course_progress(course_id):
-    """Get user's progress in a specific course"""
+    """Get the authenticated user's progress in a specific course"""
     try:
-        progress = {
+        identity = resolve_user_identity(request, db)
+        user_id = identity.get("user_id")
+        if not user_id:
+            return jsonify({"success": False, "error": "Authentication required"}), 401
+
+        record = db.user_courses.find_one({"user_id": user_id, "course_id": course_id}) or {}
+        completed = record.get("lessons_completed", [])
+
+        total_lessons = 0
+        course = db.courses.find_one({"id": course_id}) or db.courses.find_one({"_id": course_id})
+        if course:
+            total_lessons = sum(len(m.get("lessons", [])) for m in course.get("modules", []))
+        if not total_lessons:
+            total_lessons = db.lessons.count_documents({"course_id": course_id})
+
+        percentage = min(100, round(len(completed) / total_lessons * 100)) if total_lessons else 0
+        last = record.get("last_activity_at")
+        return jsonify({
             "course_id": course_id,
-            "completion_percentage": 25,
-            "lessons_completed": [],
-            "total_lessons": 4,
-            "last_accessed": "2025-01-26T23:30:00Z",
-            "time_spent": "2 hours 15 minutes"
-        }
-        return jsonify(progress)
+            "completion_percentage": percentage,
+            "lessons_completed": completed,
+            "total_lessons": total_lessons,
+            "last_accessed": last.isoformat() if last else None,
+        })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
