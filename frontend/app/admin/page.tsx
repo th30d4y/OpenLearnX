@@ -36,7 +36,7 @@ type DashboardCharts = {
   methods: ChartPoint[]
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:5000"
+const API_BASE = (process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:5000").replace(/\/+$/, "")
 
 export default function AdminDashboardPage() {
   const router = useRouter()
