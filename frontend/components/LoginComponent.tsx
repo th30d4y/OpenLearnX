@@ -11,6 +11,7 @@ import { Separator } from "@/components/ui/separator"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Wallet, Mail, Lock, Loader2, Shield, AlertCircle, CheckCircle2 } from "lucide-react"
 import { toast } from "react-hot-toast"
+import { PasswordStrength } from "@/components/password-strength"
 
 export function LoginComponent() {
   const { 
@@ -312,6 +313,7 @@ export function LoginComponent() {
                       disabled={isLoadingAuth}
                       required
                     />
+                    {isSignup && <PasswordStrength password={password} />}
                   </div>
 
                   <Button
