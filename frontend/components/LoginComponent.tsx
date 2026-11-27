@@ -20,7 +20,8 @@ export function LoginComponent() {
     walletConnected, 
     walletAddress,
     user,
-    authMethod 
+    authMethod,
+    logout
   } = useAuth()
   
   const router = useRouter()
@@ -165,7 +166,8 @@ export function LoginComponent() {
               </Button>
               <Button 
                 variant="outline" 
-                onClick={() => window.location.reload()} 
+                type="button"
+                onClick={() => void logout()} 
                 className="w-full"
               >
                 Logout
