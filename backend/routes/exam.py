@@ -745,8 +745,8 @@ def get_host_dashboard(exam_code):
                 "total": len(participants),
                 "completed": len(completed_participants),
                 "working": len(waiting_participants),
-                "all_participants": sorted(participants, key=lambda x: x.get('joined_at', datetime.now())),
-                "recent_joins": sorted(participants, key=lambda x: x.get('joined_at', datetime.now()), reverse=True)[:5]
+                "all_participants": sorted(participants, key=lambda x: x.get('joined_at') or datetime.min),
+                "recent_joins": sorted(participants, key=lambda x: x.get('joined_at') or datetime.min, reverse=True)[:5]
             },
             "leaderboard": leaderboard,
             "statistics": {
