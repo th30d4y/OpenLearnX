@@ -31,7 +31,7 @@ if not JWT_SECRET:
         return secrets_module.token_hex(32)
     
     # Use persistent file-based secret for development to avoid invalidating tokens on restart
-    _secret_file = os.path.join(tempfile.gettempdir(), '.openlearnx_dev_jwt_secret_key'  # must match main.get_dev_fallback_secret('jwt_secret_key'))
+    _secret_file = os.path.join(tempfile.gettempdir(), '.openlearnx_dev_jwt_secret_auth')
     try:
         if os.path.exists(_secret_file):
             with open(_secret_file, 'r') as f:
