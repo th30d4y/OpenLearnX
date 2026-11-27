@@ -107,6 +107,7 @@ export default function AdminLogin() {
               </label>
               <input
                 type="password"
+                autoComplete="current-password"
                 placeholder="Enter admin token"
                 value={adminToken}
                 onChange={(e) => setAdminToken(e.target.value)}
@@ -153,7 +154,7 @@ export default function AdminLogin() {
         {/* Footer */}
         <div className="text-center mt-4">
           <p className="text-sm text-gray-500">
-            Welcome back, <span className="font-medium text-gray-700">5t4l1n</span>
+            Authorized administrators only
           </p>
         </div>
       </div>
