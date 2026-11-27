@@ -212,7 +212,9 @@ def encrypt_wallet_id(wallet_id):
 
 @bp.route('/test-db', methods=['GET'])
 def test_database():
-    """Test database connectivity"""
+    """Test database connectivity (disabled unless debugging is enabled)"""
+    if not (current_app.debug or os.getenv("ENABLE_DEBUG_ENDPOINTS") == "1"):
+        return jsonify({"error": "Not found"}), 404
     try:
         print("\n" + "="*50)
         print("🧪 TESTING DATABASE CONNECTION")
