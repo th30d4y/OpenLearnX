@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button"
 import { Loader2, Play, BookOpen, Clock } from "lucide-react"
 import ReactMarkdown from "react-markdown"
 
-const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:5000"
+const API_BASE = (process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:5000").replace(/\/+$/, "")
 
 interface LessonViewerProps {
   courseId: string
