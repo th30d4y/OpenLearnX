@@ -837,7 +837,10 @@ def reset_user_password_admin(user_id):
             return jsonify({"error": "Invalid user id"}), 400
 
         data = _safe_json_payload()
-        new_password = (data.get("new_password") or "TempPass123!").strip()
+        provided = (data.get("new_password") or "").strip()
+        # No fixed default: generate a one-off random password when none is given.
+        generated = not provided
+        new_password = provided or secrets.token_urlsafe(12)
         if len(new_password) < 6:
             return jsonify({"error": "Password must be at least 6 characters"}), 400
 
@@ -846,7 +849,11 @@ def reset_user_password_admin(user_id):
             return jsonify({"error": "User not found"}), 404
 
         _admin_log("admin_user_password_reset", "reset_user_password", status_code=200, metadata={"user_id": user_id})
-        return jsonify({"success": True, "message": "Password reset successfully"})
+        response = {"success": True, "message": "Password reset successfully"}
+        if generated:
+            # Shown once so the admin can hand it to the user; never stored in clear text.
+            response["temporary_password"] = new_password
+        return jsonify(response)
     except Exception as e:
         print(f"Error resetting user password: {str(e)}")
         return jsonify({"error": str(e)}), 500

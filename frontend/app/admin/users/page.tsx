@@ -219,7 +219,7 @@ export default function AdminUsersPage() {
       let body: string | undefined
 
       if (action === "delete") method = "DELETE"
-      if (action === "reset-password") body = JSON.stringify({ new_password: "TempPass@123" })
+      if (action === "reset-password") body = JSON.stringify({})
       if (action === "suspend" || action === "ban" || action === "activate") {
         endpoint = `${API_BASE}/api/admin/users/${userId}/status`
         const statusMap: Record<string, string> = { suspend: "suspended", ban: "banned", activate: "active" }
@@ -242,7 +242,11 @@ export default function AdminUsersPage() {
         return
       }
 
-      setMessage(role ? `Role updated to ${role}.` : `User action ${action} completed.`)
+      if (action === "reset-password" && data.temporary_password) {
+        setMessage(`Password reset. Temporary password (shown once): ${data.temporary_password}`)
+      } else {
+        setMessage(role ? `Role updated to ${role}.` : `User action ${action} completed.`)
+      }
       await fetchUsers(pagination.page)
     } catch {
       setMessage("Network error while running action.")
