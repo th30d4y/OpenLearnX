@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from "react"
 import { useRouter, useParams } from "next/navigation"
-import { Loader2, Play, Clock, BookOpen, ChevronDown, ChevronRight, User, Users, Star, CheckCircle } from "lucide-react"
+import { Loader2, Play, Clock, BookOpen, ChevronDown, ChevronRight, User, Users, CheckCircle } from "lucide-react"
 import { toast } from "react-hot-toast"
 import api from "@/lib/api"
 import { useAuth } from "@/context/auth-context"
 import { CertificateModal } from "@/components/certificate-modal"
+import { Button } from "@/components/ui/button"
 
 type Course = {
   id: string
@@ -44,7 +45,7 @@ type Lesson = {
 }
 
 export default function CoursePage() {
-  const { user, isLoading: authLoading } = useAuth()
+  const { user, isLoadingAuth: authLoading } = useAuth()
   const params = useParams()
   const router = useRouter()
   const courseId = params?.courseId as string
@@ -117,7 +118,6 @@ export default function CoursePage() {
   const fetchCourseData = async () => {
     setLoading(true)
     setError(null)
-
     try {
       const courseResponse = await api.get<Course>(`/api/courses/${courseId}?t=${Date.now()}`)
       const courseData = courseResponse.data
@@ -137,21 +137,14 @@ export default function CoursePage() {
 
   const fetchModulesAndLessons = async (id: string) => {
     setModulesLoading(true)
-
     try {
       const modulesResponse = await fetch(`http://127.0.0.1:5000/api/courses/${id}/modules`, {
         headers: { "Content-Type": "application/json" },
       })
-
-      if (!modulesResponse.ok) {
-        setModules([])
-        setLessons({})
-        return
-      }
+      if (!modulesResponse.ok) { setModules([]); setLessons({}); return }
 
       const modulesData = await modulesResponse.json()
       let modulesList: Module[] = []
-
       if (modulesData.success && Array.isArray(modulesData.modules)) modulesList = modulesData.modules
       else if (Array.isArray(modulesData.modules)) modulesList = modulesData.modules
       else if (Array.isArray(modulesData)) modulesList = modulesData
@@ -159,15 +152,10 @@ export default function CoursePage() {
 
       modulesList = modulesList.sort((a, b) => a.order - b.order)
       setModules(modulesList)
-
-      if (modulesList.length > 0) {
-        await fetchLessonsForAllModules(modulesList)
-      } else {
-        setLessons({})
-      }
+      if (modulesList.length > 0) await fetchLessonsForAllModules(modulesList)
+      else setLessons({})
     } catch {
-      setModules([])
-      setLessons({})
+      setModules([]); setLessons({})
     } finally {
       setModulesLoading(false)
     }
@@ -182,15 +170,10 @@ export default function CoursePage() {
         const lessonsResponse = await fetch(`http://127.0.0.1:5000/api/modules/${module.id}/lessons`, {
           headers: { "Content-Type": "application/json" },
         })
-
-        if (!lessonsResponse.ok) {
-          lessonsData[module.id] = []
-          continue
-        }
+        if (!lessonsResponse.ok) { lessonsData[module.id] = []; continue }
 
         const lessonData = await lessonsResponse.json()
         let lessonsList: Lesson[] = []
-
         if (lessonData.success && Array.isArray(lessonData.lessons)) lessonsList = lessonData.lessons
         else if (Array.isArray(lessonData.lessons)) lessonsList = lessonData.lessons
         else if (Array.isArray(lessonData)) lessonsList = lessonData
@@ -223,13 +206,13 @@ export default function CoursePage() {
   }
 
   const toggleModule = (moduleId: string) => {
-    setExpandedModules((prev) => ({ ...prev, [moduleId]: !prev[moduleId] }))
+    setExpandedModules(prev => ({ ...prev, [moduleId]: !prev[moduleId] }))
   }
 
   const selectLesson = (moduleId: string, lessonId: string) => {
     setSelectedModuleId(moduleId)
     setSelectedLessonId(lessonId)
-    setExpandedModules((prev) => ({ ...prev, [moduleId]: true }))
+    setExpandedModules(prev => ({ ...prev, [moduleId]: true }))
     logCourseActivity("lesson_view", lessonId, resolvedCourseId || undefined)
   }
 
@@ -259,21 +242,18 @@ export default function CoursePage() {
 
   const getCurrentLesson = (): Lesson | null => {
     if (!selectedModuleId || !selectedLessonId) return null
-    return (lessons[selectedModuleId] || []).find((lesson) => lesson.id === selectedLessonId) || null
+    return (lessons[selectedModuleId] || []).find(lesson => lesson.id === selectedLessonId) || null
   }
 
   const getAllLessons = (): Lesson[] => {
     const all: Lesson[] = []
-    modules.forEach((module) => {
-      all.push(...(lessons[module.id] || []))
-    })
+    modules.forEach(module => { all.push(...(lessons[module.id] || [])) })
     return all
   }
 
   const navigateLesson = (direction: "prev" | "next") => {
     const allLessons = getAllLessons()
-    const currentIndex = allLessons.findIndex((lesson) => lesson.id === selectedLessonId)
-
+    const currentIndex = allLessons.findIndex(lesson => lesson.id === selectedLessonId)
     if (direction === "prev" && currentIndex > 0) {
       const prevLesson = allLessons[currentIndex - 1]
       selectLesson(prevLesson.module_id, prevLesson.id)
@@ -312,16 +292,25 @@ export default function CoursePage() {
     setShowCertificateModal(true)
   }
 
-  const getTotalLessons = () => Object.values(lessons).reduce((total, moduleLessons) => total + moduleLessons.length, 0)
+  const getTotalLessons = () =>
+    Object.values(lessons).reduce((total, moduleLessons) => total + moduleLessons.length, 0)
+
+  const difficultyBadge = (d: string) => {
+    switch (d?.toLowerCase()) {
+      case 'easy': return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400'
+      case 'hard': return 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400'
+      default: return 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400'
+    }
+  }
 
   const currentLesson = getCurrentLesson()
 
   if (authLoading || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-3" />
-          <p className="text-gray-700 dark:text-gray-300">Loading course...</p>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center space-y-3">
+          <Loader2 className="h-7 w-7 animate-spin text-primary mx-auto" />
+          <p className="text-muted-foreground text-sm">Loading course…</p>
         </div>
       </div>
     )
@@ -329,16 +318,11 @@ export default function CoursePage() {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
-        <div className="w-full max-w-md rounded-xl border border-red-200 bg-white dark:bg-gray-800 p-6 text-center">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Unable to load course</h2>
-          <p className="mt-2 text-sm text-red-600 dark:text-red-300">{error}</p>
-          <button
-            onClick={fetchCourseData}
-            className="mt-4 px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700"
-          >
-            Retry
-          </button>
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <div className="w-full max-w-md rounded-xl border border-border bg-card p-6 text-center space-y-4">
+          <h2 className="text-xl font-semibold text-card-foreground">Unable to load course</h2>
+          <p className="text-sm text-destructive">{error}</p>
+          <Button onClick={fetchCourseData}>Retry</Button>
         </div>
       </div>
     )
@@ -346,124 +330,111 @@ export default function CoursePage() {
 
   if (!course) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
-        <div className="w-full max-w-md rounded-xl border border-gray-200 bg-white dark:bg-gray-800 p-6 text-center">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Course not found</h2>
-          <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">This course is unavailable or was removed.</p>
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <div className="w-full max-w-md rounded-xl border border-border bg-card p-6 text-center">
+          <h2 className="text-xl font-semibold text-card-foreground">Course not found</h2>
+          <p className="mt-2 text-sm text-muted-foreground">This course is unavailable or was removed.</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <header className="border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+    <div className="min-h-screen bg-background">
+      {/* Course header */}
+      <header className="border-b border-border bg-card">
         <div className="w-full px-6 sm:px-8 lg:px-12 py-5 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">{course.title}</h1>
-            <p className="text-sm text-gray-600 dark:text-gray-300">by {course.mentor || "OpenLearnX Instructor"}</p>
+            <h1 className="text-2xl font-semibold text-card-foreground">{course.title}</h1>
+            <p className="text-sm text-muted-foreground">by {course.mentor || "OpenLearnX Instructor"}</p>
           </div>
-          <div className="flex flex-wrap items-center gap-3 text-sm text-gray-700 dark:text-gray-300">
+          <div className="flex flex-wrap items-center gap-3 text-sm">
             {!isRegistered && (
-              <button
-                onClick={handleRegister}
-                disabled={isRegistering}
-                className="rounded-full bg-blue-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60"
-              >
-                {isRegistering ? "Registering..." : "Register"}
-              </button>
+              <Button onClick={handleRegister} disabled={isRegistering} size="sm">
+                {isRegistering ? "Registering…" : "Register"}
+              </Button>
             )}
-            <div className="inline-flex items-center gap-2 rounded-full bg-gray-100 dark:bg-gray-700 px-3 py-1.5">
-              <BookOpen className="w-4 h-4" />
-              <span>{modules.length} modules</span>
-            </div>
-            <div className="inline-flex items-center gap-2 rounded-full bg-gray-100 dark:bg-gray-700 px-3 py-1.5">
-              <Play className="w-4 h-4" />
-              <span>{getTotalLessons()} lessons</span>
-            </div>
-            <div className="inline-flex items-center gap-2 rounded-full bg-gray-100 dark:bg-gray-700 px-3 py-1.5">
-              <Users className="w-4 h-4" />
-              <span>{Number(course.students || 0).toLocaleString()} students</span>
-            </div>
+            {isRegistered && (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 px-3 py-1 text-xs font-medium">
+                <CheckCircle className="w-3.5 h-3.5" /> Registered
+              </span>
+            )}
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-3 py-1 text-muted-foreground">
+              <BookOpen className="w-3.5 h-3.5" /> {modules.length} modules
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-3 py-1 text-muted-foreground">
+              <Play className="w-3.5 h-3.5" /> {getTotalLessons()} lessons
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-3 py-1 text-muted-foreground">
+              <Users className="w-3.5 h-3.5" /> {Number(course.students || 0).toLocaleString()} students
+            </span>
           </div>
         </div>
       </header>
 
       <main className="w-full px-6 sm:px-8 lg:px-12 py-6 grid grid-cols-1 lg:grid-cols-5 gap-6">
+        {/* Sidebar: module/lesson tree */}
         <aside className="lg:col-span-2">
-          <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 sticky top-4">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Course Content</h2>
+          <div className="rounded-xl border border-border bg-card p-5 sticky top-4">
+            <h2 className="text-base font-semibold text-card-foreground mb-4">Course Content</h2>
 
             {modulesLoading && (
-              <div className="text-center py-8">
-                <Loader2 className="h-6 w-6 animate-spin text-blue-600 mx-auto mb-2" />
-                <p className="text-sm text-gray-600 dark:text-gray-300">Loading modules...</p>
+              <div className="text-center py-8 space-y-2">
+                <Loader2 className="h-5 w-5 animate-spin text-primary mx-auto" />
+                <p className="text-sm text-muted-foreground">Loading modules…</p>
               </div>
             )}
 
             {!modulesLoading && modules.length === 0 && (
-              <div className="rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 p-5 text-center">
-                <h3 className="text-base font-semibold text-gray-900 dark:text-white">No content available yet</h3>
-                <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
-                  Lessons for this course have not been published.
-                </p>
-                <button
-                  onClick={() => fetchModulesAndLessons(courseId)}
-                  className="mt-4 px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700"
-                >
-                  Refresh
-                </button>
+              <div className="rounded-lg border border-border bg-muted/30 p-5 text-center space-y-3">
+                <h3 className="text-sm font-semibold text-card-foreground">No content available yet</h3>
+                <p className="text-xs text-muted-foreground">Lessons for this course have not been published.</p>
+                <Button variant="outline" size="sm" onClick={() => fetchModulesAndLessons(courseId)}>Refresh</Button>
               </div>
             )}
 
             {!modulesLoading && modules.length > 0 && (
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {modules.map((module, index) => (
-                  <div key={module.id} className="border border-gray-200 dark:border-gray-600 rounded-lg overflow-hidden">
+                  <div key={module.id} className="rounded-lg border border-border overflow-hidden">
                     <button
                       onClick={() => toggleModule(module.id)}
-                      className={`w-full px-4 py-3 text-left flex items-center justify-between ${
-                        selectedModuleId === module.id ? "bg-blue-50 dark:bg-blue-900/20" : "bg-white dark:bg-gray-800"
+                      className={`w-full px-4 py-3 text-left flex items-center justify-between transition-colors ${
+                        selectedModuleId === module.id ? "bg-primary/5" : "bg-card hover:bg-muted/50"
                       }`}
                     >
                       <div>
-                        <p className="text-sm font-medium text-gray-900 dark:text-white">
-                          {index + 1}. {module.title}
-                        </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                          {(lessons[module.id]?.length || 0)} lessons
-                        </p>
+                        <p className="text-sm font-medium text-foreground">{index + 1}. {module.title}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">{lessons[module.id]?.length || 0} lessons</p>
                       </div>
-                      {expandedModules[module.id] ? (
-                        <ChevronDown className="w-4 h-4 text-gray-500" />
-                      ) : (
-                        <ChevronRight className="w-4 h-4 text-gray-500" />
-                      )}
+                      {expandedModules[module.id]
+                        ? <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
+                        : <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />}
                     </button>
 
                     {expandedModules[module.id] && (
-                      <div className="border-t border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50">
+                      <div className="border-t border-border bg-muted/20">
                         {(lessons[module.id] || []).length > 0 ? (
-                          (lessons[module.id] || []).map((lesson) => (
+                          (lessons[module.id] || []).map(lesson => (
                             <button
                               key={lesson.id}
                               onClick={() => selectLesson(module.id, lesson.id)}
-                              className={`w-full px-4 py-3 text-left border-l-2 ${
+                              className={`w-full px-4 py-2.5 text-left border-l-2 transition-colors ${
                                 selectedLessonId === lesson.id
-                                  ? "border-blue-600 bg-blue-50 dark:bg-blue-900/20"
-                                  : "border-transparent hover:bg-gray-100 dark:hover:bg-gray-700"
+                                  ? "border-primary bg-primary/5"
+                                  : "border-transparent hover:bg-muted/40"
                               }`}
                             >
-                              <p className="text-sm text-gray-900 dark:text-white">{lesson.title}</p>
+                              <p className="text-sm text-foreground">{lesson.title}</p>
                               {lesson.duration && (
-                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 inline-flex items-center gap-1">
+                                <p className="text-xs text-muted-foreground mt-0.5 inline-flex items-center gap-1">
                                   <Clock className="w-3 h-3" /> {lesson.duration}
                                 </p>
                               )}
                             </button>
                           ))
                         ) : (
-                          <p className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">No lessons in this module.</p>
+                          <p className="px-4 py-3 text-sm text-muted-foreground">No lessons in this module.</p>
                         )}
                       </div>
                     )}
@@ -474,8 +445,9 @@ export default function CoursePage() {
           </div>
         </aside>
 
+        {/* Main content area */}
         <section className="lg:col-span-3">
-          <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+          <div className="rounded-xl border border-border bg-card overflow-hidden">
             {currentLesson ? (
               <>
                 {(currentLesson.embed_url || currentLesson.video_url) && (
@@ -490,81 +462,67 @@ export default function CoursePage() {
                   </div>
                 )}
 
-                <div className="p-6">
-                  <div className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-300 mb-4">
-                    <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 dark:bg-gray-700 px-3 py-1">
-                      <User className="w-4 h-4" /> {course.mentor}
+                <div className="p-6 space-y-5">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-3 py-1 text-sm text-muted-foreground">
+                      <User className="w-3.5 h-3.5" /> {course.mentor}
                     </span>
-                    <span className="inline-flex items-center rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-3 py-1 font-medium">
+                    <span className={`px-2.5 py-1 rounded-full text-xs font-medium capitalize ${difficultyBadge(course.difficulty)}`}>
                       {course.difficulty}
                     </span>
                   </div>
 
-                  <h2 className="text-3xl font-semibold text-gray-900 dark:text-white mb-3">{currentLesson.title}</h2>
+                  <h2 className="text-2xl font-semibold text-card-foreground">{currentLesson.title}</h2>
 
                   {currentLesson.description && (
-                    <div className="mb-6">
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">About this lesson</h3>
-                      <p className="text-gray-700 dark:text-gray-300 leading-relaxed">{currentLesson.description}</p>
+                    <div>
+                      <h3 className="text-sm font-semibold text-card-foreground mb-1">About this lesson</h3>
+                      <p className="text-sm text-muted-foreground leading-relaxed">{currentLesson.description}</p>
                     </div>
                   )}
 
                   {currentLesson.content && (
-                    <div className="mb-6">
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Lesson notes</h3>
-                      <div className="rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 p-4 text-gray-800 dark:text-gray-200 whitespace-pre-line">
+                    <div>
+                      <h3 className="text-sm font-semibold text-card-foreground mb-2">Lesson notes</h3>
+                      <div className="rounded-lg border border-border bg-muted/30 p-4 text-sm text-foreground whitespace-pre-line">
                         {currentLesson.content}
                       </div>
                     </div>
                   )}
 
-                  <div className="pt-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between gap-3">
-                    <button
-                      onClick={() => navigateLesson("prev")}
-                      disabled={isFirstLesson()}
-                      className="px-4 py-2 rounded-lg bg-gray-100 text-gray-800 hover:bg-gray-200 disabled:opacity-50 dark:bg-gray-700 dark:text-gray-100"
-                    >
+                  <div className="pt-4 border-t border-border flex items-center justify-between gap-3">
+                    <Button variant="outline" onClick={() => navigateLesson("prev")} disabled={isFirstLesson()}>
                       Previous
-                    </button>
-
+                    </Button>
                     {!isLastLesson() ? (
-                      <button
-                        onClick={() => navigateLesson("next")}
-                        className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700"
-                      >
-                        Next
-                      </button>
+                      <Button onClick={() => navigateLesson("next")}>Next</Button>
                     ) : (
-                      <button
-                        onClick={markComplete}
-                        disabled={completed}
-                        className={`px-4 py-2 rounded-lg text-white ${completed ? "bg-green-600" : "bg-blue-600 hover:bg-blue-700"}`}
-                      >
+                      <Button onClick={markComplete} disabled={completed} variant={completed ? "outline" : "default"} className="gap-2">
+                        {completed && <CheckCircle className="h-4 w-4 text-emerald-500" />}
                         {completed ? "Completed" : "Mark as complete"}
-                      </button>
+                      </Button>
                     )}
                   </div>
                 </div>
               </>
             ) : (
-              <div className="p-8 text-center">
-                <h2 className="text-3xl font-semibold text-gray-900 dark:text-white">{course.title}</h2>
-                <div className="mt-4 flex flex-wrap justify-center gap-3 text-sm">
-                  <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 dark:bg-gray-700 px-3 py-1 text-gray-700 dark:text-gray-300">
-                    <User className="w-4 h-4" /> by {course.mentor}
-                  </span>
-                  <span className="inline-flex items-center gap-1 rounded-full bg-yellow-100 dark:bg-yellow-900/30 px-3 py-1 text-yellow-700 dark:text-yellow-300">
-                    <Star className="w-4 h-4" /> 4.8 rating
-                  </span>
-                  <span className="inline-flex items-center rounded-full bg-blue-100 dark:bg-blue-900/30 px-3 py-1 text-blue-700 dark:text-blue-300">
-                    {course.difficulty}
-                  </span>
+              <div className="p-8 text-center space-y-6">
+                <div>
+                  <h2 className="text-2xl font-semibold text-card-foreground">{course.title}</h2>
+                  <div className="mt-3 flex flex-wrap justify-center gap-2 text-sm">
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-3 py-1 text-muted-foreground">
+                      <User className="w-3.5 h-3.5" /> {course.mentor}
+                    </span>
+                    <span className={`px-2.5 py-1 rounded-full text-xs font-medium capitalize ${difficultyBadge(course.difficulty)}`}>
+                      {course.difficulty}
+                    </span>
+                  </div>
                 </div>
 
-                <p className="mt-6 text-gray-700 dark:text-gray-300 max-w-3xl mx-auto">{course.description}</p>
+                <p className="text-muted-foreground max-w-2xl mx-auto text-sm leading-relaxed">{course.description}</p>
 
                 {(course.embed_url || course.video_url) && (
-                  <div className="mt-8 aspect-video rounded-xl overflow-hidden border border-gray-200 dark:border-gray-600 bg-black max-w-4xl mx-auto">
+                  <div className="aspect-video rounded-xl overflow-hidden border border-border bg-black max-w-3xl mx-auto">
                     <iframe
                       src={getEmbedUrl(course.embed_url || course.video_url)}
                       title={course.title}
@@ -576,7 +534,8 @@ export default function CoursePage() {
                 )}
 
                 {getTotalLessons() > 0 ? (
-                  <button
+                  <Button
+                    size="lg"
                     onClick={() => {
                       const firstModule = modules[0]
                       const firstLessons = lessons[firstModule?.id] || []
@@ -585,13 +544,14 @@ export default function CoursePage() {
                         selectLesson(firstModule.id, firstLessons[0].id)
                       }
                     }}
-                    className="mt-8 px-6 py-3 rounded-lg bg-blue-600 text-white hover:bg-blue-700"
+                    className="gap-2"
                   >
-                    Start learning
-                  </button>
+                    <Play className="h-4 w-4" />
+                    Start Learning
+                  </Button>
                 ) : (
-                  <div className="mt-8 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 p-5 max-w-xl mx-auto">
-                    <p className="text-gray-700 dark:text-gray-300">Lessons are not published yet for this course.</p>
+                  <div className="rounded-lg border border-border bg-muted/30 p-5 max-w-xl mx-auto">
+                    <p className="text-sm text-muted-foreground">Lessons are not published yet for this course.</p>
                   </div>
                 )}
               </div>

@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify, current_app
 import jwt
+import os
 from datetime import datetime
 
 bp = Blueprint('test', __name__)
@@ -7,10 +8,11 @@ bp = Blueprint('test', __name__)
 def get_user_from_token(token):
     """Extract user from JWT token"""
     try:
+        jwt_secret = current_app.config.get('JWT_SECRET_KEY') or os.getenv('JWT_SECRET_KEY')
         payload = jwt.decode(
-            token, 
-            current_app.config['SECRET_KEY'], 
-            algorithms=['HS256']
+            token,
+            jwt_secret,
+            algorithms=['HS256', 'RS256']
         )
         return payload['user_id']
     except:

@@ -46,9 +46,10 @@ export default function AdminFirewallPage() {
   const getToken = () => localStorage.getItem("admin_token")
   const headers = () => {
     const token = getToken()
-    return token
-      ? { "Content-Type": "application/json", Authorization: `Bearer ${token}` }
-      : { "Content-Type": "application/json" }
+    return {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    } as Record<string, string>
   }
 
   const ensureAuth = async () => {

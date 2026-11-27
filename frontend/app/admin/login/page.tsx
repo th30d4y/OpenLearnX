@@ -23,7 +23,6 @@ export default function AdminLogin() {
           })
           
           if (response.ok) {
-            console.log('Existing token valid, redirecting to dashboard')
             window.location.href = '/admin'
             return
           } else {
@@ -53,38 +52,21 @@ export default function AdminLogin() {
     setIsLoading(true)
     
     try {
-      console.log('Attempting login with token:', adminToken)
-      
       // Test API connection first
       const testResponse = await fetch('http://127.0.0.1:5000/api/admin/courses', {
         headers: { 'Authorization': `Bearer ${adminToken}` }
       })
-      
+
       if (testResponse.ok) {
-        console.log('API accepts token, saving to localStorage')
-        
-        // Clear any existing token first
         localStorage.removeItem('admin_token')
-        
-        // Save new token
         localStorage.setItem('admin_token', adminToken)
-        
-        // Verify it was saved
         const savedToken = localStorage.getItem('admin_token')
-        console.log('Token saved verification:', savedToken)
-        
         if (savedToken === adminToken) {
-          console.log('✅ Token saved successfully, redirecting...')
-          
-          // Use window.location for reliable redirect
-          setTimeout(() => {
-            window.location.href = '/admin'
-          }, 100)
+          setTimeout(() => { window.location.href = '/admin' }, 100)
         } else {
           setError('Failed to save authentication. Please try again.')
         }
       } else {
-        console.log('API rejected token')
         setError('Invalid admin credentials. Please contact administrator.')
         setAdminToken('')
       }
