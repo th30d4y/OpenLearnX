@@ -4,6 +4,8 @@ import { Play, Download, Upload, Settings, Clock, MemoryStick, Loader2 } from 'l
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 
+const API_BASE = (process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:5000").replace(/\/+$/, "")
+
 interface ExecutionResult {
   success: boolean
   execution_id: string
@@ -54,7 +56,7 @@ export default function RealCompilerInterface() {
 
   const fetchSupportedLanguages = async () => {
     try {
-      const response = await fetch('http://127.0.0.1:5000/api/compiler/languages')
+      const response = await fetch(`${API_BASE}/api/compiler/languages`)
       const data = await response.json()
       if (data.success) setLanguages(data.languages)
     } catch (error) {
@@ -68,7 +70,7 @@ export default function RealCompilerInterface() {
     setOutput('')
     setExecutionResult(null)
     try {
-      const response = await fetch('http://127.0.0.1:5000/api/compiler/execute', {
+      const response = await fetch(`${API_BASE}/api/compiler/execute`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code, language: selectedLanguage, input }),
@@ -90,7 +92,7 @@ export default function RealCompilerInterface() {
 
   const testCompiler = async () => {
     try {
-      const response = await fetch('http://127.0.0.1:5000/api/compiler/test', {
+      const response = await fetch(`${API_BASE}/api/compiler/test`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ language: selectedLanguage }),
