@@ -9,6 +9,9 @@ FRONTEND_LOG="/tmp/openlearnx_frontend.log"
 FRONTEND_PID_FILE="/tmp/openlearnx_frontend.pid"
 # Honour VENV_DIR, else use the first venv found (the docs create ./venv).
 VENV_PYTHON=""
+if [[ -n "${VENV_DIR:-}" && ! -x "${VENV_DIR}/bin/python3" ]]; then
+  echo "ERROR: VENV_DIR=${VENV_DIR} has no executable bin/python3"; exit 1
+fi
 for d in "${VENV_DIR:-}" "${ROOT_DIR}/venv" "${ROOT_DIR}/.venv" "${ROOT_DIR}/venv_openlearnx"; do
   if [[ -n "$d" && -x "$d/bin/python3" ]]; then VENV_PYTHON="$d/bin/python3"; break; fi
 done
