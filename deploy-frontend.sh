@@ -99,7 +99,7 @@ mkdir -p "$BACKUP_DIR"
 cp .env.local "$BACKUP_DIR/.env.local.backup"
 # Only the env file is backed up; .next is fully reproducible from source.
 # Prune old backups, keeping the 5 most recent.
-ls -1dt /backups/openlearnx_frontend_* 2>/dev/null | tail -n +6 | xargs -r rm -rf
+ls -1dt /backups/openlearnx_frontend_* 2>/dev/null | tail -n +6 | xargs -r rm -rf --
 print_success "Backup created at $BACKUP_DIR"
 
 # 9. Stop existing process (if using PM2)
