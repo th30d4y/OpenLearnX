@@ -669,11 +669,17 @@ def register_blueprints():
 blueprints_registered, blueprints_failed = register_blueprints()
 
 # ✅ FIXED: Database connection with proper None handling
+_mongo_client = None
+
+
 def get_db():
     """Get MongoDB database connection"""
+    global _mongo_client
     try:
-        client = MongoClient(app.config['MONGODB_URI'])
-        db = client.openlearnx
+        # MongoClient is thread-safe and pools connections; create it once.
+        if _mongo_client is None:
+            _mongo_client = MongoClient(app.config['MONGODB_URI'])
+        db = _mongo_client.openlearnx
         # Test the connection
         db.command('ismaster')
         return db
