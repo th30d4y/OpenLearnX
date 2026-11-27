@@ -4,7 +4,7 @@ import { Play, Download, Upload, Settings, Clock, MemoryStick, Loader2 } from 'l
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 
-const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:5000"
+const API_BASE = (process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:5000").replace(/\/+$/, "")
 
 interface ExecutionResult {
   success: boolean
