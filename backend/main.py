@@ -124,7 +124,7 @@ def check_docker_availability():
         import docker
         docker.from_env().ping()
         return True
-    except:
+    except Exception:
         return False
 
 # ✅ ENHANCED: Flask app configuration with your .env variables
