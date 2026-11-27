@@ -205,13 +205,28 @@ def mark_lesson_complete(course_id, lesson_id):
                         "user_id": user_id,
                         "course_id": course_id,
                         "last_activity_at": datetime.utcnow(),
-                        "completed_at": datetime.utcnow(),
-                        "completed": True,
                     },
                     "$addToSet": {"lessons_completed": lesson_id},
                 },
                 upsert=True,
             )
+
+            # Only mark the whole course complete once every lesson is done.
+            total_lessons = 0
+            if course_full:
+                total_lessons = sum(
+                    len(m.get("lessons", [])) for m in course_full.get("modules", [])
+                )
+            if not total_lessons:
+                total_lessons = db.lessons.count_documents({"course_id": course_id})
+            progress = db.user_courses.find_one(
+                {"user_id": user_id, "course_id": course_id}, {"lessons_completed": 1}
+            ) or {}
+            if total_lessons and len(progress.get("lessons_completed", [])) >= total_lessons:
+                db.user_courses.update_one(
+                    {"user_id": user_id, "course_id": course_id},
+                    {"$set": {"completed": True, "completed_at": datetime.utcnow()}},
+                )
 
             log_user_activity(
                 db,
