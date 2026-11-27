@@ -28,7 +28,27 @@ export function CodingProblemView({ problemId }: CodingProblemViewProps) {
   const [isSubmittingSolution, setIsSubmittingSolution] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const availableLanguages = ["python", "javascript", "java"] // Example languages
+  // Fallback list is used until (or unless) the compiler service reports its languages.
+  const [availableLanguages, setAvailableLanguages] = useState<string[]>(["python", "javascript", "java"])
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const res: any = await api.get("/api/compiler/languages")
+        const data = res?.data ?? res
+        const ids = Array.isArray(data?.languages)
+          ? data.languages.map((l: any) => (typeof l === "string" ? l : l?.id)).filter(Boolean)
+          : []
+        if (!cancelled && ids.length > 0) setAvailableLanguages(ids)
+      } catch {
+        // keep the fallback list
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   useEffect(() => {
     if (!isLoadingAuth && !user) {
