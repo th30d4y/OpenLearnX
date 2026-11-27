@@ -81,6 +81,7 @@ if [ "$PACKAGE_MANAGER" = "pnpm" ]; then
 else
     npm ci 2>&1 | tail -10 | tee -a "$LOG_FILE"
 fi
+[ "${PIPESTATUS[0]}" -eq 0 ] || { print_error "Dependency installation failed"; exit 1; }
 print_success "Dependencies installed"
 
 # 7. Build application
