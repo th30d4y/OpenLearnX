@@ -415,7 +415,7 @@ export default function EnhancedHostPanel() {
     }, [index, onUpdate])
 
     return (
-      <div className="bg-gray-900 p-4 rounded mb-3 border border-gray-700">
+      <div className="bg-muted/30 p-4 rounded mb-3 border border-border">
         <div className="flex justify-between items-center mb-3">
           <span className="font-medium text-blue-300">Test Case {index + 1}</span>
           <div className="flex items-center space-x-3">
@@ -432,7 +432,7 @@ export default function EnhancedHostPanel() {
               type="number"
               value={testCase.points}
               onChange={(e) => handleInputChange('points', parseInt(e.target.value) || 0)}
-              className="w-20 p-1 bg-gray-700 rounded text-sm border border-gray-600 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              className="w-20 p-1 bg-muted rounded text-sm border border-border focus:ring-2 focus:ring-blue-500 focus:outline-none"
               placeholder="Points"
               min="0"
               autoComplete="off"
@@ -455,7 +455,7 @@ export default function EnhancedHostPanel() {
             <textarea
               value={testCase.input}
               onChange={(e) => handleInputChange('input', e.target.value)}
-              className="w-full p-2 bg-gray-800 rounded text-sm border border-gray-600 focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none"
+              className="w-full p-2 bg-gray-800 rounded text-sm border border-border focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none"
               rows={2}
               placeholder="Test input (leave empty if none)"
               autoComplete="off"
@@ -467,7 +467,7 @@ export default function EnhancedHostPanel() {
             <textarea
               value={testCase.expected_output}
               onChange={(e) => handleInputChange('expected_output', e.target.value)}
-              className="w-full p-2 bg-gray-800 rounded text-sm border border-gray-600 focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none"
+              className="w-full p-2 bg-gray-800 rounded text-sm border border-border focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none"
               rows={2}
               placeholder="Expected output (required)"
               autoComplete="off"
@@ -479,7 +479,7 @@ export default function EnhancedHostPanel() {
           type="text"
           value={testCase.description}
           onChange={(e) => handleInputChange('description', e.target.value)}
-          className="w-full p-2 bg-gray-800 rounded text-sm border border-gray-600 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+          className="w-full p-2 bg-gray-800 rounded text-sm border border-border focus:ring-2 focus:ring-blue-500 focus:outline-none"
           placeholder="Test case description"
           autoComplete="off"
         />
@@ -489,7 +489,7 @@ export default function EnhancedHostPanel() {
 
   /* ---------- FIXED Enhanced Question Upload Form ---------- */
   const EnhancedQuestionUploadForm = () => (
-    <div className="bg-gray-800 rounded-lg p-6 mb-6">
+    <div className="bg-card rounded-xl border border-border p-6 mb-6">
       <div className="flex justify-between items-center mb-6">
         <h3 className="text-lg font-bold flex items-center space-x-2">
           <TestTube className="h-5 w-5 text-green-400" />
@@ -498,7 +498,7 @@ export default function EnhancedHostPanel() {
         <button
           type="button"
           onClick={() => setShowUploader(false)}
-          className="text-gray-400 hover:text-white"
+          className="text-muted-foreground hover:text-white"
         >
           ✕
         </button>
@@ -511,7 +511,7 @@ export default function EnhancedHostPanel() {
           placeholder="Question Title (e.g., 'Print Hello World')"
           value={draft.title}
           onChange={handleTitleChange}
-          className="w-full p-3 bg-gray-700 rounded border border-gray-600 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+          className="w-full p-3 bg-muted rounded border border-border focus:ring-2 focus:ring-blue-500 focus:outline-none"
           autoComplete="off"
         />
         
@@ -519,7 +519,7 @@ export default function EnhancedHostPanel() {
           placeholder="Question Description (e.g., 'Write a program that prints Hello World')"
           value={draft.description}
           onChange={handleDescriptionChange}
-          className="w-full p-3 bg-gray-700 rounded border border-gray-600 h-32 focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none"
+          className="w-full p-3 bg-muted rounded border border-border h-32 focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none"
           autoComplete="off"
         />
 
@@ -527,7 +527,7 @@ export default function EnhancedHostPanel() {
           <select
             value={draft.difficulty}
             onChange={handleDifficultyChange}
-            className="p-3 bg-gray-700 rounded border border-gray-600 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            className="p-3 bg-muted rounded border border-border focus:ring-2 focus:ring-blue-500 focus:outline-none"
           >
             <option value="easy">Easy</option>
             <option value="medium">Medium</option>
@@ -538,7 +538,7 @@ export default function EnhancedHostPanel() {
             type="number"
             value={draft.total_points}
             onChange={handleTotalPointsChange}
-            className="p-3 bg-gray-700 rounded border border-gray-600 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            className="p-3 bg-muted rounded border border-border focus:ring-2 focus:ring-blue-500 focus:outline-none"
             placeholder="Total Points"
             min="1"
             autoComplete="off"
@@ -562,14 +562,14 @@ export default function EnhancedHostPanel() {
           <span>📚 Examples (shown to participants):</span>
         </h4>
         {draft.examples.map((example, index) => (
-          <div key={index} className="bg-gray-900 p-3 rounded mb-2 border border-gray-700">
+          <div key={index} className="bg-muted/30 p-3 rounded mb-2 border border-border">
             <div className="grid grid-cols-2 gap-3 mb-2">
               <input
                 type="text"
                 placeholder="Input"
                 value={example.input}
                 onChange={(e) => handleExampleChange(index, 'input', e.target.value)}
-                className="p-2 bg-gray-800 rounded border border-gray-600 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                className="p-2 bg-gray-800 rounded border border-border focus:ring-2 focus:ring-blue-500 focus:outline-none"
                 autoComplete="off"
               />
               <input
@@ -577,7 +577,7 @@ export default function EnhancedHostPanel() {
                 placeholder="Expected Output"
                 value={example.expected_output}
                 onChange={(e) => handleExampleChange(index, 'expected_output', e.target.value)}
-                className="p-2 bg-gray-800 rounded border border-gray-600 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                className="p-2 bg-gray-800 rounded border border-border focus:ring-2 focus:ring-blue-500 focus:outline-none"
                 autoComplete="off"
               />
             </div>
@@ -586,7 +586,7 @@ export default function EnhancedHostPanel() {
               placeholder="Description"
               value={example.description}
               onChange={(e) => handleExampleChange(index, 'description', e.target.value)}
-              className="w-full p-2 bg-gray-800 rounded border border-gray-600 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              className="w-full p-2 bg-gray-800 rounded border border-border focus:ring-2 focus:ring-blue-500 focus:outline-none"
               autoComplete="off"
             />
           </div>
@@ -603,7 +603,7 @@ export default function EnhancedHostPanel() {
           placeholder="Enter your correct solution here... (e.g., print('Hello World'))"
           value={draft.correct_solution.python}
           onChange={handleCorrectSolutionChange}
-          className="w-full p-3 bg-gray-900 text-green-400 font-mono rounded border border-gray-600 h-32 focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none"
+          className="w-full p-3 bg-gray-900 text-green-400 font-mono rounded border border-border h-32 focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none"
           autoComplete="off"
           spellCheck={false}
         />
@@ -660,7 +660,7 @@ export default function EnhancedHostPanel() {
         <button
           type="button"
           onClick={() => setShowUploader(false)}
-          className="bg-gray-600 hover:bg-gray-700 px-6 py-2 rounded"
+          className="bg-gray-600 hover:bg-muted px-6 py-2 rounded"
         >
           Cancel
         </button>
@@ -675,14 +675,14 @@ export default function EnhancedHostPanel() {
     return (
       <div className="space-y-3">
         {allParticipants.length === 0 ? (
-          <div className="text-center py-8 text-gray-400">
+          <div className="text-center py-8 text-muted-foreground">
             <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
             <p>No participants yet</p>
             <p className="text-sm">Share the exam code: <span className="font-bold text-blue-400">{examCode}</span></p>
           </div>
         ) : (
           allParticipants.map((participant, index) => (
-            <div key={index} className="bg-gray-800 p-4 rounded-lg border border-gray-700">
+            <div key={index} className="bg-muted/50 p-4 rounded-lg border border-border">
               <div className="flex justify-between items-center">
                 <div>
                   <h4 className="font-medium flex items-center space-x-2">
@@ -694,7 +694,7 @@ export default function EnhancedHostPanel() {
                       <span className="text-xs bg-blue-600 px-2 py-1 rounded">Rank #{participant.rank}</span>
                     )}
                   </h4>
-                  <div className="text-sm text-gray-400 space-x-4">
+                  <div className="text-sm text-muted-foreground space-x-4">
                     <span>Joined: {new Date(participant.joined_at).toLocaleTimeString()}</span>
                     {participant.completed && participant.submitted_at && (
                       <span>Submitted: {new Date(participant.submitted_at).toLocaleTimeString()}</span>
@@ -708,7 +708,7 @@ export default function EnhancedHostPanel() {
                   {participant.completed ? (
                     <div>
                       <div className="text-lg font-bold text-green-400">{participant.score}%</div>
-                      <div className="text-sm text-gray-400">
+                      <div className="text-sm text-muted-foreground">
                         {participant.passed_tests || 0}/{participant.total_tests || 1} tests
                       </div>
                       {participant.points_earned && participant.total_points && (
@@ -758,7 +758,7 @@ export default function EnhancedHostPanel() {
 
   /* ===========================  RENDER  =========================== */
   if (loading) return (
-    <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">
+    <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
       <div className="text-center">
         <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4"/>
         <p>Loading enhanced host panel...</p>
@@ -767,7 +767,7 @@ export default function EnhancedHostPanel() {
   )
 
   if (error || !examInfo) return (
-    <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">
+    <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
       <div className="text-center">
         <AlertCircle className="h-10 w-10 text-red-500 mx-auto mb-4"/>
         <p className="mb-2">{error || 'Unknown error'}</p>
@@ -782,16 +782,16 @@ export default function EnhancedHostPanel() {
   )
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
+    <div className="min-h-screen bg-background text-foreground">
       {/* Enhanced Header + Tabs */}
-      <header className="bg-gray-800 border-b border-gray-700 p-4">
+      <header className="bg-card border-b border-border p-4">
         <div className="flex justify-between items-center mb-4">
           <div>
             <h1 className="font-bold text-2xl flex items-center space-x-2">
               <TestTube className="h-6 w-6 text-green-400" />
               <span>Enhanced Host Panel</span>
             </h1>
-            <p className="text-sm text-gray-400">
+            <p className="text-sm text-muted-foreground">
               Exam Code: <span className="font-bold text-blue-400">{examCode}</span> • Dynamic Scoring Enabled
               {timeRemaining && (
                 <span className="ml-4 text-orange-400">⏰ Time Remaining: {timeRemaining}</span>
@@ -810,7 +810,7 @@ export default function EnhancedHostPanel() {
                 fetchExamInfo()
                 fetchLeaderboard()
               }}
-              className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded"
+              className="p-2 text-muted-foreground hover:text-white hover:bg-muted rounded"
               title="Refresh"
             >
               <RefreshCw className="h-4 w-4" />
@@ -831,7 +831,7 @@ export default function EnhancedHostPanel() {
               className={`px-4 py-2 rounded flex items-center space-x-2 ${
                 activeTab === tab.id 
                   ? 'bg-blue-600 text-white' 
-                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                  : 'bg-muted text-muted-foreground hover:bg-muted/80'
               }`}
             >
               <tab.icon className="h-4 w-4" />
@@ -849,40 +849,40 @@ export default function EnhancedHostPanel() {
         {activeTab === 'overview' && !showUploader && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Enhanced Stats */}
-            <div className="bg-gray-800 rounded-lg p-6">
+            <div className="bg-card rounded-xl border border-border p-6">
               <h3 className="text-lg font-bold mb-4 flex items-center space-x-2">
                 <Trophy className="h-5 w-5 text-yellow-400" />
                 <span>Enhanced Exam Stats</span>
               </h3>
               <div className="grid grid-cols-2 gap-4">
-                <div className="bg-gray-900 p-3 rounded">
+                <div className="bg-muted/30 p-3 rounded">
                   <div className="text-2xl font-bold text-blue-400">
                     {leaderboardData.stats.total_participants}
                   </div>
-                  <div className="text-sm text-gray-400">Total Participants</div>
+                  <div className="text-sm text-muted-foreground">Total Participants</div>
                 </div>
-                <div className="bg-gray-900 p-3 rounded">
+                <div className="bg-muted/30 p-3 rounded">
                   <div className="text-2xl font-bold text-green-400">
                     {leaderboardData.stats.completed_submissions}
                   </div>
-                  <div className="text-sm text-gray-400">Completed</div>
+                  <div className="text-sm text-muted-foreground">Completed</div>
                 </div>
-                <div className="bg-gray-900 p-3 rounded">
+                <div className="bg-muted/30 p-3 rounded">
                   <div className="text-2xl font-bold text-purple-400">
                     {Math.round(leaderboardData.stats.average_score)}%
                   </div>
-                  <div className="text-sm text-gray-400">Avg Score</div>
+                  <div className="text-sm text-muted-foreground">Avg Score</div>
                 </div>
-                <div className="bg-gray-900 p-3 rounded">
+                <div className="bg-muted/30 p-3 rounded">
                   <div className="text-2xl font-bold text-orange-400">
                     {leaderboardData.stats.highest_score}%
                   </div>
-                  <div className="text-sm text-gray-400">Highest Score</div>
+                  <div className="text-sm text-muted-foreground">Highest Score</div>
                 </div>
               </div>
               
               {/* Additional Stats */}
-              <div className="mt-4 pt-4 border-t border-gray-700">
+              <div className="mt-4 pt-4 border-t border-border">
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div className="flex justify-between">
                     <span>Duration:</span>
@@ -899,7 +899,7 @@ export default function EnhancedHostPanel() {
             </div>
 
             {/* Enhanced Controls */}
-            <div className="bg-gray-800 rounded-lg p-6">
+            <div className="bg-card rounded-xl border border-border p-6">
               <h3 className="text-lg font-bold mb-4">Enhanced Controls</h3>
               <div className="space-y-3">
                 <button
@@ -941,17 +941,17 @@ export default function EnhancedHostPanel() {
                 )}
 
                 {showDurationEdit && (
-                  <div className="bg-gray-900 p-3 rounded">
+                  <div className="bg-muted/30 p-3 rounded">
                     <div className="flex space-x-2">
                       <input
                         type="number"
                         value={customDuration}
                         onChange={(e) => setCustomDuration(parseInt(e.target.value) || 30)}
-                        className="flex-1 p-2 bg-gray-700 rounded border border-gray-600"
+                        className="flex-1 p-2 bg-muted rounded border border-border"
                         min="5"
                         max="180"
                       />
-                      <span className="flex items-center text-sm text-gray-400">minutes</span>
+                      <span className="flex items-center text-sm text-muted-foreground">minutes</span>
                       <button
                         onClick={() => {
                           // Update duration logic would go here
@@ -972,20 +972,20 @@ export default function EnhancedHostPanel() {
 
         {/* Enhanced Participants Tab */}
         {activeTab === 'participants' && (
-          <div className="bg-gray-800 rounded-lg p-6">
+          <div className="bg-card rounded-xl border border-border p-6">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-lg font-bold flex items-center space-x-2">
                 <Users className="h-5 w-5 text-blue-400" />
                 <span>Enhanced Participants ({leaderboardData.stats.total_participants})</span>
               </h3>
               <div className="flex items-center space-x-2">
-                <div className="text-sm text-gray-400">
+                <div className="text-sm text-muted-foreground">
                   Completed: {leaderboardData.stats.completed_submissions} | 
                   Working: {leaderboardData.stats.waiting_submissions}
                 </div>
                 <button
                   onClick={fetchLeaderboard}
-                  className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded"
+                  className="p-2 text-muted-foreground hover:text-white hover:bg-muted rounded"
                 >
                   <RefreshCw className="h-4 w-4" />
                 </button>
@@ -997,7 +997,7 @@ export default function EnhancedHostPanel() {
 
         {/* Questions Tab */}
         {activeTab === 'questions' && (
-          <div className="bg-gray-800 rounded-lg p-6">
+          <div className="bg-card rounded-xl border border-border p-6">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-lg font-bold flex items-center space-x-2">
                 <TestTube className="h-5 w-5 text-green-400" />
@@ -1014,28 +1014,28 @@ export default function EnhancedHostPanel() {
             </div>
             
             {examInfo.problem_title ? (
-              <div className="bg-gray-900 p-4 rounded border border-green-600">
+              <div className="bg-muted/30 p-4 rounded border border-green-600">
                 <h4 className="font-medium text-green-400 mb-2 flex items-center space-x-2">
                   <TestTube className="h-4 w-4" />
                   <span>📝 {examInfo.problem_title}</span>
                 </h4>
-                <p className="text-gray-300 text-sm mb-3">
+                <p className="text-foreground text-sm mb-3">
                   {examInfo.problem?.description || 'No description available'}
                 </p>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                  <div className="flex items-center space-x-2 text-gray-400">
+                  <div className="flex items-center space-x-2 text-muted-foreground">
                     <span>✅</span>
                     <span>Dynamic scoring enabled</span>
                   </div>
-                  <div className="flex items-center space-x-2 text-gray-400">
+                  <div className="flex items-center space-x-2 text-muted-foreground">
                     <span>🧪</span>
                     <span>{examInfo.problem?.test_cases?.length || 0} test cases</span>
                   </div>
-                  <div className="flex items-center space-x-2 text-gray-400">
+                  <div className="flex items-center space-x-2 text-muted-foreground">
                     <span>🎯</span>
                     <span>{examInfo.problem?.total_points || 100} total points</span>
                   </div>
-                  <div className="flex items-center space-x-2 text-gray-400">
+                  <div className="flex items-center space-x-2 text-muted-foreground">
                     <span>📊</span>
                     <span>{examInfo.problem?.difficulty || 'medium'} difficulty</span>
                   </div>
@@ -1043,11 +1043,11 @@ export default function EnhancedHostPanel() {
                 
                 {/* Test Cases Preview */}
                 {examInfo.problem?.test_cases && examInfo.problem.test_cases.length > 0 && (
-                  <div className="mt-4 pt-4 border-t border-gray-700">
+                  <div className="mt-4 pt-4 border-t border-border">
                     <h5 className="font-medium mb-2">Test Cases Preview:</h5>
                     <div className="space-y-2">
                       {examInfo.problem.test_cases.slice(0, 3).map((tc, index) => (
-                        <div key={index} className="bg-gray-800 p-2 rounded text-xs">
+                        <div key={index} className="bg-muted/50 p-2 rounded text-xs">
                           <span className="text-blue-400">Test {index + 1}:</span>
                           <span className="ml-2">{tc.expected_output || 'Hidden'}</span>
                           <span className="ml-2 text-green-400">(+{tc.points} pts)</span>
@@ -1055,7 +1055,7 @@ export default function EnhancedHostPanel() {
                         </div>
                       ))}
                       {examInfo.problem.test_cases.length > 3 && (
-                        <div className="text-xs text-gray-400">
+                        <div className="text-xs text-muted-foreground">
                           ...and {examInfo.problem.test_cases.length - 3} more test cases
                         </div>
                       )}
@@ -1064,7 +1064,7 @@ export default function EnhancedHostPanel() {
                 )}
               </div>
             ) : (
-              <div className="text-center py-8 text-gray-400">
+              <div className="text-center py-8 text-muted-foreground">
                 <TestTube className="h-12 w-12 mx-auto mb-4 opacity-50" />
                 <p>No questions uploaded yet</p>
                 <p className="text-sm">Create a question with dynamic scoring to get started</p>

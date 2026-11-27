@@ -1,7 +1,9 @@
 'use client'
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Brain, Plus, Clock, Trophy, Users, Sparkles, Crown, Target, Play, Globe, Lock } from 'lucide-react'
+import { Brain, Plus, Trophy, Users, Crown, Target, Play, Globe, RotateCw, CheckCircle, ChevronRight, Search } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 
 interface Quiz {
   _id: string
@@ -24,412 +26,361 @@ interface QuizRoom {
   status: string
   participants_count: number
   questions_count: number
-  questions_by_difficulty: {
-    easy: number
-    medium: number
-    hard: number
-  }
+  questions_by_difficulty: { easy: number; medium: number; hard: number }
 }
 
+type Tab = 'rooms' | 'adaptive' | 'traditional'
+
+const MODES: { id: Tab; label: string; desc: string; icon: React.ElementType }[] = [
+  { id: 'rooms', label: 'Live Rooms', desc: 'Join or host sessions', icon: Users },
+  { id: 'adaptive', label: 'Adaptive AI', desc: 'Dynamic difficulty', icon: Brain },
+  { id: 'traditional', label: 'Traditional', desc: 'Fixed question sets', icon: Target },
+]
+
 export default function QuizzesPage() {
-  const [activeTab, setActiveTab] = useState<'traditional' | 'rooms' | 'adaptive'>('rooms')
+  const [activeTab, setActiveTab] = useState<Tab>('rooms')
   const [quizzes, setQuizzes] = useState<Quiz[]>([])
   const [publicRooms, setPublicRooms] = useState<QuizRoom[]>([])
   const [loading, setLoading] = useState(true)
   const [aiAvailable, setAiAvailable] = useState(false)
+  const [search, setSearch] = useState('')
+  const [diffFilter, setDiffFilter] = useState('all')
   const router = useRouter()
 
   useEffect(() => {
-    if (activeTab === 'traditional') {
-      fetchTraditionalQuizzes()
-    } else if (activeTab === 'rooms') {
-      fetchPublicRooms()
-    }
+    if (activeTab === 'traditional') fetchTraditionalQuizzes()
+    else if (activeTab === 'rooms') fetchPublicRooms()
+    else setLoading(false)
   }, [activeTab])
 
   const fetchTraditionalQuizzes = async () => {
     setLoading(true)
     try {
-      const response = await fetch('http://127.0.0.1:5000/api/quizzes')
-      const data = await response.json()
-
-      if (data.success) {
-        setQuizzes(data.quizzes)
-        setAiAvailable(data.ai_available)
-      }
-    } catch (err) {
-      console.error('Failed to fetch quizzes:', err)
-    } finally {
-      setLoading(false)
-    }
+      const res = await fetch('http://127.0.0.1:5000/api/quizzes')
+      const data = await res.json()
+      if (data.success) { setQuizzes(data.quizzes); setAiAvailable(data.ai_available) }
+    } catch (err) { console.error('Failed to fetch quizzes:', err) }
+    finally { setLoading(false) }
   }
 
   const fetchPublicRooms = async () => {
     setLoading(true)
     try {
-      const response = await fetch('http://127.0.0.1:5000/api/quizzes/public-rooms')
-      const data = await response.json()
+      const res = await fetch('http://127.0.0.1:5000/api/quizzes/public-rooms')
+      const data = await res.json()
+      if (data.success) setPublicRooms(data.public_rooms)
+    } catch (err) { console.error('Failed to fetch rooms:', err) }
+    finally { setLoading(false) }
+  }
 
-      if (data.success) {
-        setPublicRooms(data.public_rooms)
-      }
-    } catch (err) {
-      console.error('Failed to fetch public rooms:', err)
-    } finally {
-      setLoading(false)
+  const diffBadge = (d: string) => {
+    switch (d.toLowerCase()) {
+      case 'easy': return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400'
+      case 'medium': return 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400'
+      case 'hard': return 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400'
+      default: return 'bg-muted text-muted-foreground'
     }
   }
 
-  const getDifficultyColor = (difficulty: string) => {
-    switch (difficulty.toLowerCase()) {
-      case 'easy': return 'text-emerald-800 bg-emerald-100 dark:text-emerald-200 dark:bg-emerald-700/60'
-      case 'medium': return 'text-amber-800 bg-amber-100 dark:text-amber-200 dark:bg-amber-700/60'
-      case 'hard': return 'text-rose-800 bg-rose-100 dark:text-rose-200 dark:bg-rose-700/60'
-      default: return 'text-slate-700 bg-slate-100 dark:text-slate-200 dark:bg-slate-600/60'
+  const statusBadge = (s: string) => {
+    switch (s) {
+      case 'waiting': return 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400'
+      case 'active': return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400'
+      default: return 'bg-muted text-muted-foreground'
     }
   }
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'waiting': return 'text-amber-800 bg-amber-100 dark:text-amber-200 dark:bg-amber-700/60'
-      case 'active': return 'text-emerald-800 bg-emerald-100 dark:text-emerald-200 dark:bg-emerald-700/60'
-      case 'completed': return 'text-slate-700 bg-slate-100 dark:text-slate-200 dark:bg-slate-600/60'
-      default: return 'text-slate-700 bg-slate-100 dark:text-slate-200 dark:bg-slate-600/60'
-    }
-  }
-
-  if (loading && activeTab === 'traditional' && quizzes.length === 0) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-[#dbe8ff] via-[#cfdfff] to-[#d8ccff] dark:from-[#1f3f8a] dark:via-[#2b3f95] dark:to-[#4e2c97] flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 dark:border-blue-200 mx-auto mb-4"></div>
-          <p className="text-slate-700 dark:text-blue-100">Loading quizzes...</p>
-        </div>
-      </div>
-    )
-  }
+  const filteredQuizzes = quizzes.filter(q => {
+    const matchSearch = q.title.toLowerCase().includes(search.toLowerCase())
+    const matchDiff = diffFilter === 'all' || q.difficulty === diffFilter
+    return matchSearch && matchDiff
+  })
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#dbe8ff] via-[#cfdfff] to-[#d8ccff] dark:from-[#1f3f8a] dark:via-[#2b3f95] dark:to-[#4e2c97] text-slate-900 dark:text-white">
-      <div className="max-w-7xl mx-auto p-6">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold mb-4 flex items-center justify-center space-x-3 text-slate-900 dark:text-white">
-            <Trophy className="h-10 w-10 text-yellow-400" />
-            <span>🧠 OpenLearnX Quiz Platform</span>
-          </h1>
-          <p className="text-slate-600 dark:text-blue-100/90 max-w-2xl mx-auto text-base">
-            Experience adaptive quizzes with AI-powered questions and real-time difficulty adjustment
-          </p>
+    <div className="min-h-screen bg-background">
+      {/* Page header */}
+      <div className="border-b border-border bg-card/50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between gap-4">
+          <div>
+            <h1 className="text-xl font-semibold tracking-tight text-foreground">Quiz Platform</h1>
+            <p className="text-xs text-muted-foreground mt-0.5">Live rooms, adaptive AI, and traditional quizzes</p>
+          </div>
+          <div className="flex gap-2">
+            <Button onClick={() => router.push('/quiz-host')} size="sm" className="gap-1.5">
+              <Crown className="h-3.5 w-3.5" />
+              Host a Quiz
+            </Button>
+            <Button onClick={() => router.push('/quiz-join')} variant="outline" size="sm" className="gap-1.5">
+              <Users className="h-3.5 w-3.5" />
+              Join
+            </Button>
+          </div>
         </div>
+      </div>
 
-        {/* Tab Navigation */}
-        <div className="flex justify-center space-x-1 mb-8">
-          {[
-            { id: 'rooms', label: 'Live Quiz Rooms', icon: Users, description: 'Join or host live quizzes' },
-            { id: 'adaptive', label: 'Adaptive Quiz', icon: Brain, description: 'AI-powered adaptive difficulty' },
-            { id: 'traditional', label: 'Traditional Quizzes', icon: Target, description: 'Fixed question sets' }
-          ].map(tab => (
+      {/* Split layout */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 flex min-h-[calc(100vh-105px)]">
+        {/* Left sidebar */}
+        <nav className="w-44 shrink-0 border-r border-border py-5 pr-3 hidden sm:block">
+          <div className="space-y-0.5">
+            {MODES.map(mode => (
+              <button
+                key={mode.id}
+                onClick={() => setActiveTab(mode.id)}
+                className={`w-full text-left px-3 py-2.5 rounded-lg transition-colors ${
+                  activeTab === mode.id
+                    ? 'bg-muted font-medium text-foreground'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                }`}
+              >
+                <div className="flex items-center gap-2 mb-0.5">
+                  <mode.icon className="h-4 w-4 shrink-0" />
+                  <span className="text-sm">{mode.label}</span>
+                </div>
+                <p className="text-xs text-muted-foreground pl-6 leading-tight">{mode.desc}</p>
+              </button>
+            ))}
+          </div>
+        </nav>
+
+        {/* Mobile tab bar */}
+        <div className="sm:hidden fixed bottom-0 left-0 right-0 z-10 bg-card border-t border-border flex">
+          {MODES.map(mode => (
             <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
-              className={`px-6 py-3 rounded-lg flex items-center space-x-2 transition-colors ${
-                activeTab === tab.id 
-                  ? 'bg-blue-500 text-white shadow-lg shadow-blue-900/40' 
-                  : 'bg-white/70 text-slate-700 hover:bg-white dark:bg-slate-700/60 dark:text-blue-100 dark:hover:bg-slate-600/70'
+              key={mode.id}
+              onClick={() => setActiveTab(mode.id)}
+              className={`flex-1 py-3 flex flex-col items-center gap-0.5 text-xs transition-colors ${
+                activeTab === mode.id ? 'text-primary' : 'text-muted-foreground'
               }`}
             >
-              <tab.icon className="h-5 w-5" />
-              <div className="text-left">
-                <div className="font-semibold text-slate-900 dark:text-white">{tab.label}</div>
-                <div className="text-xs opacity-80 text-slate-500 dark:text-blue-100">{tab.description}</div>
-              </div>
+              <mode.icon className="h-5 w-5" />
+              {mode.label}
             </button>
           ))}
         </div>
 
-        {/* Live Quiz Rooms Tab */}
-        {activeTab === 'rooms' && (
-          <div>
-            {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4 mb-8 justify-center items-center">
-              <button
-                onClick={() => router.push('/quiz-host')}
-                className="bg-gradient-to-r from-violet-500 to-blue-500 hover:from-violet-600 hover:to-blue-600 px-6 py-3 rounded-lg font-semibold flex items-center space-x-2 transition-colors"
-              >
-                <Crown className="h-5 w-5" />
-                <span>👑 Host a Quiz</span>
-              </button>
-              
-              <button
-                onClick={() => router.push('/quiz-join')}
-                className="bg-emerald-500 hover:bg-emerald-600 px-6 py-3 rounded-lg font-semibold flex items-center space-x-2"
-              >
-                <Users className="h-5 w-5" />
-                <span>🎯 Join Quiz</span>
-              </button>
-            </div>
+        {/* Right panel */}
+        <div className="flex-1 py-6 pl-0 sm:pl-6 pb-20 sm:pb-6">
 
-            {/* Public Rooms Grid */}
-            <div className="mb-6">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-2xl font-bold flex items-center space-x-2">
-                  <Globe className="h-6 w-6 text-green-400" />
-                  <span>🌍 Public Quiz Rooms</span>
-                </h2>
-                <button
-                  onClick={fetchPublicRooms}
-                  className="bg-blue-500 hover:bg-blue-600 px-4 py-2 rounded flex items-center space-x-2"
-                >
-                  <span>🔄 Refresh</span>
-                </button>
+          {/* Live Rooms */}
+          {activeTab === 'rooms' && (
+            <div className="space-y-5">
+              <div className="flex items-center justify-between">
+                <h2 className="font-semibold text-foreground tracking-tight">Live Quiz Rooms</h2>
+                <Button onClick={fetchPublicRooms} variant="ghost" size="sm" className="gap-1.5 text-muted-foreground">
+                  <RotateCw className="h-3.5 w-3.5" />
+                  Refresh
+                </Button>
               </div>
 
               {loading ? (
-                <div className="text-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 dark:border-blue-200 mx-auto mb-4"></div>
-                  <p className="text-slate-700 dark:text-blue-100">Loading rooms...</p>
+                <div className="space-y-3">
+                  {[1,2,3].map(i => (
+                    <div key={i} className="rounded-xl border border-border bg-card p-4 animate-skeleton">
+                      <div className="h-4 bg-muted rounded w-1/2 mb-2" />
+                      <div className="h-3 bg-muted rounded w-1/4" />
+                    </div>
+                  ))}
                 </div>
               ) : publicRooms.length === 0 ? (
-                <div className="text-center py-12 bg-white/75 dark:bg-[#22314a] rounded-lg border border-blue-200 dark:border-blue-400/20">
-                  <Globe className="h-16 w-16 text-blue-500/60 dark:text-blue-200/60 mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold mb-2 text-slate-900 dark:text-white">No Public Rooms Available</h3>
-                  <p className="text-slate-600 dark:text-blue-100/85 mb-6">
-                    Be the first to create a public quiz room!
-                  </p>
-                  <button
-                    onClick={() => router.push('/quiz-host')}
-                    className="bg-violet-500 hover:bg-violet-600 px-6 py-3 rounded-lg font-semibold"
-                  >
-                    🚀 Create Room
-                  </button>
+                <div className="rounded-xl border border-border bg-card py-16 text-center">
+                  <Globe className="h-9 w-9 text-muted-foreground mx-auto mb-3" />
+                  <p className="font-medium text-foreground text-sm">No public rooms available</p>
+                  <p className="text-xs text-muted-foreground mt-1 mb-5">Create the first room and invite participants</p>
+                  <Button onClick={() => router.push('/quiz-host')} size="sm">Create a Room</Button>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {publicRooms.map((room) => (
-                    <div
-                      key={room.room_id}
-                      className="bg-white/75 dark:bg-[#22314a] rounded-lg p-6 hover:bg-white dark:hover:bg-[#2a3d59] transition-colors border border-blue-200 dark:border-blue-400/20"
-                    >
-                      {/* Room Header */}
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex-1">
-                          <h3 className="text-lg font-semibold flex items-center space-x-2">
-                            <Globe className="h-5 w-5 text-green-400" />
-                            <span>{room.title}</span>
-                          </h3>
-                          <p className="text-slate-600 dark:text-blue-100/80 text-sm">Host: {room.host_name}</p>
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {publicRooms.map(room => (
+                    <div key={room.room_id} className="rounded-xl border border-border bg-card p-4 space-y-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="font-medium text-card-foreground text-sm truncate">{room.title}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">{room.host_name}</p>
                         </div>
-                        <span className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor(room.status)}`}>
+                        <span className={`shrink-0 px-2 py-0.5 rounded-full text-xs font-medium capitalize ${statusBadge(room.status)}`}>
                           {room.status}
                         </span>
                       </div>
 
-                      {/* Room Stats */}
-                      <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
-                        <div className="bg-blue-50 dark:bg-[#1a2740] p-3 rounded text-center">
-                          <div className="font-bold text-blue-400">{room.participants_count}</div>
-                          <div className="text-slate-600 dark:text-blue-100/70">Participants</div>
-                        </div>
-                        <div className="bg-blue-50 dark:bg-[#1a2740] p-3 rounded text-center">
-                          <div className="font-bold text-purple-400">{room.questions_count}</div>
-                          <div className="text-slate-600 dark:text-blue-100/70">Questions</div>
-                        </div>
+                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                        <span className="flex items-center gap-1"><Users className="h-3 w-3" />{room.participants_count}</span>
+                        <span className="flex items-center gap-1"><Target className="h-3 w-3" />{room.questions_count} q</span>
+                        <span className="font-mono text-foreground">{room.room_code}</span>
                       </div>
 
-                      {/* Difficulty Breakdown */}
-                      <div className="flex justify-between text-xs mb-4">
-                        <span className="text-green-400">Easy: {room.questions_by_difficulty?.easy || 0}</span>
-                        <span className="text-yellow-400">Medium: {room.questions_by_difficulty?.medium || 0}</span>
-                        <span className="text-red-400">Hard: {room.questions_by_difficulty?.hard || 0}</span>
+                      <div className="flex justify-between text-xs text-muted-foreground border-t border-border pt-2">
+                        <span>E:{room.questions_by_difficulty?.easy || 0}</span>
+                        <span>M:{room.questions_by_difficulty?.medium || 0}</span>
+                        <span>H:{room.questions_by_difficulty?.hard || 0}</span>
                       </div>
 
-                      {/* Room Code */}
-                      <div className="text-center mb-4">
-                        <span className="bg-blue-50 dark:bg-[#1a2740] px-3 py-1 rounded font-mono text-blue-500 dark:text-blue-300">
-                          Code: {room.room_code}
-                        </span>
-                      </div>
-
-                      {/* Join Button */}
-                      <button
+                      <Button
                         onClick={() => router.push(`/quiz-join?room=${room.room_code}`)}
-                        className="w-full bg-emerald-500 hover:bg-emerald-600 p-3 rounded font-semibold flex items-center justify-center space-x-2"
+                        size="sm"
+                        className="w-full gap-1.5"
                       >
-                        <Play className="h-4 w-4" />
-                        <span>Join Room</span>
-                      </button>
+                        <Play className="h-3.5 w-3.5" />
+                        Join Room
+                      </Button>
                     </div>
                   ))}
                 </div>
               )}
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Adaptive Quiz Tab */}
-        {activeTab === 'adaptive' && (
-          <div className="text-center">
-            <div className="max-w-2xl mx-auto mb-8">
-              <Brain className="h-16 w-16 text-purple-400 mx-auto mb-4" />
-              <h2 className="text-3xl font-bold mb-4">🧠 Adaptive AI Quiz</h2>
-              <p className="text-slate-600 dark:text-blue-100/85 mb-6">
-                Experience an intelligent quiz that adapts to your skill level in real-time using our trained CNN model.
-              </p>
-              
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <div className="bg-white/75 dark:bg-[#22314a] p-4 rounded-lg border border-blue-200 dark:border-blue-400/20">
-                  <Target className="h-8 w-8 text-blue-400 mx-auto mb-2" />
-                  <h3 className="font-semibold mb-1">Adaptive Difficulty</h3>
-                  <p className="text-sm text-slate-600 dark:text-blue-100/80">
-                    Questions adjust based on your performance
-                  </p>
-                </div>
-                
-                <div className="bg-white/75 dark:bg-[#22314a] p-4 rounded-lg border border-blue-200 dark:border-blue-400/20">
-                  <Brain className="h-8 w-8 text-purple-400 mx-auto mb-2" />
-                  <h3 className="font-semibold mb-1">AI Predictions</h3>
-                  <p className="text-sm text-slate-600 dark:text-blue-100/80">
-                    See how our AI model would answer
-                  </p>
-                </div>
-                
-                <div className="bg-white/75 dark:bg-[#22314a] p-4 rounded-lg border border-blue-200 dark:border-blue-400/20">
-                  <Sparkles className="h-8 w-8 text-green-400 mx-auto mb-2" />
-                  <h3 className="font-semibold mb-1">Smart Analytics</h3>
-                  <p className="text-sm text-slate-600 dark:text-blue-100/80">
-                    Track performance across difficulty levels
-                  </p>
-                </div>
-              </div>
-
-              <button
-                onClick={() => router.push('/adaptive-quiz')}
-                className="bg-gradient-to-r from-violet-500 to-blue-500 hover:from-violet-600 hover:to-blue-600 px-8 py-4 rounded-lg font-semibold flex items-center justify-center space-x-2 mx-auto"
-              >
-                <Sparkles className="h-5 w-5" />
-                <span>🚀 Start Adaptive Quiz</span>
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Traditional Quizzes Tab */}
-        {activeTab === 'traditional' && (
-          <div>
-            {/* AI Status & Create Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4 mb-8 justify-center items-center">
-              {aiAvailable && (
-                <button
-                  onClick={() => router.push('/quizzes/generate')}
-                  className="bg-gradient-to-r from-violet-500 to-blue-500 hover:from-violet-600 hover:to-blue-600 px-6 py-3 rounded-lg font-semibold flex items-center space-x-2 transition-colors"
-                >
-                  <Brain className="h-5 w-5" />
-                  <Sparkles className="h-4 w-4" />
-                  <span>🚀 Generate AI Quiz</span>
-                </button>
-              )}
-              
-              <button
-                onClick={() => router.push('/quizzes/create')}
-                className="bg-emerald-500 hover:bg-emerald-600 px-6 py-3 rounded-lg font-semibold flex items-center space-x-2"
-              >
-                <Plus className="h-5 w-5" />
-                <span>Create Manual Quiz</span>
-              </button>
-            </div>
-
-            {/* AI Status Banner */}
-            {aiAvailable && (
-              <div className="bg-white/75 dark:bg-[#22314a] border border-blue-200 dark:border-blue-400/20 p-4 rounded-lg mb-8">
-                <div className="flex items-center space-x-3">
-                  <Brain className="h-6 w-6 text-purple-300" />
+          {/* Adaptive AI */}
+          {activeTab === 'adaptive' && (
+            <div className="max-w-2xl space-y-8">
+              <div className="space-y-2">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center shrink-0">
+                    <Brain className="h-5 w-5 text-primary-foreground" />
+                  </div>
                   <div>
-                    <h3 className="font-semibold text-slate-900 dark:text-white">🤖 AI Service Active</h3>
-                    <p className="text-sm text-slate-600 dark:text-blue-100/80">
-                      Our trained CNN model is ready to generate intelligent quizzes and provide feedback
-                    </p>
+                    <h2 className="text-xl font-semibold tracking-tight text-foreground">Adaptive AI Quiz</h2>
+                    <p className="text-sm text-muted-foreground">Difficulty adjusts in real-time based on your answers using a trained CNN model.</p>
                   </div>
                 </div>
               </div>
-            )}
 
-            {/* Traditional Quizzes Grid */}
-            {quizzes.length === 0 ? (
-              <div className="text-center py-12">
-                <Brain className="h-16 w-16 text-blue-500/60 dark:text-blue-200/60 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold mb-2">No Traditional Quizzes Yet</h3>
-                <p className="text-slate-600 dark:text-blue-100/80 mb-6">
-                  Create your first quiz or generate one using AI
-                </p>
-                {aiAvailable && (
-                  <button
-                    onClick={() => router.push('/quizzes/generate')}
-                    className="bg-violet-500 hover:bg-violet-600 px-6 py-3 rounded-lg font-semibold"
-                  >
-                    🚀 Generate AI Quiz
-                  </button>
-                )}
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {quizzes.map((quiz) => (
-                  <div
-                    key={quiz._id}
-                    className="bg-white/75 dark:bg-[#22314a] rounded-lg p-6 hover:bg-white dark:hover:bg-[#2a3d59] transition-colors cursor-pointer border border-blue-200 dark:border-blue-400/20"
-                    onClick={() => router.push(`/quizzes/${quiz.id}`)}
-                  >
-                    {/* Quiz Header */}
-                    <div className="flex items-start justify-between mb-4">
-                      <h3 className="text-lg font-semibold flex items-center space-x-2">
-                        {quiz.generated_by === 'AI' && (
-                          <Brain className="h-5 w-5 text-purple-400" />
-                        )}
-                        <span>{quiz.title}</span>
-                      </h3>
-                      <span className={`px-2 py-1 rounded text-xs font-medium ${getDifficultyColor(quiz.difficulty)}`}>
-                        {quiz.difficulty}
-                      </span>
-                    </div>
-
-                    {/* Description */}
-                    <p className="text-slate-600 dark:text-gray-300 text-sm mb-4 line-clamp-2">
-                      {quiz.description}
-                    </p>
-
-                    {/* Stats */}
-                    <div className="flex items-center justify-between text-sm text-slate-600 dark:text-blue-100/70">
-                      <div className="flex items-center space-x-4">
-                        <span className="flex items-center space-x-1">
-                          <Users className="h-4 w-4" />
-                          <span>{quiz.questions?.length || 0} questions</span>
-                        </span>
-                        <span className="flex items-center space-x-1">
-                          <Trophy className="h-4 w-4" />
-                          <span>{quiz.total_points} pts</span>
-                        </span>
+              <div className="rounded-xl border border-border bg-card p-5 space-y-4">
+                <h3 className="text-sm font-medium text-card-foreground">How it works</h3>
+                <div className="space-y-3">
+                  {[
+                    { label: 'Start at medium difficulty', detail: 'Every session begins at medium to calibrate your baseline.' },
+                    { label: 'Adaptive adjustment', detail: 'Answer 2+ correct → difficulty increases. Answer incorrectly → it decreases.' },
+                    { label: 'Performance breakdown', detail: 'See accuracy by difficulty level and your final progression path at the end.' },
+                  ].map(({ label, detail }, i) => (
+                    <div key={i} className="flex gap-3">
+                      <CheckCircle className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium text-foreground">{label}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">{detail}</p>
                       </div>
-                      
-                      {quiz.generated_by === 'AI' && (
-                        <div className="flex items-center space-x-1 text-purple-300">
-                          <Sparkles className="h-3 w-3" />
-                          <span className="text-xs">AI Generated</span>
-                        </div>
-                      )}
                     </div>
-
-                    {/* Date */}
-                    <div className="mt-3 pt-3 border-t border-blue-200 dark:border-blue-400/20">
-                      <span className="text-xs text-slate-500 dark:text-blue-100/70">
-                        Created {new Date(quiz.created_at).toLocaleDateString()}
-                      </span>
-                    </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            )}
-          </div>
-        )}
+
+              <div className="rounded-xl border border-border bg-card p-5">
+                <h3 className="text-sm font-medium text-card-foreground mb-3">Difficulty progression</h3>
+                <div className="flex items-center gap-2">
+                  {['Easy', 'Medium', 'Hard'].map((level, i) => (
+                    <React.Fragment key={level}>
+                      <div className={`flex-1 rounded-lg border p-2.5 text-center ${i === 1 ? 'border-primary bg-primary/5' : 'border-border bg-muted/20'}`}>
+                        <p className="text-xs font-medium text-foreground">{level}</p>
+                      </div>
+                      {i < 2 && <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />}
+                    </React.Fragment>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">Starting at Medium — adapts based on performance</p>
+              </div>
+
+              <Button onClick={() => router.push('/adaptive-quiz')} size="lg" className="gap-2">
+                <Brain className="h-4 w-4" />
+                Start Adaptive Quiz
+              </Button>
+            </div>
+          )}
+
+          {/* Traditional */}
+          {activeTab === 'traditional' && (
+            <div className="space-y-5">
+              <div className="flex items-center justify-between gap-4 flex-wrap">
+                <h2 className="font-semibold text-foreground tracking-tight">Traditional Quizzes</h2>
+                <div className="flex gap-2">
+                  {aiAvailable && (
+                    <Button onClick={() => router.push('/quizzes/generate')} size="sm" className="gap-1.5">
+                      <Brain className="h-3.5 w-3.5" />
+                      Generate with AI
+                    </Button>
+                  )}
+                  <Button onClick={() => router.push('/quizzes/create')} variant="outline" size="sm" className="gap-1.5">
+                    <Plus className="h-3.5 w-3.5" />
+                    Create Quiz
+                  </Button>
+                </div>
+              </div>
+
+              {/* Filter row */}
+              <div className="flex items-center gap-3">
+                <div className="relative flex-1 max-w-xs">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                  <Input
+                    placeholder="Search quizzes…"
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                    className="pl-8 h-8 text-sm"
+                  />
+                </div>
+                <select
+                  value={diffFilter}
+                  onChange={e => setDiffFilter(e.target.value)}
+                  className="h-8 text-sm rounded-md border border-input bg-background px-3 text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                  <option value="all">All levels</option>
+                  <option value="easy">Easy</option>
+                  <option value="medium">Medium</option>
+                  <option value="hard">Hard</option>
+                </select>
+              </div>
+
+              {loading ? (
+                <div className="space-y-2">
+                  {[1,2,3].map(i => <div key={i} className="rounded-xl border border-border bg-card h-16 animate-skeleton" />)}
+                </div>
+              ) : filteredQuizzes.length === 0 ? (
+                <div className="rounded-xl border border-border bg-card py-14 text-center">
+                  <Brain className="h-9 w-9 text-muted-foreground mx-auto mb-3" />
+                  <p className="font-medium text-foreground text-sm">
+                    {quizzes.length === 0 ? 'No quizzes yet' : 'No results'}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1 mb-5">
+                    {quizzes.length === 0 ? 'Create your first quiz or generate one with AI' : 'Try a different filter or search term'}
+                  </p>
+                  {quizzes.length === 0 && aiAvailable && (
+                    <Button onClick={() => router.push('/quizzes/generate')} size="sm">Generate AI Quiz</Button>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {filteredQuizzes.map(quiz => (
+                    <button
+                      key={quiz._id}
+                      onClick={() => router.push(`/quizzes/${quiz.id}`)}
+                      className="w-full text-left rounded-xl border border-border bg-card hover:bg-muted/30 px-4 py-3.5 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        {quiz.generated_by === 'AI' && <Brain className="h-4 w-4 text-primary shrink-0" />}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-medium text-card-foreground text-sm truncate">{quiz.title}</span>
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium capitalize shrink-0 ${diffBadge(quiz.difficulty)}`}>
+                              {quiz.difficulty}
+                            </span>
+                          </div>
+                          {quiz.description && (
+                            <p className="text-xs text-muted-foreground mt-0.5 truncate">{quiz.description}</p>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-4 text-xs text-muted-foreground shrink-0">
+                          <span>{quiz.questions?.length || 0} q</span>
+                          <span className="flex items-center gap-1"><Trophy className="h-3 w-3" />{quiz.total_points}</span>
+                          <span>{new Date(quiz.created_at).toLocaleDateString()}</span>
+                          <ChevronRight className="h-4 w-4" />
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+        </div>
       </div>
     </div>
   )

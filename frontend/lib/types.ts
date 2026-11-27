@@ -108,3 +108,126 @@ export interface LeaderboardEntry {
   badges: string[]
   wallet_address?: string
 }
+
+// Course / Learning types
+export interface Course {
+  id: string
+  title: string
+  description: string
+  subject: string
+  progress?: number
+  enrolled?: boolean
+  completed?: boolean
+  created_at?: string
+}
+
+export interface Lesson {
+  id: string
+  title: string
+  content: string
+  duration_minutes?: number
+  order: number
+  completed?: boolean
+}
+
+export interface Module {
+  id: string
+  title: string
+  description?: string
+  order: number
+  course_id?: string
+  created_at?: string
+  lessons?: Lesson[]
+}
+
+// Quiz types
+export interface QuestionOption {
+  id: string
+  text: string
+  index: number
+}
+
+export interface Question {
+  id: string
+  text: string
+  options: QuestionOption[]
+  difficulty?: string
+  subject?: string
+}
+
+export interface Feedback {
+  correct: boolean
+  explanation: string
+  correct_answer_index?: number
+  correct_answer?: string
+  ai_prediction?: number
+  ai_confidence?: number
+  confidence_score?: number
+}
+
+export interface Quiz {
+  id: string
+  _id?: string
+  title: string
+  description: string
+  difficulty: string
+  topic?: string
+  questions?: Question[]
+  generated_by?: string
+  created_at: string
+  total_points: number
+  recent_performance?: {
+    score: number
+    attempts: number
+    last_played?: string
+  }
+}
+
+// Adaptive quiz API contracts
+export interface TestStartRequest {
+  subject: string
+}
+
+export interface TestStartResponse {
+  session_id: string
+  question: Question
+  question_number: number
+  total_questions: number
+}
+
+export interface TestAnswerRequest {
+  session_id: string
+  question_id: string
+  answer: number
+}
+
+export interface TestAnswerResponse {
+  feedback: Feedback
+  next_question: Question | null
+  test_completed: boolean
+  final_score?: number
+}
+
+// Coding types
+export interface CodingProblem {
+  id: string
+  title: string
+  description: string
+  difficulty: string
+  language: string
+  category?: string
+  starter_code?: string
+  initial_code?: Record<string, string>
+  test_cases?: Array<{ input: string; expected_output: string }>
+  solved?: boolean
+}
+
+export interface CodeExecutionResult {
+  success: boolean
+  correct?: boolean
+  output?: string
+  error?: string
+  runtime?: number
+  test_results?: Array<{ passed: boolean; input: string; expected: string; actual: string }>
+  score?: number
+}

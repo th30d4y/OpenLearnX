@@ -169,6 +169,9 @@ def mark_lesson_complete(course_id, lesson_id):
         identity = resolve_user_identity(request, db)
         user_id = identity.get("user_id")
 
+        if not user_id:
+            return jsonify({"success": False, "error": "Authentication required"}), 401
+
         if user_id:
             # Find course with new or old format
             course = db.courses.find_one({"_id": course_id}, {"title": 1})

@@ -55,15 +55,16 @@ export function UsernameSetup({ userProfile, onUsernameSet }: UsernameSetupProps
         })
       }
 
-      if (response.success) {
-        toast.success(`Username "${username}" set successfully! 🎉`)
-        onUsernameSet(response.profile || { 
-          ...userProfile, 
+      const data = (response as any).data ?? response
+      if (data.success) {
+        toast.success(`Username "${username}" set successfully!`)
+        onUsernameSet(data.profile || {
+          ...userProfile,
           display_name: username.trim(),
-          username_set: true 
+          username_set: true,
         })
       } else {
-        toast.error(response.error || "Failed to set username")
+        toast.error(data.error || "Failed to set username")
       }
     } catch (error: any) {
       console.error('Username setting error:', error)

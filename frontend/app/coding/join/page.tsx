@@ -1,6 +1,10 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { Loader2 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 
 export default function JoinExam() {
   const [examCode, setExamCode] = useState('')
@@ -10,76 +14,42 @@ export default function JoinExam() {
   const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault() // ✅ Prevent form from reloading page
-    
+    e.preventDefault()
     setError('')
-    
-    if (!examCode.trim()) {
-      setError('Please enter the exam code')
-      return
-    }
-    
-    if (!studentName.trim()) {
-      setError('Please enter your name')
-      return
-    }
-
+    if (!examCode.trim()) { setError('Please enter the exam code'); return }
+    if (!studentName.trim()) { setError('Please enter your name'); return }
     setLoading(true)
-
     try {
-      const token = localStorage.getItem("openlearnx_jwt_token") || localStorage.getItem("openlearnx_token")
-      const storedUserRaw = localStorage.getItem("openlearnx_user")
-      const storedUser = storedUserRaw ? JSON.parse(storedUserRaw) : null
-
-      // ✅ CORRECT FIELD NAMES - Must match backend expectations
+      const token = localStorage.getItem('openlearnx_jwt_token') || localStorage.getItem('openlearnx_token')
+      const storedUser = JSON.parse(localStorage.getItem('openlearnx_user') || 'null')
       const payload = {
-        exam_code: examCode.trim().toUpperCase(),    // Backend expects exam_code
-        student_name: studentName.trim(),            // Backend expects student_name
+        exam_code: examCode.trim().toUpperCase(),
+        student_name: studentName.trim(),
         wallet_address: storedUser?.wallet_address,
-        user_id: storedUser?.id
+        user_id: storedUser?.id,
       }
-      
-      console.log('🚀 Sending payload:', payload)
-
       const response = await fetch('http://127.0.0.1:5000/api/exam/join-exam', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {})
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify(payload) // ✅ MUST stringify the payload
+        body: JSON.stringify(payload),
       })
-
-      console.log('📡 Response status:', response.status)
-      
       const data = await response.json()
-      console.log('📦 Response data:', data)
-      
       if (data.success) {
-        // Store session data
         localStorage.setItem('exam_session', JSON.stringify({
           exam_code: examCode.toUpperCase(),
           student_name: studentName,
           exam_info: data.exam_info,
-          joined_at: new Date().toISOString()
+          joined_at: new Date().toISOString(),
         }))
-
-        alert(`✅ Successfully joined: ${data.exam_info.title}
-
-👤 Joined as: ${studentName}
-📊 You are participant #${data.exam_info.participants_count}
-
-Wait for the host to start the exam!`)
-
-        // Redirect to exam interface
         router.push('/coding/exam')
-        
       } else {
         setError(data.error || 'Failed to join exam')
       }
-    } catch (error) {
-      console.error('❌ Error:', error)
+    } catch {
       setError('Network error: Could not connect to backend server')
     } finally {
       setLoading(false)
@@ -87,74 +57,54 @@ Wait for the host to start the exam!`)
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-pink-900 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl shadow-2xl p-8 w-full max-w-md">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Join Coding Exam</h1>
-          <p className="text-gray-600">Enter the exam code provided by your instructor</p>
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <div className="w-full max-w-md rounded-xl border border-border bg-card p-8 space-y-6">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-card-foreground">Join Coding Exam</h1>
+          <p className="text-sm text-muted-foreground mt-1">Enter the exam code provided by your instructor</p>
         </div>
 
-        {/* Form with proper onSubmit handler */}
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Exam Code
-            </label>
-            <input
-              type="text"
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="exam-code">Exam Code</Label>
+            <Input
+              id="exam-code"
               value={examCode}
-              onChange={(e) => setExamCode(e.target.value.toUpperCase())}
+              onChange={e => setExamCode(e.target.value.toUpperCase())}
               placeholder="Enter 6-character code"
               maxLength={6}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center text-lg font-mono tracking-widest uppercase"
+              className="text-center text-lg font-mono tracking-widest uppercase"
               required
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Your Name
-            </label>
-            <input
-              type="text"
+          <div className="space-y-1.5">
+            <Label htmlFor="student-name">Your Name</Label>
+            <Input
+              id="student-name"
               value={studentName}
-              onChange={(e) => setStudentName(e.target.value)}
+              onChange={e => setStudentName(e.target.value)}
               placeholder="Enter your full name"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               required
             />
           </div>
 
-          <button
+          {error && (
+            <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-3">
+              <p className="text-sm text-destructive">{error}</p>
+            </div>
+          )}
+
+          <Button
             type="submit"
             disabled={loading || !examCode.trim() || !studentName.trim()}
-            className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-3 px-4 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            className="w-full gap-2"
+            size="lg"
           >
-            {loading ? (
-              <div className="flex items-center justify-center">
-                <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent mr-2"></div>
-                Joining Exam...
-              </div>
-            ) : (
-              'Join Exam'
-            )}
-          </button>
+            {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+            {loading ? 'Joining Exam…' : 'Join Exam'}
+          </Button>
         </form>
-
-        {/* Error Display */}
-        {error && (
-          <div className="mt-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
-            ❌ {error}
-          </div>
-        )}
-
-        {/* Debug Info */}
-        <div className="mt-6 p-4 bg-gray-50 rounded-lg text-xs">
-          <p className="text-gray-500 mb-1">Debug Info:</p>
-          <p className="text-gray-400">Code: "{examCode}"</p>
-          <p className="text-gray-400">Name: "{studentName}"</p>
-          <p className="text-green-600 font-medium">✅ Sends: exam_code + student_name</p>
-        </div>
       </div>
     </div>
   )
