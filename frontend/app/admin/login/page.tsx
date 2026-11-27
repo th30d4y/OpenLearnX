@@ -107,6 +107,7 @@ export default function AdminLogin() {
               </label>
               <input
                 type="password"
+                autoComplete="current-password"
                 placeholder="Enter admin token"
                 value={adminToken}
                 onChange={(e) => setAdminToken(e.target.value)}
