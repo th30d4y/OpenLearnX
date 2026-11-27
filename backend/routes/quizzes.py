@@ -1,4 +1,5 @@
-from flask import Blueprint, request, jsonify
+import os
+from flask import Blueprint, request, jsonify, current_app
 from datetime import datetime
 import uuid
 import random
@@ -742,7 +743,9 @@ def generate_ai_questions(room_code):
 
 @bp.route('/debug/questions', methods=['GET'])
 def debug_questions():
-    """Debug endpoint to see available questions"""
+    """Debug endpoint to see available questions (disabled unless debug is enabled)"""
+    if not (current_app.debug or os.getenv("ENABLE_DEBUG_ENDPOINTS") == "1"):
+        return jsonify({"error": "Not found"}), 404
     ai_service = get_ai_service()
     if not ai_service:
         return jsonify({"error": "AI service not available"})
