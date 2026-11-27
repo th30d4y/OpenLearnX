@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify, session
+from flask import Blueprint, request, jsonify, session, current_app
 import uuid
 import random
 import string
@@ -1060,7 +1060,11 @@ def debug_join_data():
         response.headers.add("Access-Control-Allow-Headers", "Content-Type,Authorization")
         response.headers.add("Access-Control-Allow-Methods", "POST,OPTIONS")
         return response
-    
+
+    # Echoes raw request bodies; only available when debugging is enabled.
+    if not (current_app.debug or os.getenv("ENABLE_DEBUG_ENDPOINTS") == "1"):
+        return jsonify({"error": "Not found"}), 404
+
     print(f"🔍 Raw request data: {request.data}")
     print(f"🔍 Request JSON: {request.json}")
     print(f"🔍 Content-Type: {request.headers.get('Content-Type')}")
