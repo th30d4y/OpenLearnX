@@ -79,6 +79,24 @@ def resolve_user_identity(request, db=None, jwt_secret: str = None) -> Dict[str,
     if user_id:
         user_id = str(user_id).strip()
 
+    # An already-issued JWT must stop working once the account is banned or suspended.
+    if user_id and db is not None:
+        try:
+            lowered = user_id.lower()
+            account = db.users.find_one({"wallet_address": lowered}, {"status": 1})
+            if account is None and email:
+                account = db.users.find_one({"email": str(email).lower().strip()}, {"status": 1})
+            if account is None:
+                try:
+                    from bson import ObjectId
+                    account = db.users.find_one({"_id": ObjectId(user_id)}, {"status": 1})
+                except Exception:
+                    account = None
+            if account and str(account.get("status", "active")).lower().strip() in {"banned", "suspended"}:
+                return {"user_id": None, "wallet_address": None, "email": None}
+        except Exception:
+            pass  # a DB hiccup must not turn into an authorization decision
+
     return {
         "user_id": user_id,
         "wallet_address": wallet_address,
