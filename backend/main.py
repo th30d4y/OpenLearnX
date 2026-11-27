@@ -330,6 +330,12 @@ def _firewall_rule_matches(rule, ip, method, path):
     return True
 
 
+# Firewall rules change rarely; cache them briefly instead of querying MongoDB
+# on every request. Rule edits take effect within this many seconds.
+FIREWALL_CACHE_TTL_SECONDS = 5
+_firewall_cache = {"rules": None, "loaded_at": 0.0}
+
+
 @app.before_request
 def enforce_manual_firewall_rules():
     """Apply admin-defined firewall rules only when manually configured."""
@@ -349,7 +355,11 @@ def enforce_manual_firewall_rules():
         method = request.method
         path = request.path
 
-        rules = list(db.firewall_rules.find({"enabled": True}).sort("created_at", 1))
+        now = time.time()
+        if _firewall_cache["rules"] is None or now - _firewall_cache["loaded_at"] > FIREWALL_CACHE_TTL_SECONDS:
+            _firewall_cache["rules"] = list(db.firewall_rules.find({"enabled": True}).sort("created_at", 1))
+            _firewall_cache["loaded_at"] = now
+        rules = _firewall_cache["rules"]
         for rule in rules:
             if not _firewall_rule_matches(rule, ip, method, path):
                 continue
