@@ -32,3 +32,7 @@ frontend.zip
 .env.local
 .env.*.local
 frontend/.env.local
+
+# Foundry build output
+backend/out/
+backend/cache/
