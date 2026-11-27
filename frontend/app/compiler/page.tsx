@@ -49,9 +49,12 @@ export default function RealCompilerInterface() {
   useEffect(() => { fetchSupportedLanguages() }, [])
 
   useEffect(() => {
-    if (selectedLanguage && languageTemplates[selectedLanguage] && !code) {
-      setCode(languageTemplates[selectedLanguage])
-    }
+    const template = languageTemplates[selectedLanguage]
+    if (!selectedLanguage || !template) return
+    // Swap in the new template when the editor is empty or still holds an
+    // untouched template for another language; never overwrite user edits.
+    const untouched = !code.trim() || Object.values(languageTemplates).includes(code)
+    if (untouched) setCode(template)
   }, [selectedLanguage])
 
   const fetchSupportedLanguages = async () => {
