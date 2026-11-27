@@ -5,6 +5,9 @@ on:
     branches:
       - '**'
 
+permissions:
+  contents: read
+
 jobs:
   notify:
     runs-on: ubuntu-latest
@@ -15,11 +18,13 @@ jobs:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
           COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
           AUTHOR: ${{ github.event.head_commit.author.name }}
+          # Pass context through env, never interpolate it into the script body
+          # (branch names are attacker-controlled).
+          COMMIT_SHA: ${{ github.sha }}
+          BRANCH: ${{ github.ref_name }}
+          REPO: ${{ github.repository }}
         run: |
-          COMMIT_SHA="${{ github.sha }}"
           SHORT_SHA="${COMMIT_SHA:0:7}"
-          BRANCH="${{ github.ref_name }}"
-          REPO="${{ github.repository }}"
           COMMIT_URL="https://github.com/${REPO}/commit/${COMMIT_SHA}"
 
           PAYLOAD=$(jq -n \
