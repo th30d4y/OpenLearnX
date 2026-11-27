@@ -11,6 +11,8 @@ import { Button } from "@/components/ui/button"
 import { Loader2, Play, BookOpen, Clock } from "lucide-react"
 import ReactMarkdown from "react-markdown"
 
+const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:5000"
+
 interface LessonViewerProps {
   courseId: string
   lessonId: string
@@ -50,7 +52,7 @@ export function LessonViewer({ courseId, lessonId }: LessonViewerProps) {
       try {
         console.log(`Fetching lesson: ${courseId}/${lessonId}`) // Debug log
         
-        const response = await fetch(`http://127.0.0.1:5000/api/courses/${courseId}/lessons/${lessonId}`, {
+        const response = await fetch(`${API_BASE}/api/courses/${courseId}/lessons/${lessonId}`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -88,7 +90,7 @@ export function LessonViewer({ courseId, lessonId }: LessonViewerProps) {
     }
     setIsMarkingCompleted(true)
     try {
-      const response = await fetch(`http://127.0.0.1:5000/api/courses/${courseId}/lessons/${lessonId}/complete`, {
+      const response = await fetch(`${API_BASE}/api/courses/${courseId}/lessons/${lessonId}/complete`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
