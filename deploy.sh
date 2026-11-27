@@ -164,7 +164,7 @@ cat << EOF | tee -a "$LOG_FILE"
 
 ⛓️  Blockchain
   Network: ${BLOCKCHAIN_NETWORK:-${ENVIRONMENT:-unknown}}
-  RPC: Configured in .env
+  RPC: ${RPC_URL:-Configured in .env}
   Status: ✅ Ready
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
