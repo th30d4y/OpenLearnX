@@ -1796,6 +1796,8 @@ def get_admin_stats():
 def admin_health():
     """Admin health check endpoint"""
     try:
+        if db is None:
+            raise RuntimeError("Database not initialized")
         db.command("ping")
         database_connected = True
     except Exception:
@@ -1824,4 +1826,4 @@ def admin_health():
             "GET /api/admin/test",
             "GET /api/admin/stats"
         ]
-    })
+    }), (200 if database_connected else 503)
