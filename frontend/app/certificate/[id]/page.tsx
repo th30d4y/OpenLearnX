@@ -5,6 +5,8 @@ import { useParams, useRouter } from "next/navigation"
 import { Calendar, User, BookOpen, Wallet, Award, Share2, Download, CheckCircle, AlertCircle } from "lucide-react"
 import { toast } from "react-hot-toast"
 
+const API_BASE = (process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:5000").replace(/\/+$/, "")
+
 interface Certificate {
   certificate_id: string
   share_code: string
@@ -64,7 +66,7 @@ export default function CertificatePage() {
       // Try verify endpoint first
       try {
         console.log(`🔍 Trying verify endpoint: /api/certificate/verify/${id}`)
-        response = await fetch(`http://127.0.0.1:5000/api/certificate/verify/${id}`)
+        response = await fetch(`${API_BASE}/api/certificate/verify/${id}`)
         
         if (response.ok) {
           const data = await response.json()
@@ -97,7 +99,7 @@ export default function CertificatePage() {
       // Try direct ID endpoint
       try {
         console.log(`🔍 Trying direct endpoint: /api/certificate/${id}`)
-        response = await fetch(`http://127.0.0.1:5000/api/certificate/${id}`)
+        response = await fetch(`${API_BASE}/api/certificate/${id}`)
         
         if (response.ok) {
           const data = await response.json()
@@ -353,7 +355,7 @@ export default function CertificatePage() {
         
         // Track share
         try {
-          await fetch(`http://127.0.0.1:5000/api/certificate/share/${certificate.certificate_id}`, {
+          await fetch(`${API_BASE}/api/certificate/share/${certificate.certificate_id}`, {
             method: 'POST'
           })
         } catch (e) {
@@ -369,7 +371,7 @@ export default function CertificatePage() {
         
         // Track share
         try {
-          await fetch(`http://127.0.0.1:5000/api/certificate/share/${certificate.certificate_id}`, {
+          await fetch(`${API_BASE}/api/certificate/share/${certificate.certificate_id}`, {
             method: 'POST'
           })
         } catch (e) {

@@ -4,6 +4,8 @@ import { useState } from "react"
 import { X, Download, Share2, Award, Calendar, User, BookOpen, Wallet, CheckCircle } from "lucide-react"
 import { toast } from "react-hot-toast"
 
+const API_BASE = (process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:5000").replace(/\/+$/, "")
+
 interface Certificate {
   certificate_id: string
   token_id?: string
@@ -55,7 +57,7 @@ export function CertificateModal({
     setStep("generating")
 
     try {
-      const response = await fetch("http://127.0.0.1:5000/api/certificate/mint", {
+      const response = await fetch(`${API_BASE}/api/certificate/mint`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
