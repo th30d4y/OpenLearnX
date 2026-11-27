@@ -93,15 +93,6 @@ export function QuizList() {
 
   return (
     <div className="container mx-auto py-8 px-4">
-      {authMethod === "firebase" && !token && (
-        <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-6 rounded-md dark:bg-yellow-900 dark:border-yellow-600 dark:text-yellow-200">
-          <p className="font-bold">Limited Access</p>
-          <p>
-            You are logged in with email. Full functionality, including quiz progress and persistence, requires
-            connecting your MetaMask wallet.
-          </p>
-        </div>
-      )}
       <h1 className="text-3xl font-bold text-primary-purple mb-8 text-center">Available Quizzes</h1>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {quizzes.map((quiz) => (
@@ -121,9 +112,9 @@ export function QuizList() {
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm font-medium text-gray-700 dark:text-gray-300">
                     <span>Recent Performance</span>
-                    <span>{quiz.recent_performance}%</span>
+                    <span>{quiz.recent_performance.score}%</span>
                   </div>
-                  <Progress value={quiz.recent_performance} className="h-2" />
+                  <Progress value={quiz.recent_performance.score} className="h-2" />
                 </div>
               )}
               <Link href={`/quizzes/${quiz.id}`}>

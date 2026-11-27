@@ -235,7 +235,7 @@ def join_room():
         print(f"✅ User joined room: {username} -> {room_code}")
 
         identity = resolve_user_identity(request, db)
-        resolved_user_id = identity.get("user_id") or data.get("user_id") or data.get("wallet_address")
+        resolved_user_id = identity.get("user_id")
         if isinstance(resolved_user_id, str):
             resolved_user_id = resolved_user_id.strip().lower() if resolved_user_id.startswith("0x") else resolved_user_id.strip()
         log_user_activity(
@@ -444,7 +444,7 @@ def submit_answer(session_id):
         )
 
         identity = resolve_user_identity(request, db)
-        resolved_user_id = identity.get("user_id") or data.get("user_id") or data.get("wallet_address")
+        resolved_user_id = identity.get("user_id")
         if isinstance(resolved_user_id, str):
             resolved_user_id = resolved_user_id.strip().lower() if resolved_user_id.startswith("0x") else resolved_user_id.strip()
         if resolved_user_id:
@@ -1217,7 +1217,7 @@ def submit_traditional_quiz(quiz_id):
         score = round((correct_answers / total_questions) * 100, 1) if total_questions > 0 else 0
 
         identity = resolve_user_identity(request, db)
-        resolved_user_id = identity.get("user_id") or data.get("user_id") or data.get("wallet_address")
+        resolved_user_id = identity.get("user_id")
         if isinstance(resolved_user_id, str):
             resolved_user_id = resolved_user_id.strip().lower() if resolved_user_id.startswith("0x") else resolved_user_id.strip()
 

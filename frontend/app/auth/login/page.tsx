@@ -4,294 +4,209 @@ import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/context/auth-context"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
-import { Wallet, Mail, Lock, Loader2, CheckCircle2 } from "lucide-react"
+import { Wallet, Mail, Lock, Loader2, CheckCircle2, BookOpen } from "lucide-react"
 import { toast } from "react-hot-toast"
 import Link from "next/link"
 import { MetaMaskEmailModal } from "@/components/metamask-email-modal"
 
 export default function LoginPage() {
-  const { 
-    user, 
-    walletConnected, 
+  const {
+    user,
+    walletConnected,
     walletAddress,
-    isLoadingAuth, 
+    isLoadingAuth,
     authMethod,
     token,
     showMetaMaskEmailModal,
     setShowMetaMaskEmailModal,
-    connectWallet, 
-    loginWithEmail 
+    connectWallet,
+    loginWithEmail,
   } = useAuth()
-  
+
   const router = useRouter()
   const hasRedirected = useRef(false)
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
-  const [isEmailLogin, setIsEmailLogin] = useState(false)
-  const [isSubmittingEmail, setIsSubmittingEmail] = useState(false)
+  const [showEmailForm, setShowEmailForm] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  // ✅ FIXED: More comprehensive redirect logic with debug logging
   useEffect(() => {
-    console.log("🔍 Login page - checking auth state:", {
-      isLoadingAuth,
-      hasRedirected: hasRedirected.current,
-      user: !!user,
-      walletConnected,
-      walletAddress,
-      authMethod
-    })
-
-    // Don't redirect if still loading or already redirected
-    if (isLoadingAuth || hasRedirected.current) {
-      console.log("⏳ Skipping redirect - loading or already redirected")
-      return
-    }
-
-    // Check for successful authentication
+    if (isLoadingAuth || hasRedirected.current) return
     const isMetaMaskAuth = walletConnected && walletAddress && user && authMethod === "metamask"
     const isEmailAuth = user && authMethod === "email"
-    const isAuthenticated = isMetaMaskAuth || isEmailAuth
-
-    console.log("🔍 Authentication check:", {
-      isMetaMaskAuth,
-      isEmailAuth,
-      isAuthenticated
-    })
-
-    if (isAuthenticated && !hasRedirected.current) {
-      console.log("✅ User authenticated - redirecting to dashboard...")
+    if (isMetaMaskAuth || isEmailAuth) {
       hasRedirected.current = true
-      
-      // Add a small delay to ensure state is fully updated
-      setTimeout(() => {
-        router.replace("/dashboard")
-      }, 100)
+      setTimeout(() => router.replace("/dashboard"), 100)
     }
-  }, [
-    user, 
-    walletConnected, 
-    walletAddress, 
-    authMethod,
-    isLoadingAuth, 
-    router
-  ]) // ✅ FIXED: Include all necessary dependencies
+  }, [user, walletConnected, walletAddress, authMethod, isLoadingAuth, router])
 
-  // ✅ Handle MetaMask connection with immediate redirect check
   const handleMetaMaskLogin = async () => {
     try {
-      console.log("🦊 Starting MetaMask login...")
       await connectWallet()
-      console.log("🦊 MetaMask login completed, checking for redirect...")
-      
-      // Force a redirect check after a short delay
       setTimeout(() => {
-        const isAuth = walletConnected && walletAddress && user && authMethod === "metamask"
-        if (isAuth && !hasRedirected.current) {
-          console.log("🔄 Force redirecting after MetaMask success...")
+        if (walletConnected && walletAddress && user && !hasRedirected.current) {
           hasRedirected.current = true
           router.replace("/dashboard")
         }
       }, 500)
-    } catch (error) {
-      console.error("❌ MetaMask login failed:", error)
-    }
+    } catch {}
   }
 
-  // ✅ Handle email login
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    
     if (!email.trim() || !password.trim()) {
       toast.error("Please enter both email and password")
       return
     }
-
-    setIsSubmittingEmail(true)
-
+    setIsSubmitting(true)
     try {
       await loginWithEmail(email, password)
-      // Redirect will be handled by useEffect
     } catch (error: any) {
-      console.error("❌ Email login failed:", error)
       toast.error(error.message || "Login failed")
     } finally {
-      setIsSubmittingEmail(false)
+      setIsSubmitting(false)
     }
   }
 
-  // ✅ Show success state when authenticated but not yet redirected
-  const isAuthenticated = (walletConnected && walletAddress && user) || (user && authMethod === "email")
-  
+  const isAuthenticated =
+    (walletConnected && walletAddress && user) || (user && authMethod === "email")
+
   if (isAuthenticated && !hasRedirected.current) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-blue-900/20 dark:to-purple-900/20 p-4">
-        <Card className="w-full max-w-md shadow-2xl">
-          <CardHeader className="text-center">
-            <CheckCircle2 className="w-12 h-12 text-green-600 mx-auto mb-4" />
-            <CardTitle className="text-xl font-bold text-green-600">
-              Login Successful! ✅
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="text-center space-y-4">
-            <p className="text-gray-700">
-              {authMethod === "metamask" 
-                ? `🦊 MetaMask connected: ${walletAddress?.slice(0, 6)}...${walletAddress?.slice(-4)}`
-                : `📧 Email: ${user?.email || user?.id}`
-              }
-            </p>
-            <div className="flex items-center justify-center space-x-2">
-              <Loader2 className="w-4 h-4 animate-spin" />
-              <span>Redirecting to dashboard...</span>
-            </div>
-            
-            {/* Manual redirect button as backup */}
-            <Button 
-              onClick={() => {
-                if (!hasRedirected.current) {
-                  hasRedirected.current = true
-                  router.replace("/dashboard")
-                }
-              }} 
-              className="w-full mt-4"
-            >
-              Go to Dashboard Manually
-            </Button>
-          </CardContent>
-        </Card>
+      <div className="min-h-[calc(100vh-56px)] flex items-center justify-center p-4">
+        <div className="w-full max-w-sm text-center space-y-4">
+          <CheckCircle2 className="h-12 w-12 text-primary mx-auto" />
+          <p className="font-semibold text-foreground">Authenticated — redirecting…</p>
+          <Button onClick={() => { hasRedirected.current = true; router.replace("/dashboard") }} className="w-full">
+            Go to Dashboard
+          </Button>
+        </div>
       </div>
     )
   }
 
-  // ✅ Show login form
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-blue-900/20 dark:to-purple-900/20 p-4">
-      <Card className="w-full max-w-md shadow-2xl">
-        <CardHeader className="text-center space-y-4">
-          <CardTitle className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-            Welcome to OpenLearnX! 🎓
-          </CardTitle>
-        </CardHeader>
+    <div className="min-h-[calc(100vh-56px)] flex items-center justify-center p-4 bg-muted/30">
+      <div className="w-full max-w-sm animate-fade-in">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary mb-4">
+            <BookOpen className="h-6 w-6 text-primary-foreground" />
+          </div>
+          <h1 className="text-2xl font-bold text-foreground">Sign in</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Welcome back to OpenLearnX
+          </p>
+        </div>
 
-        <CardContent className="space-y-6">
-          {/* MetaMask Login */}
-          <div className="space-y-4">
-            <Button
-              onClick={handleMetaMaskLogin}
-              disabled={isLoadingAuth || isSubmittingEmail}
-              className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white py-3"
-            >
-              {isLoadingAuth ? (
-                <>
-                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                  Connecting MetaMask...
-                </>
-              ) : (
-                <>
-                  <Wallet className="w-5 h-5 mr-2" />
-                  Connect MetaMask Wallet 🦊
-                </>
-              )}
-            </Button>
-            
-            <div className="bg-purple-50 dark:bg-purple-900/20 p-3 rounded-lg">
-              <p className="text-xs text-purple-700 dark:text-purple-300 text-center">
-                ✨ Recommended: Get Web3 features and blockchain verification!
-              </p>
-            </div>
+        {/* Card */}
+        <div className="rounded-xl border border-border bg-card shadow-sm p-6 space-y-5">
+          {/* MetaMask */}
+          <Button
+            onClick={handleMetaMaskLogin}
+            disabled={isLoadingAuth || isSubmitting}
+            className="w-full gap-2"
+            size="lg"
+          >
+            {isLoadingAuth ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Wallet className="h-4 w-4" />
+            )}
+            {isLoadingAuth ? "Connecting…" : "Connect MetaMask Wallet"}
+          </Button>
+
+          <div className="relative">
+            <Separator />
+            <span className="absolute inset-x-0 top-1/2 -translate-y-1/2 flex justify-center">
+              <span className="bg-card px-2 text-xs text-muted-foreground">or</span>
+            </span>
           </div>
 
-          <Separator />
-
-          {/* Email Login */}
-          <div className="space-y-4">
+          {/* Email toggle */}
+          {!showEmailForm ? (
             <Button
               variant="outline"
-              onClick={() => setIsEmailLogin(!isEmailLogin)}
-              disabled={isLoadingAuth || isSubmittingEmail}
-              className="w-full"
+              className="w-full gap-2"
+              size="lg"
+              onClick={() => setShowEmailForm(true)}
             >
-              <Mail className="w-4 h-4 mr-2" />
-              {isEmailLogin ? 'Hide Email Login' : 'Login with Email'}
+              <Mail className="h-4 w-4" />
+              Sign in with Email
             </Button>
+          ) : (
+            <form onSubmit={handleEmailLogin} className="space-y-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="you@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={isSubmitting}
+                  required
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={isSubmitting}
+                  required
+                />
+              </div>
+              <Button
+                type="submit"
+                className="w-full gap-2"
+                size="lg"
+                disabled={isSubmitting || !email.trim() || !password.trim()}
+              >
+                {isSubmitting ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Lock className="h-4 w-4" />
+                )}
+                {isSubmitting ? "Signing in…" : "Sign in"}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="w-full text-muted-foreground"
+                onClick={() => setShowEmailForm(false)}
+              >
+                Back
+              </Button>
+            </form>
+          )}
+        </div>
 
-            {isEmailLogin && (
-              <form onSubmit={handleEmailLogin} className="space-y-4">
-                <div>
-                  <Label htmlFor="email">Email Address</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="Enter your email"
-                    disabled={isSubmittingEmail || isLoadingAuth}
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <Label htmlFor="password">Password</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Enter your password"
-                    disabled={isSubmittingEmail || isLoadingAuth}
-                    required
-                  />
-                </div>
+        <p className="mt-6 text-center text-sm text-muted-foreground">
+          No account?{" "}
+          <Link href="/auth/signup" className="font-medium text-primary hover:underline">
+            Sign up free
+          </Link>
+        </p>
+      </div>
 
-                <Button
-                  type="submit"
-                  disabled={isSubmittingEmail || isLoadingAuth || !email.trim() || !password.trim()}
-                  className="w-full"
-                >
-                  {isSubmittingEmail ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Logging in...
-                    </>
-                  ) : (
-                    <>
-                      <Lock className="w-4 h-4 mr-2" />
-                      Login with Email
-                    </>
-                  )}
-                </Button>
-              </form>
-            )}
-          </div>
-
-          <div className="text-center pt-4 border-t">
-            <p className="text-sm text-gray-600">
-              Don't have an account?{" "}
-              <Link href="/auth/signup" className="text-purple-600 hover:text-purple-700 font-semibold">
-                Sign Up
-              </Link>
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* MetaMask Email Modal */}
       {token && walletAddress && (
         <MetaMaskEmailModal
           isOpen={showMetaMaskEmailModal}
           walletAddress={walletAddress}
           token={token}
-          onSuccess={(user) => {
+          onSuccess={() => {
             setShowMetaMaskEmailModal(false)
             toast.success("Profile setup complete!")
           }}
-          onCancel={() => {
-            setShowMetaMaskEmailModal(false)
-            // User can always add email later from dashboard
-          }}
+          onCancel={() => setShowMetaMaskEmailModal(false)}
         />
       )}
     </div>

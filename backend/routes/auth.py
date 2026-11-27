@@ -258,10 +258,8 @@ def register():
                 "error": "Email already registered"
             }), 409
         
-        # Hash password using simple approach for development
-        # TODO: Use werkzeug.security.generate_password_hash for production
-        import hashlib
-        password_hash = hashlib.sha256(password.encode()).hexdigest()
+        from werkzeug.security import generate_password_hash
+        password_hash = generate_password_hash(password)
         
         # Create new user
         user = {
@@ -381,10 +379,8 @@ def login():
                 {"status": "suspended", "email": email},
             )
         
-        # Verify password
-        import hashlib
-        password_hash = hashlib.sha256(password.encode()).hexdigest()
-        if password_hash != user.get('password_hash'):
+        from werkzeug.security import check_password_hash
+        if not check_password_hash(user.get('password_hash', ''), password):
             return jsonify({
                 "success": False,
                 "error": "Invalid email or password"
