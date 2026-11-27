@@ -494,7 +494,7 @@ def get_recent_activity():
                     if isinstance(completed_at, str):
                         try:
                             completed_at = datetime.fromisoformat(completed_at)
-                        except:
+                        except Exception:
                             completed_at = datetime.now()
                     elif not isinstance(completed_at, datetime):
                         completed_at = datetime.now()
@@ -814,7 +814,7 @@ def calculate_real_coding_streak(submissions):
         if isinstance(submission_date, str):
             try:
                 submission_date = datetime.fromisoformat(submission_date).date()
-            except:
+            except Exception:
                 continue
         elif isinstance(submission_date, datetime):
             submission_date = submission_date.date()
