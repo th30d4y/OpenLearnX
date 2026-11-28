@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
+const API_BASE = (process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:5000").replace(/\/+$/, "")
+
 interface Question {
   question_text: string
   options: string[]
@@ -52,7 +54,7 @@ export default function CreateQuizPage() {
         created_at: new Date().toISOString(),
         generated_by: 'manual',
       }
-      const response = await fetch('http://127.0.0.1:5000/api/quizzes/', {
+      const response = await fetch(`${API_BASE}/api/quizzes/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(quizData),

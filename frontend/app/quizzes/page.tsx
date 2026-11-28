@@ -5,6 +5,8 @@ import { Brain, Plus, Trophy, Users, Crown, Target, Play, Globe, RotateCw, Check
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
+const API_BASE = (process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:5000").replace(/\/+$/, "")
+
 interface Quiz {
   _id: string
   id: string
@@ -56,7 +58,7 @@ export default function QuizzesPage() {
   const fetchTraditionalQuizzes = async () => {
     setLoading(true)
     try {
-      const res = await fetch('http://127.0.0.1:5000/api/quizzes')
+      const res = await fetch(`${API_BASE}/api/quizzes`)
       const data = await res.json()
       if (data.success) { setQuizzes(data.quizzes); setAiAvailable(data.ai_available) }
     } catch (err) { console.error('Failed to fetch quizzes:', err) }
@@ -66,7 +68,7 @@ export default function QuizzesPage() {
   const fetchPublicRooms = async () => {
     setLoading(true)
     try {
-      const res = await fetch('http://127.0.0.1:5000/api/quizzes/public-rooms')
+      const res = await fetch(`${API_BASE}/api/quizzes/public-rooms`)
       const data = await res.json()
       if (data.success) setPublicRooms(data.public_rooms)
     } catch (err) { console.error('Failed to fetch rooms:', err) }

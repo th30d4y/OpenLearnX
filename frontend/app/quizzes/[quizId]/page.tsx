@@ -4,6 +4,8 @@ import { useParams, useRouter } from 'next/navigation'
 import { Brain, CheckCircle, XCircle, Sparkles, AlertCircle, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
+const API_BASE = (process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:5000").replace(/\/+$/, "")
+
 interface Question {
   id: string
   question_number: number
@@ -42,7 +44,7 @@ export default function QuizTaking() {
 
   const fetchQuiz = async () => {
     try {
-      const response = await fetch(`http://127.0.0.1:5000/api/quizzes/${quizId}`)
+      const response = await fetch(`${API_BASE}/api/quizzes/${quizId}`)
       const data = await response.json()
       if (data.success) setQuiz(data.quiz)
       else setError(data.error || 'Quiz not found')
@@ -57,7 +59,7 @@ export default function QuizTaking() {
     if (!quiz || !quiz.questions[currentQuestion]) return
     try {
       setShowAIHint(true)
-      const response = await fetch('http://127.0.0.1:5000/api/quizzes/ai-predict', {
+      const response = await fetch(`${API_BASE}/api/quizzes/ai-predict`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ question_text: quiz.questions[currentQuestion].question_text }),
@@ -81,7 +83,7 @@ export default function QuizTaking() {
     try {
       const token = localStorage.getItem('openlearnx_jwt_token') || localStorage.getItem('openlearnx_token')
       const storedUser = JSON.parse(localStorage.getItem('openlearnx_user') || 'null')
-      const response = await fetch(`http://127.0.0.1:5000/api/quizzes/${quizId}/submit`, {
+      const response = await fetch(`${API_BASE}/api/quizzes/${quizId}/submit`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         body: JSON.stringify({

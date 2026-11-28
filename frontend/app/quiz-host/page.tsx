@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
+const API_BASE = (process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:5000").replace(/\/+$/, "")
+
 interface Question {
   question_id: string
   question_text: string
@@ -75,7 +77,7 @@ export default function QuizHostPanel() {
 
   const createRoom = async () => {
     try {
-      const response = await fetch('http://127.0.0.1:5000/api/quizzes/create-room', {
+      const response = await fetch(`${API_BASE}/api/quizzes/create-room`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(roomForm),
@@ -100,7 +102,7 @@ export default function QuizHostPanel() {
       return
     }
     try {
-      const response = await fetch(`http://127.0.0.1:5000/api/quizzes/room/${currentRoom.room_code}/add-question`, {
+      const response = await fetch(`${API_BASE}/api/quizzes/room/${currentRoom.room_code}/add-question`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(questionForm),
@@ -121,7 +123,7 @@ export default function QuizHostPanel() {
   const generateAIQuestions = async () => {
     if (!currentRoom) return
     try {
-      const response = await fetch(`http://127.0.0.1:5000/api/quizzes/room/${currentRoom.room_code}/generate-ai-questions`, {
+      const response = await fetch(`${API_BASE}/api/quizzes/room/${currentRoom.room_code}/generate-ai-questions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(aiForm),
@@ -142,7 +144,7 @@ export default function QuizHostPanel() {
   const removeQuestion = async (questionId: string) => {
     if (!currentRoom || !confirm('Remove this question?')) return
     try {
-      const response = await fetch(`http://127.0.0.1:5000/api/quizzes/room/${currentRoom.room_code}/remove-question/${questionId}`, { method: 'DELETE' })
+      const response = await fetch(`${API_BASE}/api/quizzes/room/${currentRoom.room_code}/remove-question/${questionId}`, { method: 'DELETE' })
       const data = await response.json()
       if (data.success) fetchRoomData()
       else alert(`Error: ${data.error}`)
@@ -154,7 +156,7 @@ export default function QuizHostPanel() {
   const removeParticipant = async (username: string) => {
     if (!currentRoom || !confirm(`Remove ${username} from the quiz?`)) return
     try {
-      const response = await fetch(`http://127.0.0.1:5000/api/quizzes/room/${currentRoom.room_code}/remove-participant/${username}`, { method: 'DELETE' })
+      const response = await fetch(`${API_BASE}/api/quizzes/room/${currentRoom.room_code}/remove-participant/${username}`, { method: 'DELETE' })
       const data = await response.json()
       if (data.success) fetchRoomData()
       else alert(`Error: ${data.error}`)
@@ -168,7 +170,7 @@ export default function QuizHostPanel() {
     if ((currentRoom.questions?.length || 0) === 0) { alert('Add questions before starting!'); return }
     if (!confirm('Start the quiz now?')) return
     try {
-      const response = await fetch(`http://127.0.0.1:5000/api/quizzes/room/${currentRoom.room_code}/start`, { method: 'POST' })
+      const response = await fetch(`${API_BASE}/api/quizzes/room/${currentRoom.room_code}/start`, { method: 'POST' })
       const data = await response.json()
       if (data.success) { fetchRoomData(); setActiveTab('overview') }
       else alert(`Error: ${data.error}`)
@@ -180,7 +182,7 @@ export default function QuizHostPanel() {
   const endQuiz = async () => {
     if (!currentRoom || !confirm('End the quiz now?')) return
     try {
-      const response = await fetch(`http://127.0.0.1:5000/api/quizzes/room/${currentRoom.room_code}/end`, { method: 'POST' })
+      const response = await fetch(`${API_BASE}/api/quizzes/room/${currentRoom.room_code}/end`, { method: 'POST' })
       const data = await response.json()
       if (data.success) fetchRoomData()
       else alert(`Error: ${data.error}`)
@@ -192,7 +194,7 @@ export default function QuizHostPanel() {
   const fetchRoomData = async () => {
     if (!currentRoom) return
     try {
-      const response = await fetch(`http://127.0.0.1:5000/api/quizzes/room/${currentRoom.room_code}/info`)
+      const response = await fetch(`${API_BASE}/api/quizzes/room/${currentRoom.room_code}/info`)
       const data = await response.json()
       if (data.success) setCurrentRoom(data.room)
     } catch {
