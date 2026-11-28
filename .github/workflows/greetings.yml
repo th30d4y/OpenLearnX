@@ -11,6 +11,6 @@ jobs:
     steps:
     - uses: actions/first-interaction@v3
       with:
-        repo-token: ${{ secrets.GITHUB_TOKEN }}
-        issue-message: "Message that will be displayed on users' first issue"
-        pr-message: "Message that will be displayed on users' first pull request"
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        issue_message: "Thanks for opening your first issue in OpenLearnX! A maintainer will take a look soon."
+        pr_message: "Thanks for your first pull request to OpenLearnX! A maintainer will review it soon."
