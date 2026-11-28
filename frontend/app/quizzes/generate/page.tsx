@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
+const API_BASE = (process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:5000").replace(/\/+$/, "")
+
 export default function AIQuizGenerator() {
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({ topic: '', difficulty: 'medium', num_questions: 5 })
@@ -17,7 +19,7 @@ export default function AIQuizGenerator() {
     setLoading(true)
     setError('')
     try {
-      const response = await fetch('http://127.0.0.1:5000/api/quizzes/generate-ai', {
+      const response = await fetch(`${API_BASE}/api/quizzes/generate-ai`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),

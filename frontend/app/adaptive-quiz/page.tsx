@@ -3,6 +3,8 @@ import React, { useState } from 'react'
 import { Brain, Target, TrendingUp, ChevronRight, CheckCircle, XCircle, Trophy } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
+const API_BASE = (process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:5000").replace(/\/+$/, "")
+
 interface Question {
   question_id: string
   question_text: string
@@ -38,7 +40,7 @@ export default function AdaptiveQuizPage() {
   const startQuiz = async () => {
     setLoading(true)
     try {
-      const response = await fetch('http://127.0.0.1:5000/api/adaptive-quiz/start', {
+      const response = await fetch(`${API_BASE}/api/adaptive-quiz/start`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ user_id: `user_${Date.now()}` }),
@@ -63,7 +65,7 @@ export default function AdaptiveQuizPage() {
     if (!selectedAnswer || !currentQuestion || !sessionId) return
     setLoading(true)
     try {
-      const response = await fetch(`http://127.0.0.1:5000/api/adaptive-quiz/${sessionId}/answer`, {
+      const response = await fetch(`${API_BASE}/api/adaptive-quiz/${sessionId}/answer`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ answer: selectedAnswer, question_data: currentQuestion }),
@@ -94,7 +96,7 @@ export default function AdaptiveQuizPage() {
   const getAIPrediction = async () => {
     if (!currentQuestion) return
     try {
-      const response = await fetch('http://127.0.0.1:5000/api/adaptive-quiz/predict', {
+      const response = await fetch(`${API_BASE}/api/adaptive-quiz/predict`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ question_text: currentQuestion.question_text, choices: currentQuestion.choices }),

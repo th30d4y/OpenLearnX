@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
+const API_BASE = (process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:5000").replace(/\/+$/, "")
+
 interface PublicRoom {
   room_id: string
   room_code: string
@@ -31,7 +33,7 @@ export default function QuizJoinPage() {
 
   const fetchPublicRooms = async () => {
     try {
-      const response = await fetch('http://127.0.0.1:5000/api/quizzes/public-rooms')
+      const response = await fetch(`${API_BASE}/api/quizzes/public-rooms`)
       const data = await response.json()
       if (data.success) setPublicRooms(data.public_rooms)
     } catch {
@@ -48,7 +50,7 @@ export default function QuizJoinPage() {
       const headers: Record<string, string> = { 'Content-Type': 'application/json' }
       if (token) headers.Authorization = `Bearer ${token}`
 
-      const response = await fetch('http://127.0.0.1:5000/api/quizzes/join-room', {
+      const response = await fetch(`${API_BASE}/api/quizzes/join-room`, {
         method: 'POST',
         headers,
         body: JSON.stringify({ room_code: code, username: username.trim(), wallet_address: storedUser?.wallet_address, user_id: storedUser?.id }),

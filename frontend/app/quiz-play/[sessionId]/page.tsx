@@ -4,6 +4,8 @@ import { useParams, useRouter } from 'next/navigation'
 import { Brain, Trophy, ArrowRight, CheckCircle, XCircle, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
+const API_BASE = (process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:5000").replace(/\/+$/, "")
+
 interface Question {
   question_id: string
   question_text: string
@@ -49,7 +51,7 @@ export default function QuizPlayPage() {
     try {
       setLoading(true)
       const token = localStorage.getItem('openlearnx_jwt_token') || localStorage.getItem('openlearnx_token')
-      const response = await fetch(`http://127.0.0.1:5000/api/quizzes/session/${sessionId}/next-question`, {
+      const response = await fetch(`${API_BASE}/api/quizzes/session/${sessionId}/next-question`, {
         headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
       })
       const data = await response.json()
@@ -84,7 +86,7 @@ export default function QuizPlayPage() {
       setLoading(true)
       const token = localStorage.getItem('openlearnx_jwt_token') || localStorage.getItem('openlearnx_token')
       const storedUser = JSON.parse(localStorage.getItem('openlearnx_user') || 'null')
-      const response = await fetch(`http://127.0.0.1:5000/api/quizzes/session/${sessionId}/submit-answer`, {
+      const response = await fetch(`${API_BASE}/api/quizzes/session/${sessionId}/submit-answer`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         body: JSON.stringify({ answer: selectedAnswer, question_data: currentQuestion, user_id: storedUser?.id, wallet_address: storedUser?.wallet_address }),
