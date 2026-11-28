@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation"
 type CollectionInfo = { name: string; count: number }
 type DocumentRow = Record<string, unknown>
 
-const API_BASE = "http://127.0.0.1:5000"
+const API_BASE = (process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:5000").replace(/\/+$/, "")
 
 export default function AdminDatabasePage() {
   const router = useRouter()

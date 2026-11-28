@@ -1,6 +1,8 @@
 'use client'
 import { useState } from 'react'
 
+const API_BASE = (process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:5000").replace(/\/+$/, "")
+
 export default function JoinTestPage() {
   const [examCode, setExamCode] = useState('')
   const [studentName, setStudentName] = useState('')
@@ -22,7 +24,7 @@ export default function JoinTestPage() {
       
       console.log('🚀 Sending:', payload)
 
-      const response = await fetch('http://127.0.0.1:5000/api/exam/join-exam', {
+      const response = await fetch(`${API_BASE}/api/exam/join-exam`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
