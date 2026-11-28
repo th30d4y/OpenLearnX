@@ -108,7 +108,7 @@ DEPLOYER_PRIVATE_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb476c6b8d6c1f02960247
 
 ### Frontend (.env.local)
 ```
-NEXT_PUBLIC_API_URL=http://localhost:5000/api
+NEXT_PUBLIC_BACKEND_URL=http://localhost:5000
 NEXT_PUBLIC_WEB3_PROVIDER_URL=http://127.0.0.1:8545
 ```
 
