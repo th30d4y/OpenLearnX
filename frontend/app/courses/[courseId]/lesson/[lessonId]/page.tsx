@@ -9,6 +9,8 @@ import { CourseSidebar } from "@/components/course-sidebar"
 import { LessonViewer } from "@/components/lesson-viewer"
 import { Loader2 } from "lucide-react"
 
+const API_BASE = (process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:5000").replace(/\/+$/, "")
+
 interface Course {
   id: string
   title: string
@@ -89,7 +91,7 @@ export default function LessonDetailPage() {
       setResolvedCourseId(targetId)
 
       // Fetch modules for the course
-      const modulesResponse = await fetch(`http://127.0.0.1:5000/api/courses/${targetId}/modules`, {
+      const modulesResponse = await fetch(`${API_BASE}/api/courses/${targetId}/modules`, {
         headers: {
           'Content-Type': 'application/json'
         }
@@ -113,7 +115,7 @@ export default function LessonDetailPage() {
         let foundCurrentLesson: Lesson | null = null
         
         for (const module of modulesList) {
-          const lessonsResponse = await fetch(`http://127.0.0.1:5000/api/modules/${module.id}/lessons`, {
+          const lessonsResponse = await fetch(`${API_BASE}/api/modules/${module.id}/lessons`, {
             headers: {
               'Content-Type': 'application/json'
             }

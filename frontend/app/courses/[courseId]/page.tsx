@@ -9,6 +9,8 @@ import { useAuth } from "@/context/auth-context"
 import { CertificateModal } from "@/components/certificate-modal"
 import { Button } from "@/components/ui/button"
 
+const API_BASE = (process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:5000").replace(/\/+$/, "")
+
 type Course = {
   id: string
   title: string
@@ -74,7 +76,7 @@ export default function CoursePage() {
     try {
       const token = localStorage.getItem("openlearnx_jwt_token") || localStorage.getItem("openlearnx_token")
       const targetCourseId = overrideCourseId || courseId
-      await fetch(`http://127.0.0.1:5000/api/courses/${targetCourseId}/activity`, {
+      await fetch(`${API_BASE}/api/courses/${targetCourseId}/activity`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -101,7 +103,7 @@ export default function CoursePage() {
   const fetchRegistrationStatus = async (targetId: string) => {
     try {
       const token = localStorage.getItem("openlearnx_jwt_token") || localStorage.getItem("openlearnx_token")
-      const resp = await fetch(`http://127.0.0.1:5000/api/courses/${targetId}/registration`, {
+      const resp = await fetch(`${API_BASE}/api/courses/${targetId}/registration`, {
         headers: {
           "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -138,7 +140,7 @@ export default function CoursePage() {
   const fetchModulesAndLessons = async (id: string) => {
     setModulesLoading(true)
     try {
-      const modulesResponse = await fetch(`http://127.0.0.1:5000/api/courses/${id}/modules`, {
+      const modulesResponse = await fetch(`${API_BASE}/api/courses/${id}/modules`, {
         headers: { "Content-Type": "application/json" },
       })
       if (!modulesResponse.ok) { setModules([]); setLessons({}); return }
@@ -167,7 +169,7 @@ export default function CoursePage() {
 
     for (const module of modulesList) {
       try {
-        const lessonsResponse = await fetch(`http://127.0.0.1:5000/api/modules/${module.id}/lessons`, {
+        const lessonsResponse = await fetch(`${API_BASE}/api/modules/${module.id}/lessons`, {
           headers: { "Content-Type": "application/json" },
         })
         if (!lessonsResponse.ok) { lessonsData[module.id] = []; continue }
@@ -221,7 +223,7 @@ export default function CoursePage() {
     setIsRegistering(true)
     try {
       const token = localStorage.getItem("openlearnx_jwt_token") || localStorage.getItem("openlearnx_token")
-      const resp = await fetch(`http://127.0.0.1:5000/api/courses/${resolvedCourseId}/register`, {
+      const resp = await fetch(`${API_BASE}/api/courses/${resolvedCourseId}/register`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -277,7 +279,7 @@ export default function CoursePage() {
     try {
       const token = localStorage.getItem("openlearnx_jwt_token") || localStorage.getItem("openlearnx_token")
       if (selectedLessonId) {
-        await fetch(`http://127.0.0.1:5000/api/courses/${courseId}/lessons/${selectedLessonId}/complete`, {
+        await fetch(`${API_BASE}/api/courses/${courseId}/lessons/${selectedLessonId}/complete`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
