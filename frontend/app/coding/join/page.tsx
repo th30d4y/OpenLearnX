@@ -40,12 +40,12 @@ export default function JoinExam() {
       const data = await response.json()
       if (data.success) {
         localStorage.setItem('exam_session', JSON.stringify({
-          exam_code: examCode.toUpperCase(),
+          exam_code: payload.exam_code,
           student_name: studentName,
           exam_info: data.exam_info,
           joined_at: new Date().toISOString(),
         }))
-        router.push('/coding/exam')
+        router.push(`/coding/exam/${encodeURIComponent(payload.exam_code)}`)
       } else {
         setError(data.error || 'Failed to join exam')
       }
