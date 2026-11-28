@@ -66,7 +66,7 @@ export default function JoinExamWallet() {
           exam_code: examCode.toUpperCase(), student_name: studentName,
           wallet_address: walletAddress, blockchain_verified: true, exam_info: data.exam_info,
         }))
-        router.push('/coding/exam')
+        router.push(`/coding/exam/${encodeURIComponent(examCode.trim().toUpperCase())}`)
       } else {
         setError(data.error || 'Failed to join exam')
       }

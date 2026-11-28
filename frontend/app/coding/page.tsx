@@ -142,7 +142,7 @@ export default function CodingExamPlatform() {
           joined_at: new Date().toISOString(),
         }))
         alert(`Joined: ${data.exam_info.title}\n\nParticipants: ${data.exam_info.participants_count}/${data.exam_info.max_participants}\nDuration: ${data.exam_info.duration_minutes} minutes\n\nRedirecting to exam...`)
-        setTimeout(() => router.push('/coding/exam'), 1500)
+        setTimeout(() => router.push(`/coding/exam/${encodeURIComponent(examId)}`), 1500)
       } else {
         alert(`Error: ${data.error}`)
       }
