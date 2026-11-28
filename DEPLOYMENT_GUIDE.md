@@ -67,7 +67,7 @@ pnpm install
 
 # Create .env.local (use CONTRACT_ADDRESS from Terminal 3)
 cat > .env.local << 'ENVFILE'
-NEXT_PUBLIC_API_URL=http://localhost:5000/api
+NEXT_PUBLIC_BACKEND_URL=http://localhost:5000
 NEXT_PUBLIC_CHAIN_ID=31337
 NEXT_PUBLIC_CONTRACT_ADDRESS=0x5FbDB2315678afecb367f032d93F642f64180aa3
 NEXT_PUBLIC_RPC_URL=http://127.0.0.1:8545
@@ -113,7 +113,7 @@ Located at: `backend/.env`
 
 ### .env.local (Frontend)
 Located at: `frontend/.env.local`
-- NEXT_PUBLIC_API_URL: Backend API URL
+- NEXT_PUBLIC_BACKEND_URL: Backend base URL, without `/api` or a trailing slash
 - NEXT_PUBLIC_RPC_URL: Anvil RPC endpoint
 - NEXT_PUBLIC_CONTRACT_ADDRESS: Contract address for blockchain interaction
 

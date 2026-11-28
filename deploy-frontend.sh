@@ -62,7 +62,7 @@ if [ ! -f ".env.local" ]; then
     print_warning ".env.local file not found!"
     print_status "Creating .env.local template..."
     cat > .env.local << 'EOF'
-NEXT_PUBLIC_API_URL=https://api.openlearnx.com
+NEXT_PUBLIC_BACKEND_URL=https://api.openlearnx.com
 NEXT_PUBLIC_CHAIN_ID=1
 NEXT_PUBLIC_CONTRACT_ADDRESS=0x...
 NEXT_PUBLIC_RPC_URL=https://eth-mainnet.g.alchemy.com/v2/YOUR-API-KEY

@@ -169,7 +169,7 @@ certbot --nginx -d api.openlearnx.com
 
 #### 2. Configure environment variables
 ```
-NEXT_PUBLIC_API_URL=https://api.openlearnx.com
+NEXT_PUBLIC_BACKEND_URL=https://api.openlearnx.com
 NEXT_PUBLIC_CHAIN_ID=1
 NEXT_PUBLIC_CONTRACT_ADDRESS=0x...
 NEXT_PUBLIC_RPC_URL=https://eth-mainnet.g.alchemy.com/v2/YOUR-API-KEY
@@ -196,7 +196,7 @@ git push origin main
 
 #### 3. Environment variables
 ```
-NEXT_PUBLIC_API_URL=https://api.openlearnx.com
+NEXT_PUBLIC_BACKEND_URL=https://api.openlearnx.com
 NEXT_PUBLIC_CHAIN_ID=1
 NEXT_PUBLIC_CONTRACT_ADDRESS=0x...
 NEXT_PUBLIC_RPC_URL=https://eth-mainnet.g.alchemy.com/v2/YOUR-API-KEY
@@ -284,7 +284,8 @@ WEB3_PROVIDER_URL=https://eth-mainnet.g.alchemy.com/v2/YOUR-API-KEY
 CONTRACT_ADDRESS=0x<deployed-contract-address>
 
 # Security
-CORS_ORIGINS=https://openlearnx.com,https://www.openlearnx.com
+# Frontend origins allowed to call the API (comma-separated)
+CORS_ALLOWED_ORIGINS=https://openlearnx.com,https://www.openlearnx.com
 ADMIN_TOKEN=<secure-admin-token>
 
 # Optional: Email configuration
@@ -296,7 +297,7 @@ MAIL_PASSWORD=your-app-password
 
 ### Frontend (.env.production.local)
 ```env
-NEXT_PUBLIC_API_URL=https://api.openlearnx.com
+NEXT_PUBLIC_BACKEND_URL=https://api.openlearnx.com
 NEXT_PUBLIC_CHAIN_ID=1
 NEXT_PUBLIC_CONTRACT_ADDRESS=0x<contract-address>
 NEXT_PUBLIC_RPC_URL=https://eth-mainnet.g.alchemy.com/v2/YOUR-API-KEY
@@ -448,7 +449,7 @@ systemctl status mongod
 ### Frontend blank page
 ```bash
 pm2 logs openlearnx-frontend
-# Check NEXT_PUBLIC_API_URL environment variable
+# Check the NEXT_PUBLIC_BACKEND_URL environment variable
 ```
 
 ### Database connection errors

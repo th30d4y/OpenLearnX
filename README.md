@@ -112,7 +112,7 @@ cd frontend
 pnpm install      # or: npm install
 
 cat > .env.local << EOF
-NEXT_PUBLIC_API_URL=http://localhost:5000/api
+NEXT_PUBLIC_BACKEND_URL=http://localhost:5000
 NEXT_PUBLIC_CHAIN_ID=31337
 NEXT_PUBLIC_CONTRACT_ADDRESS=<YOUR_DEPLOYED_CONTRACT_ADDRESS>
 NEXT_PUBLIC_RPC_URL=http://127.0.0.1:8545
