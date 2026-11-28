@@ -35,7 +35,7 @@ type Lesson = {
   type?: string
 }
 
-const API_BASE = "http://127.0.0.1:5000"
+const API_BASE = (process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:5000").replace(/\/+$/, "")
 
 export default function AdminCoursesPage() {
   const router = useRouter()
