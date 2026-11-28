@@ -6,6 +6,8 @@ import {
   Upload, Plus, UserMinus, AlertCircle, Timer, TestTube, Award
 } from 'lucide-react'
 
+const API_BASE = (process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:5000").replace(/\/+$/, "")
+
 /* ---------- Enhanced Models ---------- */
 interface TestCase {
   input: string
@@ -190,7 +192,7 @@ export default function EnhancedHostPanel() {
   const fetchExamInfo = async () => {
     setLoading(true)
     try {
-      const res = await fetch(`http://127.0.0.1:5000/api/exam/info/${examCode}`)
+      const res = await fetch(`${API_BASE}/api/exam/info/${examCode}`)
       const data = await res.json()
       if (data.success) {
         setExamInfo(data.exam_info)
@@ -209,7 +211,7 @@ export default function EnhancedHostPanel() {
 
   const fetchLeaderboard = async () => {
     try {
-      const res = await fetch(`http://127.0.0.1:5000/api/exam/leaderboard/${examCode}`)
+      const res = await fetch(`${API_BASE}/api/exam/leaderboard/${examCode}`)
       const data = await res.json()
       if (data.success) {
         setLeaderboardData({
@@ -271,7 +273,7 @@ export default function EnhancedHostPanel() {
         languages: Object.keys(draft.starter_code).filter(lang => draft.starter_code[lang].trim())
       }
 
-      const res = await fetch('http://127.0.0.1:5000/api/exam/upload-question', {
+      const res = await fetch(`${API_BASE}/api/exam/upload-question`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -354,7 +356,7 @@ export default function EnhancedHostPanel() {
     if (!confirm('Start the exam now? Participants will be able to submit solutions.')) return
     
     try {
-      const res = await fetch('http://127.0.0.1:5000/api/exam/start-exam', {
+      const res = await fetch(`${API_BASE}/api/exam/start-exam`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ exam_code: examCode })
@@ -377,7 +379,7 @@ export default function EnhancedHostPanel() {
     if (!confirm('Stop the exam immediately? This will end the exam for all participants.')) return
     
     try {
-      const res = await fetch('http://127.0.0.1:5000/api/exam/stop-exam', {
+      const res = await fetch(`${API_BASE}/api/exam/stop-exam`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ exam_code: examCode })

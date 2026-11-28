@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
+const API_BASE = (process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:5000").replace(/\/+$/, "")
+
 declare global {
   interface Window { ethereum?: any }
 }
@@ -37,7 +39,7 @@ export default function JoinExamWallet() {
   const getAuthMessage = async () => {
     if (!examCode.trim()) { setError('Please enter exam code'); return }
     try {
-      const response = await fetch('http://127.0.0.1:5000/api/exam/wallet-auth-message', {
+      const response = await fetch(`${API_BASE}/api/exam/wallet-auth-message`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ wallet_address: walletAddress, exam_code: examCode.toUpperCase() }),
@@ -55,7 +57,7 @@ export default function JoinExamWallet() {
     setIsJoining(true); setError('')
     try {
       const signature = await window.ethereum.request({ method: 'personal_sign', params: [authMessage, walletAddress] })
-      const response = await fetch('http://127.0.0.1:5000/api/exam/join-exam-wallet', {
+      const response = await fetch(`${API_BASE}/api/exam/join-exam-wallet`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ wallet_address: walletAddress, exam_code: examCode.toUpperCase(), signature, student_name: studentName }),

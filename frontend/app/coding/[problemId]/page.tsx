@@ -3,6 +3,8 @@ import React, { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { Play, Clock, CheckCircle, XCircle, ArrowLeft } from 'lucide-react'
 
+const API_BASE = (process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:5000").replace(/\/+$/, "")
+
 interface TestCase {
   input: string
   expected: string
@@ -142,7 +144,7 @@ export default function ProblemPage() {
     setTestResults([])
 
     try {
-      const response = await fetch('http://127.0.0.1:5000/api/coding/execute', {
+      const response = await fetch(`${API_BASE}/api/coding/execute`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -174,7 +176,7 @@ export default function ProblemPage() {
     setIsSubmitting(true)
 
     try {
-      const response = await fetch('http://127.0.0.1:5000/api/coding/submit', {
+      const response = await fetch(`${API_BASE}/api/coding/submit`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

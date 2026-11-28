@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
+const API_BASE = (process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:5000").replace(/\/+$/, "")
+
 export default function JoinExam() {
   const [examCode, setExamCode] = useState('')
   const [studentName, setStudentName] = useState('')
@@ -28,7 +30,7 @@ export default function JoinExam() {
         wallet_address: storedUser?.wallet_address,
         user_id: storedUser?.id,
       }
-      const response = await fetch('http://127.0.0.1:5000/api/exam/join-exam', {
+      const response = await fetch(`${API_BASE}/api/exam/join-exam`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

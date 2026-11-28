@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
+const API_BASE = (process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:5000").replace(/\/+$/, "")
+
 export default function CreateExam() {
   const [examData, setExamData] = useState({
     title: 'String Capitalizer Challenge',
@@ -37,7 +39,7 @@ export default function CreateExam() {
         host_name: examData.host_name.trim(),
         max_participants: examData.max_participants,
       }
-      const response = await fetch('http://127.0.0.1:5000/api/exam/create-exam', {
+      const response = await fetch(`${API_BASE}/api/exam/create-exam`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
         body: JSON.stringify(payload),

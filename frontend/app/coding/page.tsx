@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
+const API_BASE = (process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:5000").replace(/\/+$/, "")
+
 type UserRole = 'selector' | 'host' | 'participant'
 
 interface Participant {
@@ -91,7 +93,7 @@ export default function CodingExamPlatform() {
 
   const createExam = async () => {
     try {
-      const response = await fetch('http://127.0.0.1:5000/api/exam/create-exam', {
+      const response = await fetch(`${API_BASE}/api/exam/create-exam`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -127,7 +129,7 @@ export default function CodingExamPlatform() {
 
   const joinExam = async () => {
     try {
-      const response = await fetch('http://127.0.0.1:5000/api/exam/join-exam', {
+      const response = await fetch(`${API_BASE}/api/exam/join-exam`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ exam_code: examId, student_name: participantName }),
@@ -153,7 +155,7 @@ export default function CodingExamPlatform() {
 
   const startExam = async () => {
     try {
-      const response = await fetch('http://127.0.0.1:5000/api/exam/start-exam', {
+      const response = await fetch(`${API_BASE}/api/exam/start-exam`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ exam_code: examId }),
@@ -183,7 +185,7 @@ export default function CodingExamPlatform() {
   const submitSolution = async () => {
     setIsExecuting(true)
     try {
-      const response = await fetch('http://127.0.0.1:5000/api/exam/submit-solution', {
+      const response = await fetch(`${API_BASE}/api/exam/submit-solution`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code }),
@@ -202,7 +204,7 @@ export default function CodingExamPlatform() {
 
   const fetchLeaderboard = async () => {
     try {
-      const response = await fetch(`http://127.0.0.1:5000/api/exam/leaderboard/${examId}`)
+      const response = await fetch(`${API_BASE}/api/exam/leaderboard/${examId}`)
       const data = await response.json()
       setLeaderboard(data.leaderboard)
     } catch {

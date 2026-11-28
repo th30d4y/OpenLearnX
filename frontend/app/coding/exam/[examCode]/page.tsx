@@ -3,6 +3,8 @@ import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { Trophy, Clock, Users, Send, RefreshCw, Play, Code, Shield, TestTube } from 'lucide-react'
 
+const API_BASE = (process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:5000").replace(/\/+$/, "")
+
 interface Participant {
   name: string
   score: number
@@ -74,7 +76,7 @@ export default function EnhancedExamInterface() {
   // ✅ FIXED: Memoized functions to prevent recreation
   const fetchProblem = useCallback(async (examCode: string) => {
     try {
-      const response = await fetch(`http://127.0.0.1:5000/api/exam/get-problem/${examCode}`)
+      const response = await fetch(`${API_BASE}/api/exam/get-problem/${examCode}`)
       const data = await response.json()
       
       if (data.success) {
@@ -92,7 +94,7 @@ export default function EnhancedExamInterface() {
     try {
       console.log('🏆 Fetching leaderboard for:', examCode)
       
-      const response = await fetch(`http://127.0.0.1:5000/api/exam/leaderboard/${examCode}?t=${Date.now()}`)
+      const response = await fetch(`${API_BASE}/api/exam/leaderboard/${examCode}?t=${Date.now()}`)
       const data = await response.json()
       
       if (data.success) {
@@ -245,7 +247,7 @@ export default function EnhancedExamInterface() {
     setTestResults([])
 
     try {
-      const response = await fetch('http://127.0.0.1:5000/api/compiler/execute', {
+      const response = await fetch(`${API_BASE}/api/compiler/execute`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -300,7 +302,7 @@ export default function EnhancedExamInterface() {
 
       console.log('🔍 Submitting data:', submissionData)
       
-      const response = await fetch('http://127.0.0.1:5000/api/exam/submit-solution', {
+      const response = await fetch(`${API_BASE}/api/exam/submit-solution`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json'
